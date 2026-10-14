@@ -2,7 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { playLoop, stopLoop, stopAll } from './lib/audioEngine.js';
 import { createMicrophoneRecorder } from './audio/microphoneRecorder.js';
 import { analyzeClip } from './lib/analysisClient.js';
+import { selectableRange } from './lib/phraseRanges.mjs';
+import { saveSession, listSessions, removeSession, clearSessions, restoreClip } from './lib/localLibrary.js';
 import Contour from './components/Contour.jsx';
+import MirrorCompare from './components/MirrorCompare.jsx';
+import PhrasePlayer from './components/PhrasePlayer.jsx';
 import drums from '../loop1.mp3';
 import bass from '../loop2.mp3';
 import melody from '../loop3.mp3';
@@ -15,137 +19,252 @@ const samples = [
 const allowedExtensions = /\.(wav|mp3|m4a|aac|flac|webm|ogg)$/i;
 const MAX_BYTES = 25 * 1024 * 1024;
 
-function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyzing, kind }) {
+function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyzing, kind, onKind, index }) {
   const input = useRef(null);
   return <section className="lane">
-    <div className="lane-heading"><div><p className="eyebrow">{title}</p><p className="hint">{description}</p></div><span className="lane-index">{kind === 'solo_bass' ? '02' : '01'}</span></div>
-    {clip ? <div className="clip"><div><strong>{clip.name}</strong><small>{(clip.file.size / 1024 / 1024).toFixed(2)} MB · {clip.file.type || 'unknown media type'}</small></div>
-      <button className="text-button" onClick={onClear} type="button">Remove</button></div> : <button className="upload" onClick={() => input.current?.click()} type="button">+ Choose audio file</button>}
+    <div className="lane-heading"><div><p className="eyebrow">{title}</p><p className="hint">{description}</p></div><span className="lane-index">{index}</span></div>
+    <label className="source-choice">Source type
+      <select aria-label={title + ' source type'} value={kind} onChange={e=>onKind(e.target.value)}>
+        <option value="solo_bass">Solo bass</option><option value="humming">Humming</option>
+        <option value="separated_stem">Separated stem</option><option value="mixed_reference">Mixed music (pitch may be unreliable)</option>
+      </select>
+    </label>
+    {clip ? <div className="clip"><div><strong>{clip.name}</strong><small>{(clip.file.size / 1048576).toFixed(2)} MB · {clip.file.type || 'unknown media type'}</small></div>
+      <button className="text-button" onClick={onClear} type="button">Remove</button></div>
+      : <button className="upload" onClick={() => input.current?.click()} type="button">+ Choose audio file</button>}
     <input ref={input} className="sr-only" type="file" accept="audio/*,.wav,.mp3,.m4a,.flac,.webm,.ogg" onChange={e => { if (e.target.files?.[0]) onFile(e.target.files[0]); e.target.value=''; }} />
-    {clip && <div className="lane-actions"><audio controls preload="metadata" src={clip.url} aria-label={title + ' audio playback'} /><button className="button-quiet" onClick={onAnalyze} disabled={analyzing}>{analyzing ? 'Listening…' : clip.analysis ? 'Analyze again' : 'Analyze shape'}</button></div>}
-    {clip?.analysis && <Contour analysis={clip.analysis} label={title} />}
+    {clip && <div className="lane-actions"><audio controls preload="metadata" src={clip.url} aria-label={title + ' original audio'} />
+      <button className="button-quiet" onClick={onAnalyze} disabled={analyzing}>{analyzing ? 'Listening…' : clip.analysis ? 'Analyze again' : 'Analyze shape'}</button></div>}
+    {clip?.analysis && <Contour analysis={clip.analysis} label={title}/>}
+  </section>;
+}
+
+function Library({ entries, onOpen, onDelete, onDeleteAll, isSaving, onSave, canSave, title, onTitle }) {
+  return <section className="library" aria-label="Your locally saved phrases">
+    <div className="compare-head"><div><p className="eyebrow">05 / PRESERVE</p><h2>Keep the accident.</h2></div><span className="hint">Saved on this device only</span></div>
+    <div className="save-row">
+      <label>Phrase name<input value={title} onChange={e=>onTitle(e.target.value)} maxLength={90} placeholder="That riff with the long pause" /></label>
+      <button className="button-record" disabled={!canSave || isSaving} onClick={onSave}>{isSaving ? 'Saving…' : 'Keep this phrase'}</button>
+    </div>
+    {entries.length ? <div className="saved-list">{entries.map(entry=><article key={entry.id} className="saved-item">
+      <div><strong>{entry.title}</strong><small>{new Date(entry.createdAt).toLocaleDateString()} · Original recordings preserved</small></div>
+      <div className="saved-actions"><button className="button-quiet" onClick={()=>onOpen(entry)}>Open</button><button className="text-button" onClick={()=>onDelete(entry.id)}>Delete</button></div>
+    </article>)}</div> : <p className="caption">Your saved musical discoveries will appear here.</p>}
+    {!!entries.length && <button className="text-button" onClick={onDeleteAll}>Delete all local sessions</button>}
   </section>;
 }
 
 export default function App() {
-  const [loops, setLoops] = useState({});
-  const [reference, setReference] = useState(null);
-  const [take, setTake] = useState(null);
-  const [recording, setRecording] = useState(false);
-  const [requestingMic, setRequestingMic] = useState(false);
-  const [busy, setBusy] = useState({});
-  const [message, setMessage] = useState('');
-  const recorder = useRef(null);
-  const micRequestPending = useRef(false);
-  const mounted = useRef(false);
-  const referenceRef = useRef(null);
-  const takeRef = useRef(null);
-  const jobs = useRef(new Map());
+  const [loops,setLoops]=useState({});
+  const [reference,setReference]=useState(null);
+  const [take,setTake]=useState(null);
+  const [refKind,setRefKind]=useState('separated_stem');
+  const [takeKind,setTakeKind]=useState('solo_bass');
+  const [recording,setRecording]=useState(false);
+  const [requestingMic,setRequestingMic]=useState(false);
+  const [busy,setBusy]=useState({});
+  const [comparing,setComparing]=useState(false);
+  const [comparison,setComparison]=useState(null);
+  const [normalized,setNormalized]=useState(false);
+  const [selection,setSelection]=useState({start:0,end:4});
+  const [entries,setEntries]=useState([]);
+  const [title,setTitle]=useState('');
+  const [saving,setSaving]=useState(false);
+  const [message,setMessage]=useState('');
+  const recorder=useRef(null);
+  const micRequestPending=useRef(false);
+  const mounted=useRef(false);
+  const referenceRef=useRef(null);
+  const takeRef=useRef(null);
+  const jobs=useRef(new Map());
+  const compareJob=useRef(null);
 
-  // Unmount disposes audio players and permission handles. URLs are revoked once.
-  useEffect(() => { referenceRef.current = reference; }, [reference]);
-  useEffect(() => { takeRef.current = take; }, [take]);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-    mounted.current = false;
-    stopAll();
-    recorder.current?.cancel();
-    jobs.current.forEach(c => c.abort());
-    if (referenceRef.current) URL.revokeObjectURL(referenceRef.current.url);
-    if (takeRef.current) URL.revokeObjectURL(takeRef.current.url);
+  const invalidate=()=>{compareJob.current?.abort();compareJob.current=null;setComparison(null);setNormalized(false);setComparing(false);};
+  const refreshLibrary=()=>listSessions().then(result=>{if(mounted.current)setEntries(result);}).catch(error=>{if(mounted.current)setMessage(error.message);});
+  useEffect(()=>{
+    mounted.current=true;
+    refreshLibrary();
+    return ()=>{
+      mounted.current=false;
+      stopAll();
+      recorder.current?.cancel();
+      jobs.current.forEach(c=>c.abort());
+      compareJob.current?.abort();
+      if(referenceRef.current)URL.revokeObjectURL(referenceRef.current.url);
+      if(takeRef.current)URL.revokeObjectURL(takeRef.current.url);
     };
-  }, []);
+  },[]);
 
-  const toggleLoop = async s => {
-    if (loops[s.id]) { stopLoop(s.id); setLoops(prev => ({ ...prev, [s.id]: false })); return; }
-    try { await playLoop(s.id, s.url); setLoops(prev => ({ ...prev, [s.id]: true })); setMessage(''); }
-    catch (error) { setMessage(error.message); }
+  const replaceClip=(lane,clip)=>{
+    const setter=lane==='reference'?setReference:setTake;
+    const handle=lane==='reference'?referenceRef:takeRef;
+    if(handle.current)URL.revokeObjectURL(handle.current.url);
+    handle.current=clip;
+    setter(clip);
+    jobs.current.get(lane)?.abort();
+    jobs.current.delete(lane);
+    setBusy(prev=>({...prev,[lane]:false}));
+    invalidate();
   };
-  const setClip = (lane, file) => {
-    if (file.size > MAX_BYTES || !file.size || !(file.type.startsWith('audio/') || allowedExtensions.test(file.name))) {
-      setMessage('Choose a supported audio file under 25 MB.'); return;
+  const setFile=(lane,file)=>{
+    if(!file.size||file.size>MAX_BYTES||!(file.type.startsWith('audio/')||allowedExtensions.test(file.name))){
+      setMessage('Choose a supported audio file under 25 MB.');return;
     }
-    jobs.current.get(lane)?.abort(); jobs.current.delete(lane);
-    const setter = lane === 'reference' ? setReference : setTake;
-    const handle = lane === 'reference' ? referenceRef : takeRef;
-    if (handle.current) URL.revokeObjectURL(handle.current.url);
-    const next = { file, name: file.name, url: URL.createObjectURL(file), analysis: null };
-    handle.current = next;
-    setter(next);
-    setBusy(prev => ({ ...prev, [lane]: false }));
+    replaceClip(lane,{file,name:file.name,url:URL.createObjectURL(file),analysis:null});
+    if(lane==='reference')setSelection({start:0,end:4});
     setMessage('');
   };
-  const clearClip = lane => {
-    jobs.current.get(lane)?.abort(); jobs.current.delete(lane);
-    const setter = lane === 'reference' ? setReference : setTake;
-    const handle = lane === 'reference' ? referenceRef : takeRef;
-    if (handle.current) URL.revokeObjectURL(handle.current.url);
-    handle.current = null;
-    setter(null);
-    setBusy(prev => ({ ...prev, [lane]: false }));
-  };
-  const analyze = async (lane, clip, sourceKind) => {
-    if (!clip) return;
-    const controller = new AbortController();
-    jobs.current.get(lane)?.abort(); jobs.current.set(lane, controller);
-    setBusy(prev => ({ ...prev, [lane]: true })); setMessage('');
-    try {
-      const result = await analyzeClip(clip.file, sourceKind, controller.signal);
-      if (jobs.current.get(lane) !== controller) return;
-      const setter = lane === 'reference' ? setReference : setTake;
-      setter(prev => prev?.file === clip.file ? { ...prev, analysis: result } : prev);
-    } catch (error) {
-      if (!controller.signal.aborted) setMessage(error.message);
-    } finally {
-      if (jobs.current.get(lane) === controller) {
-        jobs.current.delete(lane); setBusy(prev => ({ ...prev, [lane]: false }));
-      }
+
+  const analyze=async(lane,clip,sourceKind)=>{
+    if(!clip)return;
+    const controller=new AbortController();
+    jobs.current.get(lane)?.abort();jobs.current.set(lane,controller);
+    invalidate();
+    setBusy(prev=>({...prev,[lane]:true}));setMessage('');
+    try{
+      const result=await analyzeClip(clip.file,sourceKind,controller.signal);
+      if(jobs.current.get(lane)!==controller)return;
+      const handle=lane==='reference'?referenceRef:takeRef;
+      const setter=lane==='reference'?setReference:setTake;
+      if(handle.current?.file!==clip.file)return;
+      const next={...handle.current,analysis:result};
+      handle.current=next;setter(next);
+      if(lane==='reference')setSelection({start:0,end:result.source.duration_s});
+      else if(!referenceRef.current?.analysis)setSelection({start:0,end:result.source.duration_s});
+    }catch(e){if(!controller.signal.aborted&&mounted.current)setMessage(e.message);}
+    finally{
+      if(jobs.current.get(lane)===controller){jobs.current.delete(lane);setBusy(prev=>({...prev,[lane]:false}));}
     }
-  };
-  const startRecording = async () => {
-    if (micRequestPending.current || recorder.current) return;
-    micRequestPending.current = true;
-    setRequestingMic(true);
-    try {
-      const active = await createMicrophoneRecorder();
-      if (!mounted.current) { active.cancel(); return; }
-      recorder.current = active;
-      setRecording(true);
-      setMessage('Recording your bass. Press Stop when you are done.');
-    } catch (error) {
-      if (mounted.current) { setRecording(false); setMessage(error.message); }
-    } finally {
-      micRequestPending.current = false;
-      if (mounted.current) setRequestingMic(false);
-    }
-  };
-  const stopRecording = async () => {
-    const active = recorder.current;
-    if (!active) return;
-    recorder.current = null; setRecording(false);
-    try {
-      const blob = await active.stop();
-      const ext = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('webm') ? 'webm' : 'audio';
-      setClip('take', new File([blob], `offbeat-take-${Date.now()}.${ext}`, { type: blob.type }));
-    } catch (error) { setMessage(error.message); }
   };
 
+  const compare=async()=>{
+    if(!reference?.analysis||!take?.analysis)return;
+    compareJob.current?.abort();
+    const controller=new AbortController();
+    compareJob.current=controller;setComparing(true);setMessage('');
+    try{
+      const response=await fetch('http://127.0.0.1:8765/v1/compare',{
+        method:'POST',signal:controller.signal,
+        headers:{'Content-Type':'application/json','X-Offbeat-Client':'local-ui'},
+        body:JSON.stringify({reference:reference.analysis,take:take.analysis,mode:'onsets'})
+      });
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error?.message||'Comparison could not be completed.');
+      if(data.schema_version!=='offbeat.compare.v1')throw new Error('Comparison version mismatch.');
+      if(compareJob.current!==controller)return;
+      setComparison(data);setNormalized(true);
+      const a=data.alignment;
+      setSelection(selectableRange(a.reference_anchor_start_s,a.reference_anchor_end_s,reference.analysis.source.duration_s));
+    }catch(e){if(!controller.signal.aborted&&mounted.current)setMessage('Comparison unavailable: '+e.message);}
+    finally{if(compareJob.current===controller){compareJob.current=null;setComparing(false);}}
+  };
+
+  const startRecording=async()=>{
+    if(micRequestPending.current||recorder.current)return;
+    micRequestPending.current=true;setRequestingMic(true);
+    try{
+      const active=await createMicrophoneRecorder();
+      if(!mounted.current){active.cancel();return;}
+      recorder.current=active;setRecording(true);setMessage('Recording. Press Stop when done.');
+    }catch(e){if(mounted.current)setMessage(e.message);}
+    finally{micRequestPending.current=false;if(mounted.current)setRequestingMic(false);}
+  };
+  const stopRecording=async()=>{
+    const active=recorder.current;
+    if(!active)return;
+    recorder.current=null;setRecording(false);
+    try{
+      const blob=await active.stop();
+      if(!mounted.current)return;
+      const ext=blob.type.includes('mp4')?'m4a':blob.type.includes('webm')?'webm':blob.type.includes('ogg')?'ogg':'audio';
+      setFile('take',new File([blob],`offbeat-take-${Date.now()}.${ext}`,{type:blob.type}));
+    }catch(e){if(mounted.current)setMessage(e.message);}
+  };
+
+  const toggleLoop=async s=>{
+    if(loops[s.id]){stopLoop(s.id);setLoops(prev=>({...prev,[s.id]:false}));return;}
+    try{await playLoop(s.id,s.url);if(mounted.current)setLoops(prev=>({...prev,[s.id]:true}));}
+    catch(e){setMessage(e.message);}
+  };
+  const keep=async()=>{
+    setSaving(true);setMessage('');
+    try{
+      await saveSession({title,reference:referenceRef.current,take:takeRef.current,selection,comparison});
+      await refreshLibrary();setTitle('');
+      setMessage('Saved locally. Your original audio stays unchanged.');
+    }catch(e){setMessage('Could not save locally: '+e.message);}
+    finally{setSaving(false);}
+  };
+  const openEntry=entry=>{
+    jobs.current.forEach(c=>c.abort());jobs.current.clear();
+    const r=restoreClip(entry.reference),t=restoreClip(entry.take);
+    replaceClip('reference',r);
+    replaceClip('take',t);
+    setSelection(entry.selection);
+    // Comparison is derived only from the exact saved analyses; clear stale
+    // references from previous open before attaching the stored version.
+    if(entry.comparison&&r?.analysis?.analysis_id===entry.comparison.reference_analysis_id
+      &&t?.analysis?.analysis_id===entry.comparison.take_analysis_id){
+      setComparison(entry.comparison);
+    }
+    setMessage('Opened saved originals and analysis. No network was needed.');
+  };
+  const deleteOne=async id=>{
+    try{await removeSession(id);await refreshLibrary();setMessage('Local session deleted.');}
+    catch(e){setMessage(e.message);}
+  };
+  const deleteAll=async()=>{
+    if(!window.confirm('Permanently delete every Offbeat session saved in this browser?'))return;
+    try{await clearSessions();await refreshLibrary();setMessage('All saved sessions deleted from this browser.');}
+    catch(e){setMessage(e.message);}
+  };
+
+  const refDuration=reference?.analysis?.source.duration_s||take?.analysis?.source.duration_s||0;
+  const selected=selectableRange(selection.start,selection.end,refDuration||4);
+  const canSave=!!reference?.analysis||!!take?.analysis;
   return <main className="shell">
-    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>ALPHA / 0.1</span></header>
-    <section className="hero">
-      <p className="eyebrow">01 / MIRROR INSTRUMENT</p>
-      <h1>Hear what your hands remembered.</h1>
-      <p>Record a phrase. See its movement, attacks, and silences. No scores, no wrong notes, no notation required.</p>
-    </section>
+    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / V0.1</span></header>
+    <section className="hero"><p className="eyebrow">01 / CAPTURE</p><h1>Hear what your hands remembered.</h1>
+      <p>Record a phrase. Compare what moved, what stayed, and the silence between. No scores, no wrong notes, no sheet music.</p></section>
     <div className="workspace">
-      <ClipLane title="Reference" description="A solo bass stem, humming, or another short example." clip={reference} onFile={f => setClip('reference', f)} onClear={() => clearClip('reference')} onAnalyze={() => analyze('reference', reference, 'separated_stem')} analyzing={busy.reference} kind="separated_stem" />
-      <ClipLane title="Your take" description="Play into the microphone or upload a recording." clip={take} onFile={f => setClip('take', f)} onClear={() => clearClip('take')} onAnalyze={() => analyze('take', take, 'solo_bass')} analyzing={busy.take} kind="solo_bass" />
-      <div className="record-row"><button className={recording ? 'button-record active' : 'button-record'} type="button" disabled={requestingMic} onClick={recording ? stopRecording : startRecording}>{requestingMic ? 'Waiting for microphone…' : recording ? '■ Stop recording' : '● Record bass'}</button><p>Microphone access is requested only when you press Record. Local Python analysis never uploads your audio to the cloud.</p></div>
-      {reference?.analysis && take?.analysis && <div className="insight"><p className="eyebrow">TWO PHRASES, TWO SHAPES</p><p>These contours preserve each recording's original timing. A/B alignment and phrase selection are coming in the next build gate.</p></div>}
-      {message && <p className="status" role="status">{message}</p>}
+      <ClipLane title="Reference" description="A bass stem, hum, or other short musical example." clip={reference}
+        onFile={file=>setFile('reference',file)} onClear={()=>replaceClip('reference',null)}
+        onAnalyze={()=>analyze('reference',reference,refKind)} analyzing={busy.reference}
+        kind={refKind} onKind={setRefKind} index="01"/>
+      <ClipLane title="Your take" description="Record your bass or import your own improvisation." clip={take}
+        onFile={file=>setFile('take',file)} onClear={()=>replaceClip('take',null)}
+        onAnalyze={()=>analyze('take',take,takeKind)} analyzing={busy.take}
+        kind={takeKind} onKind={setTakeKind} index="02"/>
+      <div className="record-row">
+        <button type="button" className={recording?'button-record active':'button-record'} disabled={requestingMic}
+          onClick={recording?stopRecording:startRecording}>{requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record bass'}</button>
+        <p>Mic permission is requested only when you press Record. Audio analysis runs on your local machine.</p>
+      </div>
+      {message&&<p className="status" role="status">{message}</p>}
     </div>
-    <section className="samples"><div><p className="eyebrow">02 / ORIGINAL PLAYGROUND</p><h2>Three sounds, one loop at a time.</h2></div><div className="sample-list">{samples.map(s => <button key={s.id} onClick={() => toggleLoop(s)} className={loops[s.id] ? 'sample on' : 'sample'} aria-pressed={!!loops[s.id]}><span>{s.name}</span><span>{loops[s.id] ? '■ Stop' : '▶ Play'}</span></button>)}</div></section>
-    <footer>OFFBEAT · Local first · The source is yours.</footer>
+
+    <section className="compare-workspace">
+      <div className="compare-head"><div><p className="eyebrow">02 / DISCOVER</p><h2>Find the musical gesture.</h2></div>
+        <button className="button-record" disabled={!reference?.analysis||!take?.analysis||comparing}
+          onClick={compare}>{comparing?'Comparing…':'Compare these phrases'}</button></div>
+      <MirrorCompare reference={reference} take={take} comparison={comparison} normalized={normalized} onNormalize={setNormalized}/>
+      {reference?.analysis&&take?.analysis&&<section className="selection" aria-label="Select phrase segment">
+        <p className="eyebrow">SELECTION / NON-DESTRUCTIVE</p><p className="hint">Choose a region on the reference timeline. Offbeat maps it to the corresponding region of your take for A/B listening.</p>
+        <div className="range-fields">
+          <label>Start · {selected.start.toFixed(2)}s
+            <input aria-label="Phrase start" type="range" min="0" max={Math.max(.2,refDuration-.12)} step=".01" value={selected.start}
+              onChange={e=>setSelection(prev=>selectableRange(Number(e.target.value),prev.end,refDuration))}/></label>
+          <label>End · {selected.end.toFixed(2)}s
+            <input aria-label="Phrase end" type="range" min=".12" max={Math.max(.2,refDuration)} step=".01" value={selected.end}
+              onChange={e=>setSelection(prev=>selectableRange(prev.start,Number(e.target.value),refDuration))}/></label>
+        </div>
+        <p className="caption">The original recordings are never trimmed or overwritten. Slider keys: arrows for fine adjustment.</p>
+      </section>}
+      <PhrasePlayer reference={reference} take={take} comparison={comparison} selection={selected}/>
+    </section>
+    <Library entries={entries} title={title} onTitle={setTitle} isSaving={saving} onSave={keep} canSave={canSave} onOpen={openEntry} onDelete={deleteOne} onDeleteAll={deleteAll}/>
+    <section className="samples"><div><p className="eyebrow">06 / ORIGINAL PLAYGROUND</p><h2>The loops are still here.</h2></div>
+      <div className="sample-list">{samples.map(s=><button key={s.id} onClick={()=>toggleLoop(s)} className={loops[s.id]?'sample on':'sample'} aria-pressed={!!loops[s.id]}><span>{s.name}</span><span>{loops[s.id]?'■ Stop':'▶ Play'}</span></button>)}</div></section>
+    <footer>OFFBEAT · Local first · Only keep the parts you love.</footer>
   </main>;
 }
