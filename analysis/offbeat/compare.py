@@ -46,12 +46,38 @@ def _validate(phrase):
     return duration
 
 
-def _anchors(phrase, mode):
+def _reference_region(phrase, requested):
     duration = phrase["source"]["duration_s"]
+    if requested is None:
+        start, end = 0.0, duration
+    else:
+        if not isinstance(requested, dict):
+            raise ComparisonError("Choose a valid reference excerpt.")
+        start, end = requested.get("start_s"), requested.get("end_s")
+        if (not isinstance(start, (int, float)) or isinstance(start, bool)
+                or not isinstance(end, (int, float)) or isinstance(end, bool)
+                or not math.isfinite(start) or not math.isfinite(end)
+                or not 0 <= start < end <= duration + 0.0001 or end - start < .2):
+            raise ComparisonError("Reference excerpt must be at least 0.2 seconds and inside the recording.")
+        end = min(end, duration)
+    # Do not alter source data or reset timestamps: A/B needs original recording seconds.
+    view = {
+        **phrase,
+        "onsets": [x for x in phrase["onsets"] if start <= x["t_s"] <= end],
+        "pitch_frames": [x for x in phrase["pitch_frames"] if start <= x["t_s"] <= end],
+        "rests": [{**x, "start_s": max(start, x["start_s"]), "end_s": min(end, x["end_s"])}
+                  for x in phrase["rests"] if x["start_s"] < end and x["end_s"] > start],
+    }
+    return view, start, end
+
+
+def _anchors(phrase, mode, bounds=None):
+    start, end = bounds if bounds is not None else (0.0, phrase["source"]["duration_s"])
     attacks = [x["t_s"] for x in phrase["onsets"] if x.get("strength", 0) >= .2]
-    if mode == "onsets" and len(attacks) >= 2 and attacks[-1] - attacks[0] > .15:
+    # A short cluster in an otherwise long excerpt must not imply a huge tempo change.
+    if mode == "onsets" and len(attacks) >= 2 and attacks[-1] - attacks[0] >= .5 * (end - start):
         return attacks[0], attacks[-1], "onset_span"
-    return 0.0, duration, "duration"
+    return start, end, "duration"
 
 
 def _relative_contour(phrase):
@@ -75,20 +101,21 @@ def _describe(contour):
     return "rises" if d > 1.6 else "falls" if d < -1.6 else "stays near its starting register"
 
 
-def compare_phrases(reference, take, mode="onsets"):
+def compare_phrases(reference, take, mode="onsets", reference_region=None):
     rd, td = _validate(reference), _validate(take)
     if mode not in ("onsets", "duration"):
         raise ComparisonError("Choose duration or onsets alignment.")
-    r0, r1, rmethod = _anchors(reference, mode)
+    reference_view, segment_start, segment_end = _reference_region(reference, reference_region)
+    r0, r1, rmethod = _anchors(reference_view, mode, (segment_start, segment_end))
     t0, t1, tmethod = _anchors(take, mode)
     reference_span = r1 - r0
     take_span = t1 - t0
     ratio = reference_span / take_span
     if not 0.5 <= ratio <= 2:
-        # Match can still be displayed, but the extreme stretch is not trustworthy.
-        warning = "The phrases differ greatly in length; normalized alignment may be misleading."
-    else:
-        warning = None
+        raise ComparisonError(
+            "The selected reference and your take differ too much in length. "
+            "Choose a similar-length part of the reference before comparing."
+        )
 
     def take_at_reference(t):
         return t0 + (t - r0) / ratio
@@ -98,7 +125,7 @@ def compare_phrases(reference, take, mode="onsets"):
     matched = []
     unmatched_reference = []
     tolerance = max(.09, min(.24, reference_span * .045))
-    for i, attack in enumerate(reference["onsets"]):
+    for i, attack in enumerate(reference_view["onsets"]):
         projected = take_at_reference(attack["t_s"])
         options = [(abs(candidate["t_s"] - projected) * ratio, j)
                    for j, candidate in enumerate(take_onsets) if j not in used]
@@ -117,25 +144,25 @@ def compare_phrases(reference, take, mode="onsets"):
             "offset_on_reference_seconds": round((take_onsets[j]["t_s"] - projected) * ratio, 4),
         })
 
-    rc = _relative_contour(reference)
+    rc = _relative_contour(reference_view)
     tc = _relative_contour(take)
     rdesc, tdesc = _describe(rc), _describe(tc)
     description = []
     if rdesc and tdesc:
         if rdesc == tdesc:
-            description.append("Both phrases " + rdesc + ".")
+            description.append("Both phrases " + ("stay near their starting registers" if rdesc == "stays near its starting register" else rdesc) + ".")
         else:
             description.append("The reference " + rdesc + "; your take " + tdesc + ".")
-    if reference["rests"] and take["rests"]:
+    if reference_view["rests"] and take["rests"]:
         description.append("Both recordings contain audible spaces between gestures.")
     if not description:
         description.append("Try isolating cleaner, pitched phrases for a clearer comparison.")
 
     # Limit words that imply certainty: matched attacks are *temporal* correspondence,
     # not proof of identical melody, expressive intent, or tempo correctness.
-    warnings = []
-    if warning:
-        warnings.append(warning)
+    warnings = [
+        "Matched attacks mean nearby timings, not confirmation of identical notes or the same riff."
+    ]
     if not rc or not tc:
         warnings.append("Pitch-contour comparison is unavailable for one or both recordings.")
     if len(reference["onsets"]) < 2 or len(take["onsets"]) < 2:
@@ -150,6 +177,8 @@ def compare_phrases(reference, take, mode="onsets"):
         "alignment": {
             "mode": mode,
             "method": rmethod if rmethod == tmethod else "mixed_span_fallback",
+            "reference_region_start_s": segment_start,
+            "reference_region_end_s": segment_end,
             "reference_anchor_start_s": r0,
             "reference_anchor_end_s": r1,
             "take_anchor_start_s": t0,
@@ -162,7 +191,7 @@ def compare_phrases(reference, take, mode="onsets"):
         "unmatched_reference_indices": unmatched_reference,
         "unmatched_take_indices": [j for j in range(len(take_onsets)) if j not in used],
         "coverage": {
-            "reference_voiced_fraction": round(len(rc) / max(1, len(reference["pitch_frames"])), 4),
+            "reference_voiced_fraction": round(len(rc) / max(1, len(reference_view["pitch_frames"])), 4),
             "take_voiced_fraction": round(len(tc) / max(1, len(take["pitch_frames"])), 4),
         },
         "descriptors": description,
