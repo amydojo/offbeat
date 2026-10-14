@@ -45,6 +45,8 @@ def run():
             page.set_default_timeout(45000)
             failures = []
             page.on("pageerror", lambda error: failures.append(str(error)))
+            outgoing = []
+            page.on("request", lambda request: outgoing.append(request.url) if request.url.startswith(("https://", "http://")) and not request.url.startswith(("http://127.0.0.1:5173/", "http://127.0.0.1:8765/")) else None)
             page.goto("http://127.0.0.1:5173", wait_until="networkidle")
             expect(page.get_by_role("heading", name="Hear what your hands remembered.")).to_be_visible()
 
@@ -69,6 +71,8 @@ def run():
             assert float(start.input_value()) > 0
             page.get_by_role("button", name="A / B · Alternate").click()
             expect(page.get_by_role("button", name="■ Stop")).to_be_enabled()
+            # Ensure the selected source actually alternates, not merely starts.
+            expect(page.get_by_text("Your take ·", exact=False)).to_be_visible(timeout=18000)
             page.get_by_role("button", name="■ Stop").click()
 
             page.get_by_placeholder("That riff with the long pause").fill("Synthetic bass groove")
@@ -88,6 +92,7 @@ def run():
             page.get_by_role("button", name="Stop recording").click()
             expect(page.get_by_text("offbeat-take-", exact=False)).to_be_visible(timeout=20000)
 
+            assert not outgoing, f"Unexpected outbound browser requests: {outgoing}"
             assert not failures, f"Browser JavaScript exceptions: {failures}"
             print("PASS: import, analyze, aligned comparison, keyboard selection, A/B, IndexedDB reopen/delete, fake mic")
         finally:
