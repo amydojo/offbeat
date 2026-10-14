@@ -32,9 +32,12 @@ export default function App() {
   const [reference, setReference] = useState(null);
   const [take, setTake] = useState(null);
   const [recording, setRecording] = useState(false);
+  const [requestingMic, setRequestingMic] = useState(false);
   const [busy, setBusy] = useState({});
   const [message, setMessage] = useState('');
   const recorder = useRef(null);
+  const micRequestPending = useRef(false);
+  const mounted = useRef(false);
   const referenceRef = useRef(null);
   const takeRef = useRef(null);
   const jobs = useRef(new Map());
@@ -42,12 +45,16 @@ export default function App() {
   // Unmount disposes audio players and permission handles. URLs are revoked once.
   useEffect(() => { referenceRef.current = reference; }, [reference]);
   useEffect(() => { takeRef.current = take; }, [take]);
-  useEffect(() => () => {
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+    mounted.current = false;
     stopAll();
     recorder.current?.cancel();
     jobs.current.forEach(c => c.abort());
     if (referenceRef.current) URL.revokeObjectURL(referenceRef.current.url);
     if (takeRef.current) URL.revokeObjectURL(takeRef.current.url);
+    };
   }, []);
 
   const toggleLoop = async s => {
@@ -97,8 +104,21 @@ export default function App() {
     }
   };
   const startRecording = async () => {
-    try { recorder.current = await createMicrophoneRecorder(); setRecording(true); setMessage('Recording your bass. Press Stop when you are done.'); }
-    catch (error) { setRecording(false); setMessage(error.message); }
+    if (micRequestPending.current || recorder.current) return;
+    micRequestPending.current = true;
+    setRequestingMic(true);
+    try {
+      const active = await createMicrophoneRecorder();
+      if (!mounted.current) { active.cancel(); return; }
+      recorder.current = active;
+      setRecording(true);
+      setMessage('Recording your bass. Press Stop when you are done.');
+    } catch (error) {
+      if (mounted.current) { setRecording(false); setMessage(error.message); }
+    } finally {
+      micRequestPending.current = false;
+      if (mounted.current) setRequestingMic(false);
+    }
   };
   const stopRecording = async () => {
     const active = recorder.current;
@@ -121,7 +141,7 @@ export default function App() {
     <div className="workspace">
       <ClipLane title="Reference" description="A solo bass stem, humming, or another short example." clip={reference} onFile={f => setClip('reference', f)} onClear={() => clearClip('reference')} onAnalyze={() => analyze('reference', reference, 'separated_stem')} analyzing={busy.reference} kind="separated_stem" />
       <ClipLane title="Your take" description="Play into the microphone or upload a recording." clip={take} onFile={f => setClip('take', f)} onClear={() => clearClip('take')} onAnalyze={() => analyze('take', take, 'solo_bass')} analyzing={busy.take} kind="solo_bass" />
-      <div className="record-row"><button className={recording ? 'button-record active' : 'button-record'} type="button" onClick={recording ? stopRecording : startRecording}>{recording ? '■ Stop recording' : '● Record bass'}</button><p>Microphone access is requested only when you press Record. Local Python analysis never uploads your audio to the cloud.</p></div>
+      <div className="record-row"><button className={recording ? 'button-record active' : 'button-record'} type="button" disabled={requestingMic} onClick={recording ? stopRecording : startRecording}>{requestingMic ? 'Waiting for microphone…' : recording ? '■ Stop recording' : '● Record bass'}</button><p>Microphone access is requested only when you press Record. Local Python analysis never uploads your audio to the cloud.</p></div>
       {reference?.analysis && take?.analysis && <div className="insight"><p className="eyebrow">TWO PHRASES, TWO SHAPES</p><p>These contours preserve each recording's original timing. A/B alignment and phrase selection are coming in the next build gate.</p></div>}
       {message && <p className="status" role="status">{message}</p>}
     </div>
