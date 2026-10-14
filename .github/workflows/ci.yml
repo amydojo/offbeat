@@ -16,6 +16,8 @@ jobs:
           node-version: '22'
       - name: Install locked frontend dependencies
         run: npm ci --no-audit --no-fund
+      - name: Test phrase range and alignment helpers
+        run: node --test src/lib/phraseRanges.test.mjs
       - name: Build Vite app
         run: npm run build
 
