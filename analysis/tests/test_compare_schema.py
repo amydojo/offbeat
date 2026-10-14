@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import jsonschema
-from .test_compare import phrase
+from test_compare import phrase
 from offbeat.compare import compare_phrases
 
 
