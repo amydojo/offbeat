@@ -22,10 +22,14 @@ async function transact(mode, operation) {
   try {
     return await new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, mode);
+      let value;
+      // An individual IDB request can succeed before the write is committed.
+      // Resolve only after oncomplete so the UI never falsely says "saved".
+      tx.oncomplete = () => resolve(value);
+      tx.onerror = () => reject(tx.error || new Error('Local storage operation failed.'));
+      tx.onabort = () => reject(tx.error || new Error('Local storage transaction aborted.'));
       const request = operation(tx.objectStore(STORE));
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-      tx.onabort = () => reject(tx.error || new Error('Local storage transaction failed.'));
+      request.onsuccess = () => { value = request.result; };
     });
   } finally { db.close(); }
 }
