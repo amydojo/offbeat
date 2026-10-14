@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OFFBEAT source-preserving temporal phrase comparison",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reference_analysis_id",
+    "take_analysis_id",
+    "alignment",
+    "matched_onsets",
+    "unmatched_reference_indices",
+    "unmatched_take_indices",
+    "coverage",
+    "descriptors",
+    "warnings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "offbeat.compare.v1"
+    },
+    "reference_analysis_id": {
+      "type": "string"
+    },
+    "take_analysis_id": {
+      "type": "string"
+    },
+    "alignment": {
+      "type": "object",
+      "required": [
+        "mode",
+        "method",
+        "reference_anchor_start_s",
+        "reference_anchor_end_s",
+        "take_anchor_start_s",
+        "take_anchor_end_s",
+        "take_to_reference_scale",
+        "reference_duration_s",
+        "take_duration_s"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "onsets",
+            "duration"
+          ]
+        },
+        "method": {
+          "enum": [
+            "duration",
+            "onset_span",
+            "mixed_span_fallback"
+          ]
+        },
+        "reference_anchor_start_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reference_anchor_end_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "take_anchor_start_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "take_anchor_end_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "take_to_reference_scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reference_duration_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "take_duration_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "matched_onsets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "reference_index",
+          "take_index",
+          "reference_time_s",
+          "take_time_s",
+          "offset_on_reference_seconds"
+        ],
+        "properties": {
+          "reference_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "take_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reference_time_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "take_time_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "offset_on_reference_seconds": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "unmatched_reference_indices": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "unmatched_take_indices": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "reference_voiced_fraction",
+        "take_voiced_fraction"
+      ],
+      "properties": {
+        "reference_voiced_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "take_voiced_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "descriptors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
