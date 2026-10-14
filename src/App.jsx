@@ -70,6 +70,7 @@ export default function App() {
   const [entries,setEntries]=useState([]);
   const [title,setTitle]=useState('');
   const [saving,setSaving]=useState(false);
+  const [activeSessionId,setActiveSessionId]=useState(null);
   const [message,setMessage]=useState('');
   const recorder=useRef(null);
   const micRequestPending=useRef(false);
@@ -96,6 +97,7 @@ export default function App() {
   },[]);
 
   const replaceClip=(lane,clip)=>{
+    setActiveSessionId(null);
     const setter=lane==='reference'?setReference:setTake;
     const handle=lane==='reference'?referenceRef:takeRef;
     if(handle.current)URL.revokeObjectURL(handle.current.url);
@@ -189,7 +191,8 @@ export default function App() {
   const keep=async()=>{
     setSaving(true);setMessage('');
     try{
-      await saveSession({title,reference:referenceRef.current,take:takeRef.current,selection,comparison});
+      const saved=await saveSession({title,reference:referenceRef.current,take:takeRef.current,selection,comparison});
+      setActiveSessionId(saved.id);
       await refreshLibrary();setTitle('');
       setMessage('Saved locally. Your original audio stays unchanged.');
     }catch(e){setMessage('Could not save locally: '+e.message);}
@@ -201,6 +204,7 @@ export default function App() {
     replaceClip('reference',r);
     replaceClip('take',t);
     setSelection(entry.selection);
+    setActiveSessionId(entry.id);
     // Comparison is derived only from the exact saved analyses; clear stale
     // references from previous open before attaching the stored version.
     if(entry.comparison&&r?.analysis?.analysis_id===entry.comparison.reference_analysis_id
@@ -210,12 +214,20 @@ export default function App() {
     setMessage('Opened saved originals and analysis. No network was needed.');
   };
   const deleteOne=async id=>{
-    try{await removeSession(id);await refreshLibrary();setMessage('Local session deleted.');}
+    try{
+      await removeSession(id);
+      if(activeSessionId===id){replaceClip('reference',null);replaceClip('take',null);setSelection({start:0,end:4});}
+      await refreshLibrary();setMessage('Local session deleted.');
+    }
     catch(e){setMessage(e.message);}
   };
   const deleteAll=async()=>{
     if(!window.confirm('Permanently delete every Offbeat session saved in this browser?'))return;
-    try{await clearSessions();await refreshLibrary();setMessage('All saved sessions deleted from this browser.');}
+    try{
+      await clearSessions();
+      if(activeSessionId){replaceClip('reference',null);replaceClip('take',null);setSelection({start:0,end:4});}
+      await refreshLibrary();setMessage('All saved sessions deleted from this browser.');
+    }
     catch(e){setMessage(e.message);}
   };
 
