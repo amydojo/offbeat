@@ -63,3 +63,31 @@ def test_bad_content_kind_and_length():
 def test_comparison_not_faked():
     response = client.post("/v1/compare", headers=HEADER, json={})
     assert response.status_code == 501
+
+
+def test_decoder_disallows_network_protocols(monkeypatch):
+    """No ffprobe/FFmpeg demuxer should be able to fetch remote media links."""
+    import json
+    from types import SimpleNamespace
+    from offbeat.api import decode_audio
+    import offbeat.api as api
+
+    calls = []
+    def fake_run(argv, **_kwargs):
+        calls.append(argv)
+        assert argv[argv.index("-protocol_whitelist") + 1] == "file,pipe"
+        if argv[0] == "ffprobe":
+            return SimpleNamespace(returncode=0, stdout=json.dumps({
+                "streams": [{"sample_rate": "22050", "channels": 1}],
+                "format": {"duration": "0.25"}
+            }))
+        return SimpleNamespace(
+            returncode=0,
+            stdout=np.zeros(5512, dtype="<f4").tobytes()
+        )
+
+    monkeypatch.setattr(api.subprocess, "run", fake_run)
+    data, sample_rate, channels = decode_audio(b"not real audio; mocked decoder")
+    assert data.size == 5512
+    assert sample_rate == 22050 and channels == 1
+    assert len(calls) == 2
