@@ -31,7 +31,7 @@ export async function createMicrophoneRecorder() {
   recorder.addEventListener('error', (event) => {
     recordingError = event.error || new Error('Audio recording failed.');
   });
-  recorder.start(250);
+  try { recorder.start(250); } catch (error) { cleanup(); throw error; }
   return {
     mimeType: recorder.mimeType,
     stop() {
