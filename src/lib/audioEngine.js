@@ -1,37 +1,40 @@
 import * as Tone from 'tone';
 
-const loops = {};
-const recorder = new Tone.Recorder();
+// Demo-loop bus only. Microphone recording lives in audio/microphoneRecorder.js.
+const players = new Map();
+const starting = new Map();
 
 export async function playLoop(id, url) {
-  if (loops[id]) return;
-  const player = new Tone.Player({ url, loop: true, autostart: true }).toDestination();
-  // Connect to recorder
-  Tone.Destination.connect(recorder);
-  loops[id] = player;
-}
-
-export function stopLoop(id) {
-  if (loops[id]) {
-    loops[id].stop();
-    delete loops[id];
+  if (players.has(id) || starting.has(id)) return;
+  const token = Symbol(id);
+  starting.set(id, token);
+  let player;
+  try {
+    await Tone.start();
+    player = new Tone.Player({ url, loop: true, autostart: false }).toDestination();
+    await Tone.loaded();
+    // Stop may have been requested while the file was loading.
+    if (starting.get(id) !== token) { player.dispose(); return; }
+    players.set(id, player);
+    player.start();
+  } catch (error) {
+    if (player) player.dispose();
+    throw error;
+  } finally {
+    if (starting.get(id) === token) starting.delete(id);
   }
 }
 
-export async function startRecording() {
-  await Tone.start();
-  recorder.start();
-}
-
-export async function stopRecording() {
-  const recording = await recorder.stop();
-  const url = URL.createObjectURL(recording);
-  return url;
+export function stopLoop(id) {
+  starting.delete(id);
+  const player = players.get(id);
+  if (!player) return;
+  try { player.stop(); } finally { player.dispose(); players.delete(id); }
 }
 
 export function stopAll() {
-  Object.keys(loops).forEach((id) => {
-    loops[id].stop();
-    delete loops[id];
-  });
+  for (const id of [...starting.keys()]) starting.delete(id);
+  for (const id of [...players.keys()]) stopLoop(id);
 }
+
+export function isLoopPlaying(id) { return players.has(id); }

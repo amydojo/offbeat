@@ -131,3 +131,12 @@ dist
 
 # Replit debugger
 .breakpoints
+# Local Python analysis environment and audio test captures
+analysis/.venv/
+analysis/.pytest_cache/
+analysis/.ruff_cache/
+**/__pycache__/
+*.pyc
+analysis/.mypy_cache/
+fixtures/private-audio/
+*.wav.tmp
