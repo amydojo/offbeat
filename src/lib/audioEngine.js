@@ -2,25 +2,26 @@ import * as Tone from 'tone';
 
 // Demo-loop bus only. Microphone recording lives in audio/microphoneRecorder.js.
 const players = new Map();
-let starting = new Set();
+const starting = new Map();
 
 export async function playLoop(id, url) {
   if (players.has(id) || starting.has(id)) return;
-  starting.add(id);
+  const token = Symbol(id);
+  starting.set(id, token);
   let player;
   try {
     await Tone.start();
     player = new Tone.Player({ url, loop: true, autostart: false }).toDestination();
     await Tone.loaded();
     // Stop may have been requested while the file was loading.
-    if (!starting.has(id)) { player.dispose(); return; }
+    if (starting.get(id) !== token) { player.dispose(); return; }
     players.set(id, player);
     player.start();
   } catch (error) {
     if (player) player.dispose();
     throw error;
   } finally {
-    starting.delete(id);
+    if (starting.get(id) === token) starting.delete(id);
   }
 }
 
@@ -32,7 +33,7 @@ export function stopLoop(id) {
 }
 
 export function stopAll() {
-  for (const id of [...starting]) starting.delete(id);
+  for (const id of [...starting.keys()]) starting.delete(id);
   for (const id of [...players.keys()]) stopLoop(id);
 }
 
