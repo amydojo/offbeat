@@ -1,0 +1,35 @@
+name: Offbeat baseline CI
+on:
+  push:
+    branches: [main, feat/bass-mirror-foundation-01]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install frontend (legacy lockfile to be regenerated)
+        run: npm install --no-audit --no-fund
+      - name: Build Vite app
+        run: npm run build
+  analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install Python engine + tests
+        working-directory: analysis
+        run: python -m pip install -e '.[dev]'
+      - name: Run analysis and contract tests
+        working-directory: analysis
+        run: python -m pytest -q
