@@ -136,6 +136,7 @@ async def compare(request: Request):
         return compare_phrases(
             payload.get("reference"), payload.get("take"),
             mode=payload.get("mode", "onsets"),
+            reference_region=payload.get("reference_region"),
         )
     except (ComparisonError, TypeError, KeyError, AttributeError) as exc:
         return failure(422, "COMPARE_INVALID", str(exc))
