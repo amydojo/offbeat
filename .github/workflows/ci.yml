@@ -1,7 +1,7 @@
 name: Offbeat baseline CI
 on:
   push:
-    branches: [main, feat/bass-mirror-foundation-01]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
