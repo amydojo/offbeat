@@ -43,7 +43,9 @@ python -m pytest
 
 Current analysis limits: 25 MB, 60 s, monophonic pitch within approximately 36–650 Hz, stereo downmix, FFmpeg decoder required. Onset boundaries, high harmonics, low E bass and noisy recordings require careful listening checks. YIN is a DSP baseline; no pretrained models run. The versioned `/v1/compare` reports aligned attack correspondences, source timing and nonjudgmental contour descriptors. Sparse inputs can produce weak or misleading matches; use the original-time view to verify.
 
-**Mac hardware checklist:** [physical-device and Safari QA](docs/MAC_MICROPHONE_QA.md) must be completed by someone with the actual Mac. Linux Chromium CI only exercises a fake microphone.\n\n**Follow-up quality gates:** A locked Python environment (`uv.lock`), UI accessibility and browser microphone tests, local-worker session-token hardening, and optional PESTO remain planned; see [issues](https://github.com/amydojo/offbeat/issues/1). The npm dependency lockfile has been regenerated for this project and CI now uses reproducible `npm ci`.
+**Mac hardware checklist:** [physical-device and Safari QA](docs/MAC_MICROPHONE_QA.md) must be completed by someone with the actual Mac. Linux Chromium CI only exercises a fake microphone.
+
+**Follow-up quality gates:** A locked Python environment (`uv.lock`), full screen-reader/accessibility audit, local-worker session-token hardening, and optional PESTO remain planned; see [issues](https://github.com/amydojo/offbeat/issues/1). The npm dependency lockfile has been regenerated for this project and CI now uses reproducible `npm ci`.
 
 Detailed architecture: [Bass Mirror Engineering Spec](docs/BASS_MIRROR_ENGINEERING_SPEC_V0.1_TO_V1.md).
 
