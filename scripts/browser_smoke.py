@@ -84,6 +84,8 @@ def run():
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(2)
             page.get_by_role("button", name="Delete", exact=True).click()
             expect(page.get_by_text("Synthetic bass groove", exact=True)).to_have_count(0)
+            # Removing a saved session also drops its currently-opened in-memory copy.
+            expect(page.get_by_role("button", name="Analyze again")).to_have_count(0)
 
             # This is browser emulation only; the user's actual Mac device must be tested manually.
             page.get_by_role("button", name="Record bass").click()
