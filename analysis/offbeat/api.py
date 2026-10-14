@@ -60,7 +60,7 @@ def decode_audio(data: bytes) -> tuple[np.ndarray, int, int]:
         path = Path(work) / "upload.bin"
         path.write_bytes(data)
         probe = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries",
+            ["ffprobe", "-v", "error", "-protocol_whitelist", "file,pipe", "-show_entries",
              "format=duration:stream=sample_rate,channels", "-of", "json", str(path)],
             capture_output=True, text=True, timeout=10, check=False,
         )
@@ -76,7 +76,7 @@ def decode_audio(data: bytes) -> tuple[np.ndarray, int, int]:
         if duration and float(duration) > MAX_SECONDS:
             raise OverflowError("Audio exceeds the 60-second analysis limit.")
         encoded = subprocess.run(
-            ["ffmpeg", "-nostdin", "-v", "error", "-i", str(path), "-map", "0:a:0",
+            ["ffmpeg", "-nostdin", "-v", "error", "-protocol_whitelist", "file,pipe", "-i", str(path), "-map", "0:a:0",
              "-t", "60.05", "-ac", "1", "-ar", str(SAMPLE_RATE),
              "-f", "f32le", "-acodec", "pcm_f32le", "pipe:1"],
             capture_output=True, timeout=25, check=False,
