@@ -70,3 +70,24 @@ def test_api_origin_rejects():
     response = HTTP.post("/v1/compare", json={"reference": phrase("a"), "take": phrase("b")},
                          headers={"X-Offbeat-Client": "local-ui", "Origin": "https://evil.example"})
     assert response.status_code == 403
+
+def test_long_song_requires_excerpt_instead_of_faking_a_match():
+    reference = phrase("long", tempo_factor=4)
+    take = phrase("hum")
+    # It is dangerous to interpret the full-song alignment as a riff match.
+    with pytest.raises(ComparisonError, match="similar-length"):
+        compare_phrases(reference, take, mode="duration")
+
+    region = {"start_s": 4.0, "end_s": 8.0}
+    output = compare_phrases(reference, take, mode="duration", reference_region=region)
+    assert output["alignment"]["reference_region_start_s"] == 4.0
+    assert output["alignment"]["reference_region_end_s"] == 8.0
+    assert output["alignment"]["reference_anchor_start_s"] == 4.0
+    assert output["alignment"]["reference_anchor_end_s"] == 8.0
+    assert all(4 <= item["reference_time_s"] <= 8 for item in output["matched_onsets"])
+    assert any("not confirmation" in w for w in output["warnings"])
+
+
+def test_invalid_excerpt_is_rejected():
+    with pytest.raises(ComparisonError, match="Reference excerpt"):
+        compare_phrases(phrase("a"), phrase("b"), reference_region={"start_s": 3.7, "end_s": 9})
