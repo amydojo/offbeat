@@ -15,7 +15,7 @@ Prerequisites: Node 22, Python 3.11–3.13, FFmpeg in PATH. On macOS install FFm
 
 ```sh
 brew install ffmpeg
-npm install
+npm ci
 npm run dev
 ```
 
@@ -43,7 +43,7 @@ python -m pytest
 
 Current analysis limits: 25 MB, 60 s, monophonic pitch within approximately 36–650 Hz, stereo downmix, FFmpeg decoder required. Onset boundaries, high harmonics, low E bass and noisy recordings require careful listening checks. YIN is a DSP baseline; no pretrained models run. A/B comparison is deferred to BM-09; /v1/compare explicitly returns 501.
 
-**Technical debt:** existing `package-lock.json` originated from a different project and does not match this package.json. CI currently uses `npm install` to regenerate a working lock in the runner. Recreate and commit a valid lockfile before adopting `npm ci`. A locked Python environment (`uv.lock`), UI accessibility tests, local worker session-token hardening, and optional PESTO remain follow-up gates; see [issues](https://github.com/amydojo/offbeat/issues/1).
+**Follow-up quality gates:** A locked Python environment (`uv.lock`), UI accessibility and browser microphone tests, local-worker session-token hardening, and optional PESTO remain planned; see [issues](https://github.com/amydojo/offbeat/issues/1). The npm dependency lockfile has been regenerated for this project and CI now uses reproducible `npm ci`.
 
 Detailed architecture: [Bass Mirror Engineering Spec](docs/BASS_MIRROR_ENGINEERING_SPEC_V0.1_TO_V1.md).
 
