@@ -61,17 +61,21 @@ export default function App() {
     }
     jobs.current.get(lane)?.abort(); jobs.current.delete(lane);
     const setter = lane === 'reference' ? setReference : setTake;
-    setter(prev => {
-      if (prev) URL.revokeObjectURL(prev.url);
-      return { file, name: file.name, url: URL.createObjectURL(file), analysis: null };
-    });
+    const handle = lane === 'reference' ? referenceRef : takeRef;
+    if (handle.current) URL.revokeObjectURL(handle.current.url);
+    const next = { file, name: file.name, url: URL.createObjectURL(file), analysis: null };
+    handle.current = next;
+    setter(next);
     setBusy(prev => ({ ...prev, [lane]: false }));
     setMessage('');
   };
   const clearClip = lane => {
     jobs.current.get(lane)?.abort(); jobs.current.delete(lane);
     const setter = lane === 'reference' ? setReference : setTake;
-    setter(prev => { if (prev) URL.revokeObjectURL(prev.url); return null; });
+    const handle = lane === 'reference' ? referenceRef : takeRef;
+    if (handle.current) URL.revokeObjectURL(handle.current.url);
+    handle.current = null;
+    setter(null);
     setBusy(prev => ({ ...prev, [lane]: false }));
   };
   const analyze = async (lane, clip, sourceKind) => {
