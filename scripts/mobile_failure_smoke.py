@@ -17,13 +17,13 @@ def run():
    """)
    page.goto('http://127.0.0.1:5173/',wait_until='networkidle')
    page.get_by_role('button',name='● Record or hum').click()
-   expect(page.get_by_role('status')).to_contain_text('User denied microphone permission',timeout=10000)
+   expect(page.locator('p.status')).to_contain_text('User denied microphone permission',timeout=10000)
    expect(page.get_by_role('button',name='● Record or hum')).to_be_enabled()
    # Never create a fake audio recording on failed permission.
    assert page.get_by_label('Your take musical features').count()==0
    uploader=page.locator('input[type=file]').nth(1)
    uploader.set_input_files({"name":"unsafe.exe","mimeType":"application/octet-stream","buffer":b'untrusted'})
-   expect(page.get_by_role('status')).to_contain_text('supported audio file',timeout=5000)
+   expect(page.locator('p.status')).to_contain_text('supported audio file',timeout=5000)
    expect(page.get_by_role('button',name='● Record or hum')).to_be_enabled()
    print('PASS: denied permission recovers; unsupported file cannot enter analysis')
    # On a separate emulated phone where microphone is allowed, record actual
