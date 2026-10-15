@@ -87,6 +87,28 @@ def run():
             # Removing a saved session also drops its currently-opened in-memory copy.
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(0)
 
+            # Regression for a full bass stem compared with a short hum: narrow
+            # the reference to an explicit source-time excerpt before matching.
+            fields = page.locator('input[type="file"]')
+            fields.nth(0).set_input_files({"name": "long-reference.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(4.0)})
+            fields.nth(1).set_input_files({"name": "short-hum.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(1.25)})
+            page.get_by_role("button", name="Analyze shape").first.click()
+            expect(page.get_by_role("button", name="Analyze again")).to_have_count(1, timeout=90000)
+            page.get_by_role("button", name="Analyze shape").click()
+            expect(page.get_by_role("button", name="Analyze again")).to_have_count(2, timeout=90000)
+            excerpt = page.get_by_role("slider", name="Reference excerpt position")
+            expect(excerpt).to_be_visible()
+            assert float(excerpt.get_attribute("max")) > 5
+            excerpt.focus()
+            excerpt.press("ArrowRight")
+            assert float(excerpt.input_value()) > 0
+            page.get_by_role("button", name="Preview excerpt").click()
+            expect(page.get_by_role("button", name="Stop preview")).to_be_visible()
+            page.get_by_role("button", name="Stop preview").click()
+            page.get_by_role("button", name="Compare these phrases").click()
+            expect(page.get_by_text("temporally corresponding attacks", exact=False)).to_be_visible(timeout=15000)
+            assert not page.get_by_text("The phrases differ greatly in length", exact=False).count()
+
             # This is browser emulation only; the user's actual Mac device must be tested manually.
             page.get_by_role("button", name="Record bass").click()
             expect(page.get_by_role("button", name="Stop recording")).to_be_visible(timeout=20000)
