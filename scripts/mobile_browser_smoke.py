@@ -17,9 +17,20 @@ def run():
    page.goto('http://127.0.0.1:5173/',wait_until='networkidle')
    expect(page.get_by_role('navigation',name='Offbeat mobile navigation')).to_be_visible()
    assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 2'),'Horizontal mobile overflow'
-   uploader=page.locator('input[type=file]')
-   uploader.nth(0).set_input_files({"name":"reference.wav","mimeType":"audio/wav","buffer":synthetic_bass()})
-   uploader.nth(1).set_input_files({"name":"humming.wav","mimeType":"audio/wav","buffer":synthetic_bass(1.15)})
+   expect(page.get_by_role('heading',name='Start with a sound.')).to_be_visible()
+   expect(page.get_by_role('button',name='Record or hum')).to_be_visible()
+   assert page.evaluate("""() => {
+     const record=document.querySelector('.capture-panel .button-record');
+     const take=document.getElementById('take');
+     const ref=document.getElementById('reference');
+     return record.getBoundingClientRect().top < take.getBoundingClientRect().top &&
+       take.getBoundingClientRect().top < ref.getBoundingClientRect().top &&
+       record.getBoundingClientRect().height >= 48;
+   }"""),'Capture must be above the import lanes with a large record target'
+   reference_file=page.get_by_role('region',name='Reference audio').locator('input[type=file]')
+   take_file=page.get_by_role('region',name='Your take audio').locator('input[type=file]')
+   reference_file.set_input_files({"name":"reference.wav","mimeType":"audio/wav","buffer":synthetic_bass()})
+   take_file.set_input_files({"name":"humming.wav","mimeType":"audio/wav","buffer":synthetic_bass(1.15)})
    page.get_by_label('Your take source type').select_option('humming')
    page.get_by_role('button',name='Analyze shape').first.click()
    expect(page.get_by_role('button',name='Analyze again')).to_have_count(1,timeout=45000)
@@ -37,6 +48,7 @@ def run():
    expect(page.get_by_text('Pocket groove',exact=True)).to_be_visible()
    page.get_by_role('button',name='Open',exact=True).click()
    expect(page.get_by_text('Opened saved originals and analysis.',exact=False)).to_be_visible()
+   page.once('dialog',lambda dialog:dialog.accept())
    page.get_by_role('button',name='Delete',exact=True).click()
    expect(page.get_by_text('Pocket groove',exact=True)).to_have_count(0)
    assert all(':8765' not in url for url in calls),'Browser analysis must never depend on Python API'

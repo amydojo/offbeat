@@ -48,11 +48,12 @@ def run():
             outgoing = []
             page.on("request", lambda request: outgoing.append(request.url) if request.url.startswith(("https://", "http://")) and not request.url.startswith(("http://127.0.0.1:5173/", "http://127.0.0.1:8765/")) else None)
             page.goto("http://127.0.0.1:5173", wait_until="networkidle")
-            expect(page.get_by_role("heading", name="Hear what your hands remembered.")).to_be_visible()
+            expect(page.get_by_role("heading", name="Hear it in your head. Catch it here.")).to_be_visible()
 
-            fields = page.locator('input[type="file"]')
-            fields.nth(0).set_input_files({"name": "bass-reference.wav", "mimeType": "audio/wav", "buffer": synthetic_bass()})
-            fields.nth(1).set_input_files({"name": "bass-take.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(1.25)})
+            reference_file = page.get_by_role("region", name="Reference audio").locator('input[type=file]')
+            take_file = page.get_by_role("region", name="Your take audio").locator('input[type=file]')
+            reference_file.set_input_files({"name": "bass-reference.wav", "mimeType": "audio/wav", "buffer": synthetic_bass()})
+            take_file.set_input_files({"name": "bass-take.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(1.25)})
             page.get_by_role("button", name="Analyze shape").first.click()
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(1, timeout=90000)
             page.get_by_role("button", name="Analyze shape").click()
@@ -82,6 +83,10 @@ def run():
             expect(page.get_by_text("Synthetic bass groove", exact=True)).to_be_visible()
             page.get_by_role("button", name="Open", exact=True).click()
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(2)
+            page.once("dialog", lambda d: d.dismiss())
+            page.get_by_role("button", name="Delete", exact=True).click()
+            expect(page.get_by_text("Synthetic bass groove", exact=True)).to_be_visible()
+            page.once("dialog", lambda d: d.accept())
             page.get_by_role("button", name="Delete", exact=True).click()
             expect(page.get_by_text("Synthetic bass groove", exact=True)).to_have_count(0)
             # Removing a saved session also drops its currently-opened in-memory copy.
@@ -89,18 +94,18 @@ def run():
 
             # Regression for a full bass stem compared with a short hum: narrow
             # the reference to an explicit source-time excerpt before matching.
-            fields = page.locator('input[type="file"]')
-            fields.nth(0).set_input_files({"name": "long-reference.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(4.0)})
-            fields.nth(1).set_input_files({"name": "short-hum.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(1.25)})
+            reference_file.set_input_files({"name": "long-reference.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(4.0)})
+            take_file.set_input_files({"name": "short-hum.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(1.25)})
             page.get_by_role("button", name="Analyze shape").first.click()
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(1, timeout=90000)
             page.get_by_role("button", name="Analyze shape").click()
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(2, timeout=90000)
             # Source-kind edits must never leave an old 'solo bass' analysis
             # attached to newly labeled 'humming' audio.
-            page.get_by_label("Your take source type").select_option("humming")
+            page.get_by_label("Your take source type").select_option("solo_bass")
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(1)
-            page.get_by_role("button", name="Analyze shape").click()
+            page.get_by_label("Your take source type").select_option("humming")
+            page.get_by_role("region", name="Your take audio").get_by_role("button", name="Analyze shape").click()
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(2, timeout=90000)
             excerpt = page.get_by_role("slider", name="Reference excerpt position")
             expect(excerpt).to_be_visible()
@@ -121,6 +126,7 @@ def run():
             time.sleep(1)
             page.get_by_role("button", name="Stop recording").click()
             expect(page.get_by_text("offbeat-take-", exact=False)).to_be_visible(timeout=20000)
+            expect(page.get_by_role("region", name="Your take audio").get_by_role("button", name="Analyze again")).to_be_visible(timeout=45000)
 
             assert not outgoing, f"Unexpected outbound browser requests: {outgoing}"
             assert not failures, f"Browser JavaScript exceptions: {failures}"
