@@ -22,6 +22,8 @@ if [[ "${OFFBEAT_LAUNCHER_CHECK_ONLY:-0}" == "1" ]]; then
   print "OFFBEAT_PREFLIGHT_OK"
   exit 0
 fi
+previous_revision="$(git -C "$repo" rev-parse HEAD 2>>"$log" || true)"
+revision_changed=0
 if [[ -d "$repo/.git" ]] && [[ -z "$(git -C "$repo" status --porcelain --untracked-files=no 2>>"$log")" ]]; then
   if git -C "$repo" fetch --quiet origin main >>"$log" 2>&1; then
     if git -C "$repo" switch --quiet main >>"$log" 2>&1; then
@@ -32,6 +34,35 @@ if [[ -d "$repo/.git" ]] && [[ -z "$(git -C "$repo" status --porcelain --untrack
   fi
 else
   print "Update skipped; your local tracked changes are preserved." >> "$log"
+fi
+current_revision="$(git -C "$repo" rev-parse HEAD 2>>"$log" || true)"
+if [[ -n "$previous_revision" && "$current_revision" != "$previous_revision" ]]; then
+  revision_changed=1
+  print "Updated checkout: restarting owned local processes, preserving browser storage." >> "$log"
+fi
+stop_owned_port() {
+  local port="$1" pid command_line working_directory
+  pid="$(/usr/sbin/lsof -nP -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | /usr/bin/head -n 1 || true)"
+  [[ -n "$pid" ]] || return 0
+  command_line="$(/bin/ps -p "$pid" -o command= 2>/dev/null || true)"
+  working_directory="$(/usr/sbin/lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | /usr/bin/sed -n 's/^n//p' | /usr/bin/head -n 1 || true)"
+  if [[ "$working_directory" != "$repo" && "$working_directory" != "$repo/analysis" ]]; then
+    fail "Port $port is already used by another app. Offbeat won't stop someone else's process."
+  fi
+  if [[ "$port" == "8765" && "$command_line" != *uvicorn* ]] ||
+     [[ "$port" == "5173" && "$command_line" != *vite* ]]; then
+    fail "Port $port is in use by an unexpected local process. Offbeat won't stop it."
+  fi
+  /bin/kill "$pid" 2>>"$log" || fail "Could not restart the local process on port $port."
+  for wait_count in {1..20}; do
+    if ! /usr/sbin/lsof -nP -tiTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then return 0; fi
+    sleep .2
+  done
+  fail "The old process on port $port didn't stop; no other process was touched."
+}
+if [[ "$revision_changed" == "1" ]]; then
+  stop_owned_port 8765
+  stop_owned_port 5173
 fi
 command -v npm >/dev/null 2>&1 || fail "Node.js/npm is missing. Offbeat needs Node 22."
 command -v ffmpeg >/dev/null 2>&1 || fail "FFmpeg is missing from PATH."
