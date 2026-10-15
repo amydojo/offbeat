@@ -181,6 +181,8 @@ export default function App() {
   const takeRef=useRef(null);
   const jobs=useRef(new Map());
   const compareJob=useRef(null);
+  const analysisQueue=useRef(Promise.resolve());
+  const autoComparePair=useRef(null);
 
   const invalidate=()=>{compareJob.current?.abort();compareJob.current=null;setComparison(null);setNormalized(false);setComparing(false);};
   const refreshLibrary=()=>listSessions().then(result=>{if(mounted.current)setEntries(result);}).catch(error=>{if(mounted.current)setMessage(error.message);});
@@ -220,9 +222,17 @@ export default function App() {
     if(!file.size||file.size>MAX_BYTES||!(file.type.startsWith('audio/')||allowedExtensions.test(file.name))){
       setMessage('Choose a supported audio file under 25 MB.');return;
     }
-    replaceClip(lane,{file,name:file.name,url:URL.createObjectURL(file),analysis:null,excerptStart:null,fullDuration:null});
+    const clip={file,name:file.name,url:URL.createObjectURL(file),analysis:null,excerptStart:null,fullDuration:null};
+    replaceClip(lane,clip);
     const inferred=inferSourceKind(file.name);
     if(inferred){if(lane==='take')setTakeKind(inferred);else setRefKind(inferred);}
+    // One on-device analysis at a time: two long imports must not overload iOS.
+    setBusy(prev=>({...prev,[lane]:true}));
+    analysisQueue.current=analysisQueue.current.catch(()=>{}).then(async()=>{
+      const current=lane==='take'?takeRef.current:referenceRef.current;
+      if(current?.file!==file)return;
+      await analyze(lane,current,inferred||(lane==='take'?takeKind:refKind));
+    });
     setRefWindowStart(0);
     if(lane==='reference')setSelection({start:0,end:4});
     setMessage('');
@@ -258,7 +268,7 @@ export default function App() {
       if(lane==='reference')setSelection({start:0,end:result.source.duration_s});
       else if(!referenceRef.current?.analysis)setSelection({start:0,end:result.source.duration_s});
       setRefWindowStart(0);
-      if(fullDuration>60)setMessage('Analyzed '+LONG_CLIP_EXCERPT_SECONDS+' seconds from your '+fullDuration.toFixed(1)+'-second original. Move the excerpt slider to explore another section.');
+      if(fullDuration>60)setMessage('Analyzed '+LONG_CLIP_EXCERPT_SECONDS+' seconds of '+Math.round(fullDuration)+'s. Change section under the clip if needed.');
       return true;
     }catch(e){if(!controller.signal.aborted&&mounted.current)setMessage(e.message);return false;}
     finally{
@@ -335,8 +345,6 @@ export default function App() {
       const ext=blob.type.includes('wav')?'wav':blob.type.includes('mp4')?'m4a':blob.type.includes('webm')?'webm':blob.type.includes('ogg')?'ogg':'audio';
       const file=new File([blob],`offbeat-take-${Date.now()}.${ext}`,{type:blob.type});
       setFile('take',file);
-      const analyzed=await analyze('take',{file},takeKind);
-      if(analyzed&&mounted.current)setMessage('Your musical shape is ready. Add a reference to compare, or save this idea.');
     }catch(e){if(mounted.current)setMessage(e.message);}
   };
 
@@ -426,6 +434,16 @@ export default function App() {
   const maxReferenceWindowStart=Math.max(0,refDuration-referenceExcerptSeconds);
   const effectiveReferenceWindowStart=Math.min(refWindowStart,maxReferenceWindowStart);
   const canSave=!!reference?.analysis||!!take?.analysis;
+  useEffect(()=>{
+    const id=take?.analysis?.analysis_id&&reference?.analysis?.analysis_id
+      ?take.analysis.analysis_id+':'+reference.analysis.analysis_id:null;
+    if(!id||id===autoComparePair.current)return;
+    autoComparePair.current=id;
+    if(comparison?.take_analysis_id===take.analysis.analysis_id&&
+       comparison?.reference_analysis_id===reference.analysis.analysis_id)return;
+    void compare();
+  },[take?.analysis?.analysis_id,reference?.analysis?.analysis_id]);
+
   const recordingClock=`${String(Math.floor(recordSeconds/60)).padStart(2,'0')}:${String(recordSeconds%60).padStart(2,'0')}`;
   const readyToCompare=!!take?.analysis&&!!reference?.analysis;
   const takeLabel=clipTitle(take?.file,'Sound A');
