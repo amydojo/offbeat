@@ -58,7 +58,9 @@ def run():
    groove.get_by_role('button',name='New variation').click()
    groove.get_by_role('button',name='Play with drums').click()
    expect(groove.get_by_role('button',name='Stop groove')).to_be_visible(timeout=12000)
+   expect(groove.get_by_role('status')).to_contain_text('2 loops started.',timeout=16000)
    groove.get_by_role('button',name='Stop groove').click()
+   expect(groove.get_by_role('button',name='Play with drums')).to_be_enabled()
    with page.expect_download(timeout=30000) as mixed_download:
     groove.get_by_role('button',name='Export mixed WAV').click()
    wav=mixed_download.value
