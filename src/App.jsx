@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { playLoop, stopLoop, stopAll } from './lib/audioEngine.js';
 import { createMicrophoneRecorder } from './audio/microphoneRecorder.js';
-import { analyzeClip, compareClips, ANALYSIS_LOCATION } from './lib/analysisClient.js';
+import { analyzeClip, compareClips, ANALYSIS_LOCATION, LONG_CLIP_EXCERPT_SECONDS } from './lib/analysisClient.js';
 import { selectableRange } from './lib/phraseRanges.mjs';
 import { saveSession, listSessions, removeSession, clearSessions, restoreClip } from './lib/localLibrary.js';
 import { downloadSessionBackup, parseSessionBackup } from './lib/sessionPortable.mjs';
@@ -33,8 +33,21 @@ function microphoneFailure(error) {
   return error?.message||'Could not start the microphone. Try again or import an audio file.';
 }
 
-function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyzing, kind, onKind, index }) {
+function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyzing, kind, onKind, onExcerptChange, index }) {
   const input = useRef(null);
+  const playback = useRef(null);
+  const longClip = clip?.fullDuration>60;
+  const excerptStart = clip?.excerptStart??0;
+  const excerptEnd = Math.min(clip?.fullDuration||0,excerptStart+LONG_CLIP_EXCERPT_SECONDS);
+  const previewExcerpt = () => {
+    const audio=playback.current;
+    if(!audio)return;
+    audio.pause();
+    if(audio.readyState>=1)audio.currentTime=excerptStart;
+    else audio.addEventListener('loadedmetadata',()=>{audio.currentTime=excerptStart;},{once:true});
+    audio.dataset.excerptPreview='yes';
+    void audio.play().catch(()=>{audio.dataset.excerptPreview='no';});
+  };
   return <section className={'lane '+(title==='Your take'?'lane-take':'lane-reference')} aria-label={title + ' audio'}>
     <div className="lane-heading"><div><p className="eyebrow">{title}</p><p className="hint">{description}</p></div><span className="lane-index">{clip?.analysis?'ANALYZED':clip?'LOADED':index}</span></div>
     <label className="source-choice">Source type
@@ -47,7 +60,19 @@ function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyz
       <div className="clip-actions"><a className="text-button" href={clip.url} download={clip.name}>Download original</a><button className="text-button" onClick={onClear} type="button">Remove</button></div></div>
       : <button className="upload" onClick={() => input.current?.click()} type="button">{title==='Reference'?'+ Add reference recording':'+ Import your own recording'}</button>}
     <input ref={input} className="sr-only" type="file" accept="audio/*,.wav,.mp3,.m4a,.flac,.webm,.ogg" onChange={e => { if (e.target.files?.[0]) onFile(e.target.files[0]); e.target.value=''; }} />
-    {clip && <div className="lane-actions"><audio controls preload="metadata" src={clip.url} aria-label={title + ' original audio'} />
+    {longClip && <div className="source-excerpt" aria-label={title + ' analysis excerpt'}>
+      <div className="source-excerpt-heading"><strong>ANALYSIS EXCERPT · {excerptStart.toFixed(1)}–{excerptEnd.toFixed(1)}s</strong>
+        <span>{clip.fullDuration.toFixed(1)}s full recording · original preserved</span></div>
+      <p className="hint">OFFBEAT selected an active {LONG_CLIP_EXCERPT_SECONDS}-second section. Move the window to the part you want, then analyze again.</p>
+      <div className="source-excerpt-actions">
+        <input type="range" aria-label={title + ' analysis excerpt position'} min="0"
+          max={Math.max(0,clip.fullDuration-LONG_CLIP_EXCERPT_SECONDS)} step=".1"
+          value={excerptStart} disabled={analyzing} onChange={e=>onExcerptChange(Number(e.target.value))}/>
+        <button className="button-quiet" type="button" onClick={previewExcerpt}>▶ Preview selection</button>
+      </div>
+    </div>}
+    {clip && <div className="lane-actions"><audio ref={playback} controls preload="metadata" src={clip.url} aria-label={title + ' original audio'}
+      onTimeUpdate={e=>{if(longClip&&e.currentTarget.dataset.excerptPreview==='yes'&&e.currentTarget.currentTime>=excerptEnd&&e.currentTarget.currentTime>excerptStart+.2){e.currentTarget.pause();e.currentTarget.dataset.excerptPreview='no';}}} />
       <button className="button-quiet" onClick={onAnalyze} disabled={analyzing}>{analyzing ? 'Listening…' : clip.analysis ? 'Analyze again' : 'Analyze shape'}</button></div>}
     {clip?.analysis && <Contour analysis={clip.analysis} label={title}/>}
   </section>;
@@ -151,7 +176,7 @@ export default function App() {
     if(!file.size||file.size>MAX_BYTES||!(file.type.startsWith('audio/')||allowedExtensions.test(file.name))){
       setMessage('Choose a supported audio file under 25 MB.');return;
     }
-    replaceClip(lane,{file,name:file.name,url:URL.createObjectURL(file),analysis:null});
+    replaceClip(lane,{file,name:file.name,url:URL.createObjectURL(file),analysis:null,excerptStart:null,fullDuration:null});
     setRefWindowStart(0);
     if(lane==='reference')setSelection({start:0,end:4});
     setMessage('');
@@ -164,16 +189,17 @@ export default function App() {
     invalidate();
     setBusy(prev=>({...prev,[lane]:true}));setMessage('');
     try{
-      const result=await analyzeClip(clip.file,sourceKind,controller.signal);
+      const {analysis:result,excerptStart,fullDuration}=await analyzeClip(clip.file,sourceKind,controller.signal,clip.excerptStart);
       if(jobs.current.get(lane)!==controller)return;
       const handle=lane==='reference'?referenceRef:takeRef;
       const setter=lane==='reference'?setReference:setTake;
       if(handle.current?.file!==clip.file)return;
-      const next={...handle.current,analysis:result};
+      const next={...handle.current,analysis:result,excerptStart,fullDuration};
       handle.current=next;setter(next);
       if(lane==='reference')setSelection({start:0,end:result.source.duration_s});
       else if(!referenceRef.current?.analysis)setSelection({start:0,end:result.source.duration_s});
       setRefWindowStart(0);
+      if(fullDuration>60)setMessage('Analyzed '+LONG_CLIP_EXCERPT_SECONDS+' seconds from your '+fullDuration.toFixed(1)+'-second original. Move the excerpt slider to explore another section.');
       return true;
     }catch(e){if(!controller.signal.aborted&&mounted.current)setMessage(e.message);return false;}
     finally{
@@ -203,6 +229,20 @@ export default function App() {
       setSelection(selectableRange(a.reference_anchor_start_s,a.reference_anchor_end_s,reference.analysis.source.duration_s));
     }catch(e){if(!controller.signal.aborted&&mounted.current)setMessage('Comparison unavailable: '+e.message);}
     finally{if(compareJob.current===controller){compareJob.current=null;setComparing(false);}}
+  };
+
+  const chooseExcerptStart=(lane,value)=>{
+    const handle=lane==='reference'?referenceRef:takeRef;
+    const setter=lane==='reference'?setReference:setTake;
+    const current=handle.current;
+    if(!current?.fullDuration||current.fullDuration<=60)return;
+    const start=Math.max(0,Math.min(Number(value)||0,current.fullDuration-LONG_CLIP_EXCERPT_SECONDS));
+    if(Math.abs((current.excerptStart??0)-start)<.001)return;
+    jobs.current.get(lane)?.abort();jobs.current.delete(lane);
+    const next={...current,excerptStart:start,analysis:null};
+    handle.current=next;setter(next);invalidate();setActiveSessionId(null);
+    if(lane==='take')setGroovePattern(null);
+    setMessage('Selection changed. Tap Analyze shape to hear this section.');
   };
 
   const chooseSourceKind=(lane,kind)=>{
@@ -362,7 +402,7 @@ export default function App() {
       <div id="take"><ClipLane title="Your take" description="Your captured idea. Listen and inspect the contour before comparing." clip={take}
         onFile={file=>setFile('take',file)} onClear={()=>replaceClip('take',null)}
         onAnalyze={()=>analyze('take',take,takeKind)} analyzing={busy.take}
-        kind={takeKind} onKind={value=>chooseSourceKind('take',value)} index="02"/></div>
+        kind={takeKind} onKind={value=>chooseSourceKind('take',value)} onExcerptChange={value=>chooseExcerptStart('take',value)} index="02"/></div>
       {take?.analysis&&!reference?.analysis&&<aside className="capture-next">
         <div><strong>Your idea has a shape.</strong><p>Keep it as it is, or add a reference to hear what changed.</p></div>
         <div className="capture-next-actions"><a href="#keep">◇ Keep this idea</a><a href="#reference">+ Add reference</a></div>
@@ -370,7 +410,7 @@ export default function App() {
       <div id="reference"><ClipLane title="Reference" description="Optional: add a bass stem or another recording when you're ready to compare." clip={reference}
         onFile={file=>setFile('reference',file)} onClear={()=>replaceClip('reference',null)}
         onAnalyze={()=>analyze('reference',reference,refKind)} analyzing={busy.reference}
-        kind={refKind} onKind={value=>chooseSourceKind('reference',value)} index="03"/></div>
+        kind={refKind} onKind={value=>chooseSourceKind('reference',value)} onExcerptChange={value=>chooseExcerptStart('reference',value)} index="03"/></div>
     </div>
 
     <section className="compare-workspace" id="mirror">
