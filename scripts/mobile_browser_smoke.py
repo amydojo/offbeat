@@ -1,5 +1,7 @@
 """Phone-sized browser journey with local DSP only. No Python requests or cloud audio."""
 from playwright.sync_api import sync_playwright, expect
+from pathlib import Path
+import json
 from browser_smoke import synthetic_bass
 
 def run():
@@ -54,6 +56,34 @@ def run():
    expect(page.get_by_text('Pocket groove',exact=True)).to_be_visible()
    page.get_by_role('button',name='Open',exact=True).click()
    expect(page.get_by_text('Opened saved originals and analysis.',exact=False)).to_be_visible()
+   # Export must contain the exact original audio and analysis, without uploading.
+   with page.expect_download() as download_info:
+    page.get_by_role('button',name='Export project').click()
+   download=download_info.value
+   assert download.suggested_filename.endswith('.offbeat.json')
+   backup_bytes=Path(download.path()).read_bytes()
+   manifest=json.loads(backup_bytes)
+   assert manifest['schema_version']=='offbeat.backup.v1'
+   assert manifest['session']['take']['base64']
+   # A delete followed by a verified local import must restore the project.
+   page.once('dialog',lambda dialog:dialog.accept())
+   page.get_by_role('button',name='Delete',exact=True).click()
+   expect(page.get_by_text('Pocket groove',exact=True)).to_have_count(0)
+   backup_file=page.get_by_label('OFFBEAT project backup file')
+   backup_file.set_input_files({'name':'pocket-groove.offbeat.json','mimeType':'application/json','buffer':backup_bytes})
+   expect(page.get_by_text('Pocket groove',exact=True)).to_be_visible(timeout=15000)
+   expect(page.locator('p.status')).to_contain_text('integrity verified',timeout=10000)
+   page.reload(wait_until='networkidle')
+   expect(page.get_by_text('Pocket groove',exact=True)).to_be_visible()
+   page.get_by_role('button',name='Open',exact=True).click()
+   expect(page.get_by_role('button',name='Analyze again')).to_have_count(2)
+   # Corrupting a still-valid base64 payload must fail SHA-256 integrity.
+   bad=json.loads(backup_bytes)
+   bad_audio=bad['session']['take']['base64']
+   bad['session']['take']['base64']=('A' if bad_audio[0]!='A' else 'B')+bad_audio[1:]
+   backup_file.set_input_files({'name':'tampered.offbeat.json','mimeType':'application/json','buffer':json.dumps(bad).encode()})
+   expect(page.locator('p.status')).to_contain_text('integrity verification',timeout=10000)
+   assert page.get_by_text('Pocket groove',exact=True).count()==1
    page.once('dialog',lambda dialog:dialog.accept())
    page.get_by_role('button',name='Delete',exact=True).click()
    expect(page.get_by_text('Pocket groove',exact=True)).to_have_count(0)

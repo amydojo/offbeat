@@ -219,3 +219,23 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
  .playground .samples{align-items:stretch;flex-direction:column;gap:15px}
 }
 @media(prefers-reduced-motion:reduce){.playground summary span:last-child{transition:none}}
+
+/* Local-first project portability, optimized for narrow phones */
+.library-intro{font-size:13px;line-height:1.6;color:#c1b4a7;max-width:650px;margin:0 0 15px}
+.saved-actions{flex-wrap:wrap}
+.saved-actions .button-quiet{white-space:nowrap}
+.saved-actions button{min-height:44px}
+.backup-tools{border-top:1px solid #4b4038;border-bottom:1px solid #4b4038;
+ display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 0;margin:20px 0 8px}
+.backup-tools strong{font-size:14px;color:#ecddcf}
+.backup-tools p{margin:7px 0 0;font-size:12px;color:#afa092;line-height:1.55;max-width:440px}
+.backup-tools button{min-height:48px;white-space:nowrap}
+.library-delete-all{color:#dca592}
+@media(max-width:760px){
+ .library-intro{font-size:12px}
+ .saved-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .saved-actions .button-quiet{white-space:normal;min-width:0;text-align:center;padding:10px 7px}
+ .saved-actions .text-button{grid-column:1/-1;justify-self:start;padding-left:0}
+ .backup-tools{flex-direction:column;align-items:stretch;gap:12px}
+ .backup-tools button{width:100%}
+}
