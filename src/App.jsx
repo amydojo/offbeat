@@ -33,8 +33,8 @@ function microphoneFailure(error) {
 
 function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyzing, kind, onKind, index }) {
   const input = useRef(null);
-  return <section className="lane">
-    <div className="lane-heading"><div><p className="eyebrow">{title}</p><p className="hint">{description}</p></div><span className="lane-index">{index}</span></div>
+  return <section className={'lane '+(title==='Your take'?'lane-take':'lane-reference')} aria-label={title + ' audio'}>
+    <div className="lane-heading"><div><p className="eyebrow">{title}</p><p className="hint">{description}</p></div><span className="lane-index">{clip?.analysis?'ANALYZED':clip?'LOADED':index}</span></div>
     <label className="source-choice">Source type
       <select aria-label={title + ' source type'} value={kind} onChange={e=>onKind(e.target.value)}>
         <option value="solo_bass">Solo bass</option><option value="humming">Humming</option>
@@ -43,7 +43,7 @@ function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyz
     </label>
     {clip ? <div className="clip"><div><strong>{clip.name}</strong><small>{(clip.file.size / 1048576).toFixed(2)} MB · {clip.file.type || 'unknown media type'}</small></div>
       <button className="text-button" onClick={onClear} type="button">Remove</button></div>
-      : <button className="upload" onClick={() => input.current?.click()} type="button">+ Choose audio file</button>}
+      : <button className="upload" onClick={() => input.current?.click()} type="button">{title==='Reference'?'+ Add reference recording':'+ Import your own recording'}</button>}
     <input ref={input} className="sr-only" type="file" accept="audio/*,.wav,.mp3,.m4a,.flac,.webm,.ogg" onChange={e => { if (e.target.files?.[0]) onFile(e.target.files[0]); e.target.value=''; }} />
     {clip && <div className="lane-actions"><audio controls preload="metadata" src={clip.url} aria-label={title + ' original audio'} />
       <button className="button-quiet" onClick={onAnalyze} disabled={analyzing}>{analyzing ? 'Listening…' : clip.analysis ? 'Analyze again' : 'Analyze shape'}</button></div>}
@@ -71,8 +71,9 @@ export default function App() {
   const [reference,setReference]=useState(null);
   const [take,setTake]=useState(null);
   const [refKind,setRefKind]=useState('separated_stem');
-  const [takeKind,setTakeKind]=useState('solo_bass');
+  const [takeKind,setTakeKind]=useState('humming');
   const [recording,setRecording]=useState(false);
+  const [recordSeconds,setRecordSeconds]=useState(0);
   const [requestingMic,setRequestingMic]=useState(false);
   const [busy,setBusy]=useState({});
   const [comparing,setComparing]=useState(false);
@@ -86,6 +87,7 @@ export default function App() {
   const [activeSessionId,setActiveSessionId]=useState(null);
   const [message,setMessage]=useState('');
   const recorder=useRef(null);
+  const recordingStarted=useRef(0);
   const micRequestPending=useRef(false);
   const mounted=useRef(false);
   const referenceRef=useRef(null);
@@ -95,6 +97,11 @@ export default function App() {
 
   const invalidate=()=>{compareJob.current?.abort();compareJob.current=null;setComparison(null);setNormalized(false);setComparing(false);};
   const refreshLibrary=()=>listSessions().then(result=>{if(mounted.current)setEntries(result);}).catch(error=>{if(mounted.current)setMessage(error.message);});
+  useEffect(()=>{
+    if(!recording)return undefined;
+    const interval=setInterval(()=>setRecordSeconds(Math.floor((Date.now()-recordingStarted.current)/1000)),400);
+    return ()=>clearInterval(interval);
+  },[recording]);
   useEffect(()=>{
     mounted.current=true;
     refreshLibrary();
@@ -148,7 +155,8 @@ export default function App() {
       if(lane==='reference')setSelection({start:0,end:result.source.duration_s});
       else if(!referenceRef.current?.analysis)setSelection({start:0,end:result.source.duration_s});
       setRefWindowStart(0);
-    }catch(e){if(!controller.signal.aborted&&mounted.current)setMessage(e.message);}
+      return true;
+    }catch(e){if(!controller.signal.aborted&&mounted.current)setMessage(e.message);return false;}
     finally{
       if(jobs.current.get(lane)===controller){jobs.current.delete(lane);setBusy(prev=>({...prev,[lane]:false}));}
     }
@@ -195,7 +203,7 @@ export default function App() {
     try{
       const active=await createMicrophoneRecorder();
       if(!mounted.current){active.cancel();return;}
-      recorder.current=active;setRecording(true);setMessage('Recording. Press Stop when done.');
+      recorder.current=active;recordingStarted.current=Date.now();setRecordSeconds(0);setRecording(true);setMessage('Recording locally. Press Stop when done.');
     }catch(e){if(mounted.current)setMessage(microphoneFailure(e));}
     finally{micRequestPending.current=false;if(mounted.current)setRequestingMic(false);}
   };
@@ -207,7 +215,10 @@ export default function App() {
       const blob=await active.stop();
       if(!mounted.current)return;
       const ext=blob.type.includes('mp4')?'m4a':blob.type.includes('webm')?'webm':blob.type.includes('ogg')?'ogg':'audio';
-      setFile('take',new File([blob],`offbeat-take-${Date.now()}.${ext}`,{type:blob.type}));
+      const file=new File([blob],`offbeat-take-${Date.now()}.${ext}`,{type:blob.type});
+      setFile('take',file);
+      const analyzed=await analyze('take',{file},takeKind);
+      if(analyzed&&mounted.current)setMessage('Your musical shape is ready. Add a reference to compare, or save this idea.');
     }catch(e){if(mounted.current)setMessage(e.message);}
   };
 
@@ -245,6 +256,8 @@ export default function App() {
     setMessage('Opened saved originals and analysis. No network was needed.');
   };
   const deleteOne=async id=>{
+    const target=entries.find(e=>e.id===id);
+    if(!window.confirm(`Delete "${target?.title||'this phrase'}" from this browser? This cannot be undone.`))return;
     try{
       await removeSession(id);
       if(activeSessionId===id){replaceClip('reference',null);replaceClip('take',null);setSelection({start:0,end:4});}
@@ -269,31 +282,56 @@ export default function App() {
   const maxReferenceWindowStart=Math.max(0,refDuration-referenceExcerptSeconds);
   const effectiveReferenceWindowStart=Math.min(refWindowStart,maxReferenceWindowStart);
   const canSave=!!reference?.analysis||!!take?.analysis;
+  const currentStep=comparison?4:reference?.analysis&&take?.analysis?3:take?.analysis||reference?.analysis?2:1;
+  const recordingClock=`${String(Math.floor(recordSeconds/60)).padStart(2,'0')}:${String(recordSeconds%60).padStart(2,'0')}`;
   return <main className="shell">
-    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / MOBILE V0.1.1</span></header>
-    <section className="hero" id="capture"><p className="eyebrow">01 / CAPTURE</p><h1>Hear what your hands remembered.</h1>
-      <p>Record a phrase. Compare what moved, what stayed, and the silence between. No scores, no wrong notes, no sheet music.</p></section>
+    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / MOBILE V0.1.2</span></header>
+    <section className="hero"><p className="eyebrow">YOUR IDEAS, BEFORE THEY DISAPPEAR.</p><h1>Hear it in your head.<br/><em>Catch it here.</em></h1>
+      <p>Hum a melody. Play a bass line. See its shape, hear it back, and keep the part you love. No wrong notes.</p></section>
+    <nav className="journey" aria-label="Your Offbeat workflow">
+      {[{name:'Capture',href:'#capture'},{name:'Shape',href:'#take'},{name:'Compare',href:'#mirror'},{name:'Keep',href:'#keep'}].map((step,i)=>
+        <a key={step.name} href={step.href} className={i+1===currentStep?'journey-current':i+1<currentStep?'journey-complete':''}
+          aria-current={i+1===currentStep?'step':undefined}><span className="journey-index">{String(i+1).padStart(2,'0')}</span>{step.name}</a>)}
+    </nav>
     <div className="workspace">
-      <ClipLane title="Reference" description="A bass stem, hum, or other short musical example." clip={reference}
-        onFile={file=>setFile('reference',file)} onClear={()=>replaceClip('reference',null)}
-        onAnalyze={()=>analyze('reference',reference,refKind)} analyzing={busy.reference}
-        kind={refKind} onKind={value=>chooseSourceKind('reference',value)} index="01"/>
-      <ClipLane title="Your take" description="Hum, play bass, or import a short idea of your own." clip={take}
+      <section className="capture-panel" id="capture" aria-label="Capture a musical idea">
+        <div className="capture-header"><div><p className="eyebrow">01 / CAPTURE</p><h2>Start with a sound.</h2></div><span className="capture-pill">PRIVATE · ON DEVICE</span></div>
+        <p className="capture-intro">No instrument needed. Pick what you're recording, then press once to begin.</p>
+        <div className="capture-mode" role="group" aria-label="What are you recording?">
+          <button type="button" aria-pressed={takeKind==='humming'} disabled={recording||requestingMic}
+            onClick={()=>chooseSourceKind('take','humming')}>◌ Humming</button>
+          <button type="button" aria-pressed={takeKind==='solo_bass'} disabled={recording||requestingMic}
+            onClick={()=>chooseSourceKind('take','solo_bass')}>♫ Playing bass</button>
+        </div>
+        <div className="record-row">
+          <button type="button" className={recording?'button-record active':'button-record'} disabled={requestingMic}
+            onClick={recording?stopRecording:startRecording} aria-label={recording?'Stop recording': 'Record or hum'}>
+            {requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record or hum'}
+          </button>
+          {recording?<span className="recording-clock" aria-live="off"><span className="recording-dot"/>REC {recordingClock}</span>
+            :<span className="record-privacy">Microphone only turns on when you tap Record.</span>}
+        </div>
+        <p className="capture-footnote">Audio analysis happens {ANALYSIS_LOCATION}. Your recordings aren't uploaded.</p>
+      </section>
+      {message&&<p className="status" role="status">{message}</p>}
+      <div id="take"><ClipLane title="Your take" description="Your captured idea. Listen and inspect the contour before comparing." clip={take}
         onFile={file=>setFile('take',file)} onClear={()=>replaceClip('take',null)}
         onAnalyze={()=>analyze('take',take,takeKind)} analyzing={busy.take}
-        kind={takeKind} onKind={value=>chooseSourceKind('take',value)} index="02"/>
-      <div className="record-row">
-        <button type="button" className={recording?'button-record active':'button-record'} disabled={requestingMic}
-          onClick={recording?stopRecording:startRecording}>{requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record or hum'}</button>
-        <p>Mic permission is requested only when you press Record. Audio analysis runs {ANALYSIS_LOCATION}; recordings are never uploaded.</p>
-      </div>
-      {message&&<p className="status" role="status">{message}</p>}
+        kind={takeKind} onKind={value=>chooseSourceKind('take',value)} index="02"/></div>
+      <div id="reference"><ClipLane title="Reference" description="Optional: add a bass stem or another recording when you're ready to compare." clip={reference}
+        onFile={file=>setFile('reference',file)} onClear={()=>replaceClip('reference',null)}
+        onAnalyze={()=>analyze('reference',reference,refKind)} analyzing={busy.reference}
+        kind={refKind} onKind={value=>chooseSourceKind('reference',value)} index="03"/></div>
     </div>
 
     <section className="compare-workspace" id="mirror">
-      <div className="compare-head"><div><p className="eyebrow">02 / DISCOVER</p><h2>Find the musical gesture.</h2></div>
+      <div className="compare-head"><div><p className="eyebrow">03 / COMPARE</p><h2>Two sounds. One conversation.</h2></div>
         <button className="button-record" disabled={!reference?.analysis||!take?.analysis||comparing}
           onClick={compare}>{comparing?'Comparing…':'Compare these phrases'}</button></div>
+      {(!reference?.analysis||!take?.analysis)&&<p className="compare-prompt">
+        {take?.analysis?'Your shape is ready. Add and analyze a reference to compare it.':
+          'Record or import your idea first, then add a reference when you want to compare.'}
+      </p>}
       {reference?.analysis&&take?.analysis&&
         <ExcerptPicker clip={reference} start={effectiveReferenceWindowStart}
           length={referenceExcerptSeconds} maxStart={maxReferenceWindowStart}
@@ -318,6 +356,10 @@ export default function App() {
     <Library entries={entries} title={title} onTitle={setTitle} isSaving={saving} onSave={keep} canSave={canSave} onOpen={openEntry} onDelete={deleteOne} onDeleteAll={deleteAll}/>
     <section className="samples"><div><p className="eyebrow">06 / ORIGINAL PLAYGROUND</p><h2>The loops are still here.</h2></div>
       <div className="sample-list">{samples.map(s=><button key={s.id} onClick={()=>toggleLoop(s)} className={loops[s.id]?'sample on':'sample'} aria-pressed={!!loops[s.id]}><span>{s.name}</span><span>{loops[s.id]?'■ Stop':'▶ Play'}</span></button>)}</div></section>
-    <nav className="mobile-nav" aria-label="Offbeat mobile navigation"><a href="#capture">Capture</a><a href="#mirror">Mirror</a><a href="#keep">Keep</a></nav><footer>OFFBEAT · Local first · Only keep the parts you love.</footer>
+    <nav className="mobile-nav" aria-label="Offbeat mobile navigation">
+      <a href="#capture"><span aria-hidden="true">◌</span>Capture</a>
+      <a href="#mirror"><span aria-hidden="true">≋</span>Mirror</a>
+      <a href="#keep"><span aria-hidden="true">◇</span>Keep</a>
+    </nav><footer>OFFBEAT · Local first · Only keep the parts you love.</footer>
   </main>;
 }
