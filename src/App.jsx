@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { playLoop, stopLoop, stopAll } from './lib/audioEngine.js';
 import { createMicrophoneRecorder } from './audio/microphoneRecorder.js';
-import { analyzeClip } from './lib/analysisClient.js';
+import { analyzeClip, compareClips, ANALYSIS_LOCATION } from './lib/analysisClient.js';
 import { selectableRange } from './lib/phraseRanges.mjs';
 import { saveSession, listSessions, removeSession, clearSessions, restoreClip } from './lib/localLibrary.js';
 import Contour from './components/Contour.jsx';
@@ -157,13 +157,7 @@ export default function App() {
         start_s:Number(excerptStart.toFixed(3)),
         end_s:Number(Math.min(referenceDuration,excerptStart+excerptLength).toFixed(3)),
       };
-      const response=await fetch('http://127.0.0.1:8765/v1/compare',{
-        method:'POST',signal:controller.signal,
-        headers:{'Content-Type':'application/json','X-Offbeat-Client':'local-ui'},
-        body:JSON.stringify({reference:reference.analysis,take:take.analysis,mode:'onsets',reference_region:referenceRegion})
-      });
-      const data=await response.json();
-      if(!response.ok)throw new Error(data.error?.message||'Comparison could not be completed.');
+      const data=await compareClips(reference.analysis,take.analysis,referenceRegion,controller.signal);
       if(data.schema_version!=='offbeat.compare.v1')throw new Error('Comparison version mismatch.');
       if(compareJob.current!==controller)return;
       setComparison(data);setNormalized(true);
@@ -265,7 +259,7 @@ export default function App() {
   const effectiveReferenceWindowStart=Math.min(refWindowStart,maxReferenceWindowStart);
   const canSave=!!reference?.analysis||!!take?.analysis;
   return <main className="shell">
-    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / V0.1</span></header>
+    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / MOBILE V0.1</span></header>
     <section className="hero"><p className="eyebrow">01 / CAPTURE</p><h1>Hear what your hands remembered.</h1>
       <p>Record a phrase. Compare what moved, what stayed, and the silence between. No scores, no wrong notes, no sheet music.</p></section>
     <div className="workspace">
@@ -280,7 +274,7 @@ export default function App() {
       <div className="record-row">
         <button type="button" className={recording?'button-record active':'button-record'} disabled={requestingMic}
           onClick={recording?stopRecording:startRecording}>{requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record bass'}</button>
-        <p>Mic permission is requested only when you press Record. Audio analysis runs on your local machine.</p>
+        <p>Mic permission is requested only when you press Record. Audio analysis runs {ANALYSIS_LOCATION}; recordings are never uploaded.</p>
       </div>
       {message&&<p className="status" role="status">{message}</p>}
     </div>
