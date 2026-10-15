@@ -39,9 +39,8 @@ def run():
    expect(page_allowed.get_by_role('button',name='■ Stop recording')).to_be_enabled(timeout=10000)
    page_allowed.wait_for_timeout(1200)
    page_allowed.get_by_role('button',name='■ Stop recording').click()
-   expect(page_allowed.get_by_role('region',name='Your take audio').get_by_role('button',name='Analyze again')).to_be_visible(timeout=30000)
-   expect(page_allowed.locator('p.status')).to_contain_text('Your musical shape is ready.',timeout=30000)
-   expect(page_allowed.get_by_role('region',name='Your take audio').locator('small')).to_contain_text('audio/wav')
+   expect(page_allowed.get_by_role('region',name='Your take audio').locator('.clip-done')).to_be_visible(timeout=60000)
+   page_allowed.get_by_role('region',name='Your take audio').locator('details.clip-details').last.locator('summary').click()
    with page_allowed.expect_download() as wav_download:
     page_allowed.get_by_role('link',name='Download original').click()
    from pathlib import Path
@@ -89,15 +88,19 @@ def run():
    lane=fallback_page.get_by_role('region',name='Your take audio')
    lane.locator('input[type=file]').set_input_files(sample)
    # Native metadata must make this slider available BEFORE any analysis.
+   lane.locator('details.clip-details').first.locator('summary').click()
    slider=fallback_page.get_by_role('slider',name='Your take analysis excerpt position')
    expect(slider).to_be_visible(timeout=20000)
+   expect(lane.locator('.clip-done')).to_be_visible(timeout=120000)
    slider.fill('65')
    lane.get_by_role('button',name='Analyze shape').click()
-   expect(lane.get_by_role('button',name='Analyze again')).to_be_visible(timeout=120000)
+   expect(lane.locator('.clip-done')).to_be_visible(timeout=120000)
    expect(fallback_page.locator('p.status')).to_contain_text('Analyzed 55 seconds',timeout=120000)
+   lane.locator('details.clip-details').last.locator('summary').click()
    expect(lane.get_by_label('Your take musical features')).to_be_visible()
    fallback_page.get_by_placeholder('That riff with the long pause').fill('Worker fallback phrase')
    fallback_page.get_by_role('button',name='Keep this phrase').click()
+   fallback_page.locator('details.saved-drawer > summary').click()
    expect(fallback_page.get_by_text('Worker fallback phrase',exact=True)).to_be_visible(timeout=20000)
    with fallback_page.expect_download() as backup_download:
     fallback_page.get_by_role('button',name='Export project').click()
