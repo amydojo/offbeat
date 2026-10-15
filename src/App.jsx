@@ -42,7 +42,7 @@ function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyz
       </select>
     </label>
     {clip ? <div className="clip"><div><strong>{clip.name}</strong><small>{(clip.file.size / 1048576).toFixed(2)} MB · {clip.file.type || 'unknown media type'}</small></div>
-      <button className="text-button" onClick={onClear} type="button">Remove</button></div>
+      <div className="clip-actions"><a className="text-button" href={clip.url} download={clip.name}>Download original</a><button className="text-button" onClick={onClear} type="button">Remove</button></div></div>
       : <button className="upload" onClick={() => input.current?.click()} type="button">{title==='Reference'?'+ Add reference recording':'+ Import your own recording'}</button>}
     <input ref={input} className="sr-only" type="file" accept="audio/*,.wav,.mp3,.m4a,.flac,.webm,.ogg" onChange={e => { if (e.target.files?.[0]) onFile(e.target.files[0]); e.target.value=''; }} />
     {clip && <div className="lane-actions"><audio controls preload="metadata" src={clip.url} aria-label={title + ' original audio'} />
@@ -318,6 +318,10 @@ export default function App() {
         onFile={file=>setFile('take',file)} onClear={()=>replaceClip('take',null)}
         onAnalyze={()=>analyze('take',take,takeKind)} analyzing={busy.take}
         kind={takeKind} onKind={value=>chooseSourceKind('take',value)} index="02"/></div>
+      {take?.analysis&&!reference?.analysis&&<aside className="capture-next">
+        <div><strong>Your idea has a shape.</strong><p>Keep it as it is, or add a reference to hear what changed.</p></div>
+        <div className="capture-next-actions"><a href="#keep">◇ Keep this idea</a><a href="#reference">+ Add reference</a></div>
+      </aside>}
       <div id="reference"><ClipLane title="Reference" description="Optional: add a bass stem or another recording when you're ready to compare." clip={reference}
         onFile={file=>setFile('reference',file)} onClear={()=>replaceClip('reference',null)}
         onAnalyze={()=>analyze('reference',reference,refKind)} analyzing={busy.reference}
