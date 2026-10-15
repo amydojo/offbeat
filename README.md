@@ -1,13 +1,13 @@
 # OFFBEAT — Bass Mirror
 
-An ear-first music instrument for discovering the musical gesture in what you actually play. **Early implementation: foundation + local pitch/attack/rest visualization.** Precise two-take alignment, phrase selection, responsive drums and library are **not implemented yet**.
+An ear-first music instrument for discovering the musical gesture in what you actually play. **V0.1 implementation:** two-track analysis, aligned rhythmic/pitch visualization, source-preserving A/B playback, keyboard-accessible phrase selection, and a local IndexedDB library. Responsive drums remain V0.2.
 
 ## Product rules
 - No grades, forced note names or fret-placement lessons.
 - Audio remains on your device. Microphone permission is requested only when you press Record.
 - Browser owns playback and capture; Python only analyzes after you ask.
 - Pitched lines are estimates. In particular, current YIN confidence is **not calibrated**; silence must appear as a gap.
-- Original audio stays intact. The interface does not currently save your session after reload.
+- Original audio stays intact. Click **Keep this phrase** to opt in to saving an immutable source plus analysis in your browser's IndexedDB; Open, Delete and Delete all are available locally.
 
 ## Run locally
 
@@ -41,9 +41,11 @@ cd analysis
 python -m pytest
 ```
 
-Current analysis limits: 25 MB, 60 s, monophonic pitch within approximately 36–650 Hz, stereo downmix, FFmpeg decoder required. Onset boundaries, high harmonics, low E bass and noisy recordings require careful listening checks. YIN is a DSP baseline; no pretrained models run. A/B comparison is deferred to BM-09; /v1/compare explicitly returns 501.
+Current analysis limits: 25 MB, 60 s, monophonic pitch within approximately 36–650 Hz, stereo downmix, FFmpeg decoder required. Onset boundaries, high harmonics, low E bass and noisy recordings require careful listening checks. YIN is a DSP baseline; no pretrained models run. The versioned `/v1/compare` reports aligned attack correspondences, source timing and nonjudgmental contour descriptors. Use **Find the moment in the reference** to select and preview a reference excerpt close to your performance's length; a 54-second song is no longer force-matched with a 13-second hum. Attack matches represent proximity in time **only** and do not establish the same notes or riff. Sparse inputs can produce weak or misleading matches; use the original-time view to verify. For voice performances choose **Humming** as the take's source type and reanalyze.
 
-**Follow-up quality gates:** A locked Python environment (`uv.lock`), UI accessibility and browser microphone tests, local-worker session-token hardening, and optional PESTO remain planned; see [issues](https://github.com/amydojo/offbeat/issues/1). The npm dependency lockfile has been regenerated for this project and CI now uses reproducible `npm ci`.
+**Mac hardware checklist:** [physical-device and Safari QA](docs/MAC_MICROPHONE_QA.md) must be completed by someone with the actual Mac. Linux Chromium CI only exercises a fake microphone.
+
+**Follow-up quality gates:** A locked Python environment (`uv.lock`), full screen-reader/accessibility audit, local-worker session-token hardening, and optional PESTO remain planned; see [issues](https://github.com/amydojo/offbeat/issues/1). The npm dependency lockfile has been regenerated for this project and CI now uses reproducible `npm ci`.
 
 Detailed architecture: [Bass Mirror Engineering Spec](docs/BASS_MIRROR_ENGINEERING_SPEC_V0.1_TO_V1.md).
 

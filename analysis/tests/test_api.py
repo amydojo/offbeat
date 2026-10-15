@@ -60,9 +60,9 @@ def test_bad_content_kind_and_length():
     assert response.status_code == 400
 
 
-def test_comparison_not_faked():
+def test_empty_comparison_rejected():
     response = client.post("/v1/compare", headers=HEADER, json={})
-    assert response.status_code == 501
+    assert response.status_code == 422
 
 
 def test_decoder_disallows_network_protocols(monkeypatch):

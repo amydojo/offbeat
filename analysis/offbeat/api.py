@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .features import SAMPLE_RATE, SCHEMA_VERSION, analyze_samples
+from .compare import compare_phrases, ComparisonError
 
 MAX_BYTES = 25 * 1024 * 1024
 MAX_SECONDS = 60
@@ -128,5 +129,16 @@ async def analyze(
 
 @app.post("/v1/compare")
 async def compare(request: Request):
-    # Reserved contract. Explicitly refuse rather than fabricate a comparison.
-    return failure(501, "COMPARISON_NOT_READY", "Precise comparison is scheduled for BM-09.")
+    try:
+        payload = await request.json()
+        if not isinstance(payload, dict):
+            raise ComparisonError("Comparison request must be an object.")
+        return compare_phrases(
+            payload.get("reference"), payload.get("take"),
+            mode=payload.get("mode", "onsets"),
+            reference_region=payload.get("reference_region"),
+        )
+    except (ComparisonError, TypeError, KeyError, AttributeError) as exc:
+        return failure(422, "COMPARE_INVALID", str(exc))
+    except (ValueError, json.JSONDecodeError):
+        return failure(400, "INVALID_JSON", "Provide a valid JSON comparison request.")
