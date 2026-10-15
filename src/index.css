@@ -85,3 +85,98 @@ button{min-height:44px}
   color:#e6d8cd;font-size:12px;font-weight:650;min-height:44px;border-right:1px solid #4a4138}
  .mobile-nav a:last-child{border-right:0}
 }
+
+/* OFFBEAT 0.1.2 — a capture-first instrument, not an upload dashboard */
+:root{--ob-bg:#181715;--ob-paper:#e9dfd5;--ob-muted:#c9b7a8;--ob-stroke:#4b4038;--ob-accent:#dea17e}
+.hero{padding:64px 0 34px;max-width:860px}
+.hero h1{font-size:clamp(42px,6.5vw,78px);font-weight:440;line-height:1.04}
+.hero h1 em{font-style:normal;color:#dba07c}
+.hero>p:last-child{max-width:550px;font-size:16px}
+.journey{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--ob-stroke);margin-bottom:18px}
+.journey a{display:flex;align-items:center;gap:10px;padding:16px 14px;color:#a99a8d;text-decoration:none;font-size:13px;
+ border-right:1px solid var(--ob-stroke);min-width:0;position:relative}
+.journey a:last-child{border-right:0}
+.journey-index{font-variant-numeric:tabular-nums;font-size:10px;color:#937c6d}
+.journey .journey-current{background:#352b25;color:#f6e7da}
+.journey .journey-current:before{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:var(--ob-accent)}
+.journey .journey-complete{color:#d8bea9}
+.journey .journey-complete .journey-index{color:#b8d0bc}
+.workspace{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.capture-panel{grid-column:1/-1;padding:30px 30px 28px;background:
+ radial-gradient(ellipse at 93% 0%,rgba(168,106,77,.12),transparent 48%),#25201d}
+.capture-header{display:flex;justify-content:space-between;align-items:start;gap:16px}
+.capture-header h2{font-weight:490;letter-spacing:-.045em;font-size:30px;line-height:1.15;margin:0}
+.capture-header .eyebrow{margin-bottom:7px}
+.capture-pill{white-space:nowrap;font-size:10px;letter-spacing:.1em;border:1px solid #746455;border-radius:99px;color:#d3c2ae;padding:7px 10px}
+.capture-intro{font-size:13px;color:#bdad9e;line-height:1.65;margin:16px 0 18px}
+.capture-mode{display:flex;gap:8px;margin-bottom:19px}
+.capture-mode button{background:transparent;color:#d6c4b5;border:1px solid #65564a;min-height:48px;padding:10px 19px}
+.capture-mode button[aria-pressed=true]{background:#563c30;color:#fff0e3;border-color:#d49a77}
+.capture-mode button:disabled{opacity:.5}
+.capture-panel .record-row{display:flex;align-items:center;padding:0;gap:18px}
+.capture-panel .button-record{min-width:225px;min-height:60px;font-size:15px}
+.capture-panel .button-record.active{border-color:#e0a69c;background:#63362f;color:white}
+.record-privacy,.recording-clock{font-size:12px;color:#bba89c}
+.recording-clock{display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums;letter-spacing:.12em;color:#e7b4a2;font-weight:700}
+.recording-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#eb907e;box-shadow:0 0 0 3px #eb907e22}
+.capture-footnote{font-size:11px;color:#a99a90;margin:16px 0 0;line-height:1.6}
+.workspace>.status{grid-column:1/-1;border-top:1px solid var(--ob-stroke);background:#332920}
+.workspace>#take,.workspace>#reference{min-width:0;border-top:1px solid var(--ob-stroke)}
+.workspace>#take{border-right:1px solid var(--ob-stroke)}
+.workspace .lane{border-bottom:0;height:100%;padding:27px 26px 30px}
+.workspace .lane-index{font-size:10px;letter-spacing:.09em;color:#b9a58f}
+.lane-heading .hint{max-width:350px;line-height:1.6;margin:5px 0 0}
+.lane .source-choice{margin:19px 0 13px;gap:12px}
+.lane .source-choice select{font-size:14px;min-height:44px;max-width:100%;min-width:0}
+.lane .upload{width:100%;text-align:left;padding-left:16px;border-style:dashed;border-color:#77685b;min-height:56px}
+.lane .upload:hover{background:#383029;border-color:#b59077}
+.lane-actions{display:flex;align-items:stretch;flex-direction:column;gap:10px}
+.lane-actions .button-quiet{width:100%;text-align:center}
+.lane-actions audio{flex:initial;min-width:0;width:100%;max-width:100%}
+.lane-take{background:#211f1c}
+.lane-reference{background:#1b1a18}
+.compare-prompt{color:#c6b6a8;font-size:13px;background:#282420;border-left:2px solid #bd8e73;padding:13px 15px;line-height:1.6;margin:8px 0 16px}
+.compare-workspace{scroll-margin-top:24px}
+#capture,#take,#reference,#mirror,#keep{scroll-margin-top:20px}
+.text-button{min-height:44px}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #efbe9a;outline-offset:3px}
+.journey a,.mobile-nav a{touch-action:manipulation}
+@media(max-width:760px){
+ .workspace{grid-template-columns:minmax(0,1fr)}
+ .capture-panel,.workspace>.status{grid-column:1}
+ .workspace>#take{border-right:0}
+ .workspace .lane{padding:22px 17px 24px}
+ .lane .source-choice select{font-size:16px}
+ .hero{padding:38px 2px 25px}
+ .hero h1{font-size:clamp(38px,10.5vw,59px);line-height:1.07;letter-spacing:-.055em}
+ .hero>p:last-child{font-size:15px;line-height:1.6}
+ .journey{margin-bottom:13px}
+ .journey a{flex-direction:column;align-items:flex-start;gap:5px;padding:11px 10px;font-size:12px}
+ .capture-panel{padding:24px 17px}
+ .capture-header h2{font-size:26px}
+ .capture-pill{font-size:9px;letter-spacing:.04em;padding:6px 7px}
+ .capture-intro{margin:14px 0}
+ .capture-mode{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .capture-mode button{padding:10px 5px;font-size:13px;min-width:0}
+ .capture-panel .record-row{flex-direction:column;align-items:stretch;gap:12px}
+ .capture-panel .button-record{width:100%;min-height:62px;min-width:0}
+ .capture-panel .record-privacy{align-self:center;text-align:center}
+ .capture-panel .recording-clock{align-self:center}
+ .capture-footnote{margin-top:15px}
+ .source-choice{align-items:flex-start}
+ .source-choice select{width:100%}
+ .compare-prompt{margin-top:0}
+ .mobile-nav a{flex-direction:column;gap:3px;font-size:10px}
+ .mobile-nav a span{font-size:19px;line-height:1}
+ .saved-actions button{min-height:48px}
+ .saved-item strong{line-height:1.45}
+}
+@media(max-width:355px){
+ .capture-header{flex-direction:column;gap:9px}
+ .journey a{padding:10px 7px;font-size:11px}
+ .hero h1{font-size:37px}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ *,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
