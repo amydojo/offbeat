@@ -117,6 +117,38 @@ def run():
    page.once('dialog',lambda dialog:dialog.accept())
    page.get_by_role('button',name='Delete',exact=True).click()
    expect(page.get_by_text('Pocket groove',exact=True)).to_have_count(0)
+   # Regression: an uploaded >60s source must keep all original bytes,
+   # analyze a source-aligned excerpt and restore its offset through backups.
+   long_audio=synthetic_bass(23)  # 69 seconds, ~3 MB uncompressed WAV
+   take_file.set_input_files({"name":"long-take.wav","mimeType":"audio/wav","buffer":long_audio})
+   page.get_by_role('region',name='Your take audio').get_by_role('button',name='Analyze shape').click()
+   expect(page.get_by_role('region',name='Your take audio').get_by_role('button',name='Analyze again')).to_be_visible(timeout=120000)
+   slider=page.get_by_role('slider',name='Your take analysis excerpt position')
+   expect(slider).to_be_visible()
+   expect(page.get_by_text('69.0s full recording',exact=False)).to_be_visible()
+   slider.fill('8')
+   expect(page.get_by_role('region',name='Your take audio').get_by_role('button',name='Analyze shape')).to_be_visible()
+   page.get_by_role('region',name='Your take audio').get_by_role('button',name='Analyze shape').click()
+   expect(page.get_by_role('region',name='Your take audio').get_by_role('button',name='Analyze again')).to_be_visible(timeout=120000)
+   page.get_by_placeholder('That riff with the long pause').fill('Long original kept')
+   page.get_by_role('button',name='Keep this phrase').click()
+   expect(page.get_by_text('Long original kept',exact=True)).to_be_visible()
+   with page.expect_download() as original_download:
+    page.get_by_role('region',name='Your take audio').get_by_role('link',name='Download original').click()
+   assert Path(original_download.value.path()).read_bytes()==long_audio,'Audio download must remain byte-perfect'
+   with page.expect_download() as backup_download:
+    page.get_by_role('button',name='Export project').click()
+   backup=json.loads(Path(backup_download.value.path()).read_bytes())
+   assert backup['session']['take']['excerpt_start_s']==8
+   assert abs(backup['session']['take']['full_duration_s']-69)<.2
+   assert 54.8<backup['session']['take']['analysis']['source']['duration_s']<55.1
+   assert backup['session']['take']['size']==len(long_audio)
+   page.reload(wait_until='networkidle')
+   page.get_by_role('button',name='Open',exact=True).click()
+   restored=page.get_by_role('slider',name='Your take analysis excerpt position')
+   expect(restored).to_be_visible()
+   assert abs(float(restored.input_value())-8)<.01, 'Long source excerpt must survive reload'
+   print('PASS: long clip auto-excerpt, window override, exact original download and persisted offset')
    assert all(':8765' not in url for url in calls),'Browser analysis must never depend on Python API'
    assert all(url.startswith(('http://127.0.0.1:5173/','blob:http://127.0.0.1:5173/')) for url in calls),'Unexpected external request: '+str(calls)
    print('PASS: mobile viewport, browser DSP, comparison, A/B, IndexedDB, zero audio network')
