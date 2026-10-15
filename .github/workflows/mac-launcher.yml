@@ -1,0 +1,40 @@
+name: OFFBEAT Mac Launcher
+on:
+  pull_request:
+    paths:
+      - "scripts/mac/**"
+      - ".github/workflows/mac-launcher.yml"
+      - "docs/MAC_ONE_CLICK_LAUNCHER.md"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/mac/**"
+      - ".github/workflows/mac-launcher.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mac-app:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify local startup script without starting any services
+        run: |
+          /bin/zsh -n scripts/mac/start_offbeat.sh
+          OFFBEAT_LAUNCHER_CHECK_ONLY=1 /bin/zsh scripts/mac/start_offbeat.sh "$GITHUB_WORKSPACE"
+      - name: Compile and verify Finder application
+        run: |
+          mkdir -p build
+          /usr/bin/osacompile -o "build/OFFBEAT Launcher.app" scripts/mac/Offbeat-Launcher.applescript
+          mkdir -p "build/OFFBEAT Launcher.app/Contents/Resources"
+          cp scripts/mac/start_offbeat.sh "build/OFFBEAT Launcher.app/Contents/Resources/start_offbeat.sh"
+          chmod +x "build/OFFBEAT Launcher.app/Contents/Resources/start_offbeat.sh"
+          /usr/bin/codesign --force --deep --sign - "build/OFFBEAT Launcher.app"
+          /usr/bin/codesign --verify --deep --verbose=1 "build/OFFBEAT Launcher.app"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "build/OFFBEAT Launcher.app" "build/OFFBEAT-Launcher-macOS.zip"
+      - name: Store Mac application for download
+        uses: actions/upload-artifact@v4
+        with:
+          name: OFFBEAT-Launcher-macOS
+          path: build/OFFBEAT-Launcher-macOS.zip
+          retention-days: 90
