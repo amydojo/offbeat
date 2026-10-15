@@ -25,6 +25,14 @@ function decodeBase64(text){
  return bytes;
 }
 function audioFileSize(clip){return clip?.blob?.size??0;}
+function validExcerpt(clip){
+ const start=clip?.excerptStart??clip?.excerpt_start_s??0;
+ const full=clip?.fullDuration??clip?.full_duration_s??null;
+ if(!finite(start)||start<0||(full!==null&&(!finite(full)||full<=0||full>3600))||
+  (clip?.analysis&&start+clip.analysis.source.duration_s>(full??clip.analysis.source.duration_s)+.05))
+  throw new Error('The backup has invalid source excerpt timing.');
+ return {start,full};
+}
 function validSelection(s){
  if(!s||!finite(s.start)||!finite(s.end)||s.start<0||s.end<=s.start||s.end>60.001)
   throw new Error('The backup has an invalid phrase selection.');
@@ -44,6 +52,7 @@ async function pack(clip){
  if(!clip)return null;
  const blob=clip.blob;
  if(!(blob instanceof Blob)||blob.size===0)throw new Error('A saved audio file is missing.');
+ const {start,full}=validExcerpt(clip);
  const bytes=new Uint8Array(await blob.arrayBuffer());
  const hash=await sha256(bytes);
  validateAnalysis(clip.analysis??null,hash);
@@ -51,7 +60,8 @@ async function pack(clip){
   name:String(clip.name||'original-audio').slice(0,160),
   mime:String(clip.mime||blob.type||'application/octet-stream').slice(0,128),
   size:bytes.byteLength,sha256:hash,base64:encodeBase64(bytes),
-  analysis:clip.analysis??null
+  analysis:clip.analysis??null,
+  excerpt_start_s:start,full_duration_s:full
  };
 }
 async function unpack(clip) {
@@ -66,8 +76,9 @@ async function unpack(clip) {
  if(bytes.byteLength!==clip.size||(await sha256(bytes))!==clip.sha256)
   throw new Error('The backup failed audio integrity verification.');
  validateAnalysis(clip.analysis??null,clip.sha256);
+ const {start,full}=validExcerpt(clip);
  const file=new File([bytes],clip.name,{type:clip.mime});
- return {file,name:clip.name,analysis:clip.analysis??null};
+ return {file,name:clip.name,analysis:clip.analysis??null,excerptStart:start,fullDuration:full};
 }
 export async function createSessionBackup(entry){
  if(!entry||entry.schema_version!=='offbeat.session.v1')

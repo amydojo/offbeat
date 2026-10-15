@@ -303,3 +303,5 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
  .groove-actions button{min-width:0;min-height:51px;font-size:12px;white-space:normal}
  .groove-actions .button-record{grid-column:1/-1;font-size:15px;min-height:57px}
 }
+
+.source-excerpt{margin-top:15px;padding:16px;background:#242220;border:1px solid #625246;border-radius:3px}.source-excerpt-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;font-size:12px;color:#e4c3ac}.source-excerpt-heading span{color:#b1a39a}.source-excerpt .hint{margin:9px 0 12px;line-height:1.55}.source-excerpt-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.source-excerpt-actions input{flex:1;min-width:160px;accent-color:#d2a085;min-height:44px}.source-excerpt-actions button{min-height:44px}@media(max-width:600px){.source-excerpt-actions button{width:100%}}

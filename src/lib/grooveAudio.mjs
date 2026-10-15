@@ -44,7 +44,7 @@ export function pcm16Wav(channel,sampleRate){
  }
  return new Blob([bytes],{type:'audio/wav'});
 }
-export async function exportGrooveWav(file,pattern){
+export async function exportGrooveWav(file,pattern,sourceOffset=0){
  if(!file||!pattern)throw Error('Record a phrase before exporting a groove.');
  const Offline=globalThis.OfflineAudioContext||globalThis.webkitOfflineAudioContext;
  const Audio=globalThis.AudioContext||globalThis.webkitAudioContext;
@@ -65,7 +65,7 @@ export async function exportGrooveWav(file,pattern){
  voice.gain.setValueAtTime(.7,Math.max(.02,seconds-.035));
  voice.gain.linearRampToValueAtTime(.001,seconds-.002);
  player.connect(voice).connect(master);
- player.start(0,pattern.range.start_s,seconds);
+ player.start(0,sourceOffset+pattern.range.start_s,seconds);
  const drum=offline.createGain();drum.gain.value=.76;drum.connect(master);
  for(const event of pattern.events){playDrumVoice(offline,drum,event,event.time_s);}
  const rendered=await offline.startRendering();
