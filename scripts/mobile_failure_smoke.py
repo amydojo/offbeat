@@ -99,7 +99,7 @@ def run():
    expect(fallback_page.locator('p.status')).to_contain_text('Analyzed 55 seconds',timeout=120000)
    lane.locator('details.clip-details').last.locator('summary').click()
    expect(lane.get_by_label('Your take musical features')).to_be_visible()
-   fallback_page.get_by_placeholder('That riff with the long pause').fill('Worker fallback phrase')
+   fallback_page.get_by_placeholder('Name this idea…').fill('Worker fallback phrase')
    fallback_page.get_by_role('button',name='Keep this phrase').click()
    fallback_page.locator('details.saved-drawer > summary').click()
    expect(fallback_page.get_by_text('Worker fallback phrase',exact=True)).to_be_visible(timeout=20000)
