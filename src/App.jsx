@@ -88,7 +88,7 @@ function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyz
       {analyzing?<p className="clip-feedback" role="status">Finding the shape of this recording…</p>:
         !clip.analysis?<button className="button-quiet clip-analyze" onClick={onAnalyze}>Analyze shape</button>:
         <div className="clip-feedback clip-done"><span aria-hidden="true">✓</span> Shape ready</div>}
-      {longClip&&<details className="clip-details">
+      {longClip&&<details className="clip-details" key="excerpt">
         <summary>Choose excerpt <span>{excerptStart.toFixed(0)}–{excerptEnd.toFixed(0)}s of {Math.round(clip.fullDuration)}s</span></summary>
         <div className="clip-details-body">
           <input type="range" aria-label={title+' analysis excerpt position'}
@@ -98,7 +98,7 @@ function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyz
           <p className="caption">Changing this section requires a fresh analysis. Your original stays intact.</p>
         </div>
       </details>}
-      <details className="clip-details">
+      <details className="clip-details" key="options">
         <summary>More about this recording</summary>
         <div className="clip-details-body">
           <label className="source-choice">Recording type
