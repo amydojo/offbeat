@@ -233,13 +233,18 @@ export default function App() {
     try{
       const blob=await active.stop();
       if(!mounted.current)return;
-      const ext=blob.type.includes('mp4')?'m4a':blob.type.includes('webm')?'webm':blob.type.includes('ogg')?'ogg':'audio';
+      const ext=blob.type.includes('wav')?'wav':blob.type.includes('mp4')?'m4a':blob.type.includes('webm')?'webm':blob.type.includes('ogg')?'ogg':'audio';
       const file=new File([blob],`offbeat-take-${Date.now()}.${ext}`,{type:blob.type});
       setFile('take',file);
       const analyzed=await analyze('take',{file},takeKind);
       if(analyzed&&mounted.current)setMessage('Your musical shape is ready. Add a reference to compare, or save this idea.');
     }catch(e){if(mounted.current)setMessage(e.message);}
   };
+
+  // The analyzer accepts at most 60 seconds; automatically finish capture.
+  useEffect(()=>{
+    if(recording && recordSeconds>=60 && recorder.current) void stopRecording();
+  },[recording,recordSeconds]);
 
   const toggleLoop=async s=>{
     if(loops[s.id]){stopLoop(s.id);setLoops(prev=>({...prev,[s.id]:false}));return;}
