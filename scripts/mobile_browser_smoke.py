@@ -35,6 +35,10 @@ def run():
    expect(page.get_by_text('Pocket groove',exact=True)).to_be_visible(timeout=12000)
    page.reload(wait_until='networkidle')
    expect(page.get_by_text('Pocket groove',exact=True)).to_be_visible()
+   page.get_by_role('button',name='Open',exact=True).click()
+   expect(page.get_by_text('Opened saved originals and analysis.',exact=False)).to_be_visible()
+   page.get_by_role('button',name='Delete',exact=True).click()
+   expect(page.get_by_text('Pocket groove',exact=True)).to_have_count(0)
    assert all(':8765' not in url for url in calls),'Browser analysis must never depend on Python API'
    assert all(url.startswith(('http://127.0.0.1:5173/','blob:http://127.0.0.1:5173/')) for url in calls),'Unexpected external request: '+str(calls)
    print('PASS: mobile viewport, browser DSP, comparison, A/B, IndexedDB, zero audio network')
