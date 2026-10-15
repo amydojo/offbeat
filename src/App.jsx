@@ -20,6 +20,17 @@ const samples = [
 const allowedExtensions = /\.(wav|mp3|m4a|aac|flac|webm|ogg)$/i;
 const MAX_BYTES = 25 * 1024 * 1024;
 
+function microphoneFailure(error) {
+  const type=error?.name;
+  if(type==='NotAllowedError'||type==='PermissionDeniedError'||type==='SecurityError')
+    return 'Microphone access was denied. Allow OFFBEAT to use your microphone in browser site settings, then tap Record or hum again.';
+  if(type==='NotFoundError'||type==='DevicesNotFoundError')
+    return 'No microphone was found. Connect a microphone or check your device audio settings.';
+  if(type==='NotReadableError'||type==='TrackStartError'||type==='AbortError')
+    return 'The microphone may be in use by another app. Close other recording apps and retry.';
+  return error?.message||'Could not start the microphone. Try again or import an audio file.';
+}
+
 function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyzing, kind, onKind, index }) {
   const input = useRef(null);
   return <section className="lane">
@@ -185,7 +196,7 @@ export default function App() {
       const active=await createMicrophoneRecorder();
       if(!mounted.current){active.cancel();return;}
       recorder.current=active;setRecording(true);setMessage('Recording. Press Stop when done.');
-    }catch(e){if(mounted.current)setMessage(e.message);}
+    }catch(e){if(mounted.current)setMessage(microphoneFailure(e));}
     finally{micRequestPending.current=false;if(mounted.current)setRequestingMic(false);}
   };
   const stopRecording=async()=>{
@@ -259,7 +270,7 @@ export default function App() {
   const effectiveReferenceWindowStart=Math.min(refWindowStart,maxReferenceWindowStart);
   const canSave=!!reference?.analysis||!!take?.analysis;
   return <main className="shell">
-    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / MOBILE V0.1</span></header>
+    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / MOBILE V0.1.1</span></header>
     <section className="hero" id="capture"><p className="eyebrow">01 / CAPTURE</p><h1>Hear what your hands remembered.</h1>
       <p>Record a phrase. Compare what moved, what stayed, and the silence between. No scores, no wrong notes, no sheet music.</p></section>
     <div className="workspace">
@@ -267,13 +278,13 @@ export default function App() {
         onFile={file=>setFile('reference',file)} onClear={()=>replaceClip('reference',null)}
         onAnalyze={()=>analyze('reference',reference,refKind)} analyzing={busy.reference}
         kind={refKind} onKind={value=>chooseSourceKind('reference',value)} index="01"/>
-      <ClipLane title="Your take" description="Record your bass or import your own improvisation." clip={take}
+      <ClipLane title="Your take" description="Hum, play bass, or import a short idea of your own." clip={take}
         onFile={file=>setFile('take',file)} onClear={()=>replaceClip('take',null)}
         onAnalyze={()=>analyze('take',take,takeKind)} analyzing={busy.take}
         kind={takeKind} onKind={value=>chooseSourceKind('take',value)} index="02"/>
       <div className="record-row">
         <button type="button" className={recording?'button-record active':'button-record'} disabled={requestingMic}
-          onClick={recording?stopRecording:startRecording}>{requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record bass'}</button>
+          onClick={recording?stopRecording:startRecording}>{requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record or hum'}</button>
         <p>Mic permission is requested only when you press Record. Audio analysis runs {ANALYSIS_LOCATION}; recordings are never uploaded.</p>
       </div>
       {message&&<p className="status" role="status">{message}</p>}

@@ -116,7 +116,7 @@ def run():
             assert not page.get_by_text("The phrases differ greatly in length", exact=False).count()
 
             # This is browser emulation only; the user's actual Mac device must be tested manually.
-            page.get_by_role("button", name="Record bass").click()
+            page.get_by_role("button", name="Record or hum").click()
             expect(page.get_by_role("button", name="Stop recording")).to_be_visible(timeout=20000)
             time.sleep(1)
             page.get_by_role("button", name="Stop recording").click()
