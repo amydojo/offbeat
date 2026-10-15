@@ -34,7 +34,7 @@ async function transact(mode, operation) {
   } finally { db.close(); }
 }
 
-export async function saveSession({ title, reference, take, selection, comparison }) {
+export async function saveSession({ title, reference, take, selection, comparison, groove=null }) {
   if (!take?.analysis && !reference?.analysis) throw new Error('Analyze a recording before saving.');
   const make = clip => clip ? {
     name: clip.name, mime: clip.file.type || 'application/octet-stream',
@@ -44,7 +44,7 @@ export async function saveSession({ title, reference, take, selection, compariso
     id: crypto.randomUUID(), createdAt: new Date().toISOString(),
     title: String(title || 'Untitled phrase').trim().slice(0, 90) || 'Untitled phrase',
     schema_version: 'offbeat.session.v1', reference: make(reference), take: make(take),
-    selection: { start: selection.start, end: selection.end }, comparison: comparison || null,
+    selection: { start: selection.start, end: selection.end }, comparison: comparison || null, groove:groove || null,
   };
   await transact('readwrite', store => store.put(entry));
   return entry;

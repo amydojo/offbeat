@@ -9,6 +9,7 @@ import Contour from './components/Contour.jsx';
 import MirrorCompare from './components/MirrorCompare.jsx';
 import PhrasePlayer from './components/PhrasePlayer.jsx';
 import ExcerptPicker from './components/ExcerptPicker.jsx';
+import GrooveLab from './components/GrooveLab.jsx';
 import drums from '../loop1.mp3';
 import bass from '../loop2.mp3';
 import melody from '../loop3.mp3';
@@ -101,6 +102,7 @@ export default function App() {
   const [saving,setSaving]=useState(false);
   const [transferBusy,setTransferBusy]=useState(false);
   const [activeSessionId,setActiveSessionId]=useState(null);
+  const [groovePattern,setGroovePattern]=useState(null);
   const [message,setMessage]=useState('');
   const recorder=useRef(null);
   const recordingStarted=useRef(0);
@@ -134,6 +136,7 @@ export default function App() {
 
   const replaceClip=(lane,clip)=>{
     setActiveSessionId(null);
+    if(lane==='take')setGroovePattern(null);
     const setter=lane==='reference'?setReference:setTake;
     const handle=lane==='reference'?referenceRef:takeRef;
     if(handle.current)URL.revokeObjectURL(handle.current.url);
@@ -246,7 +249,7 @@ export default function App() {
   const keep=async()=>{
     setSaving(true);setMessage('');
     try{
-      const saved=await saveSession({title,reference:referenceRef.current,take:takeRef.current,selection,comparison});
+      const saved=await saveSession({title,reference:referenceRef.current,take:takeRef.current,selection,comparison,groove:groovePattern});
       setActiveSessionId(saved.id);
       await refreshLibrary();setTitle('');
       setMessage('Saved locally. Your original audio stays unchanged.');
@@ -283,6 +286,7 @@ export default function App() {
     if(r?.analysis?.source?.kind)setRefKind(r.analysis.source.kind);
     if(t?.analysis?.source?.kind)setTakeKind(t.analysis.source.kind);
     setActiveSessionId(entry.id);
+    setGroovePattern(entry.groove||null);
     // Comparison is derived only from the exact saved analyses; clear stale
     // references from previous open before attaching the stored version.
     if(entry.comparison&&r?.analysis?.analysis_id===entry.comparison.reference_analysis_id
@@ -321,11 +325,11 @@ export default function App() {
   const currentStep=comparison?4:reference?.analysis&&take?.analysis?3:take?.analysis||reference?.analysis?2:1;
   const recordingClock=`${String(Math.floor(recordSeconds/60)).padStart(2,'0')}:${String(recordSeconds%60).padStart(2,'0')}`;
   return <main className="shell">
-    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / MOBILE V0.1.2</span></header>
+    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>GROOVE / V0.2</span></header>
     <section className="hero"><p className="eyebrow">YOUR IDEAS, BEFORE THEY DISAPPEAR.</p><h1>Hear it in your head.<br/><em>Catch it here.</em></h1>
       <p>Hum a melody. Play a bass line. See its shape, hear it back, and keep the part you love. No wrong notes.</p></section>
     <nav className="journey" aria-label="Your Offbeat workflow">
-      {[{name:'Capture',href:'#capture'},{name:'Shape',href:'#take'},{name:'Compare',href:'#mirror'},{name:'Keep',href:'#keep'}].map((step,i)=>
+      {[{name:'Capture',href:'#capture'},{name:'Shape',href:'#take'},{name:'Groove',href:'#groove'},{name:'Keep',href:'#keep'}].map((step,i)=>
         <a key={step.name} href={step.href} className={i+1===currentStep?'journey-current':i+1<currentStep?'journey-complete':''}
           aria-current={i+1===currentStep?'step':undefined}><span className="journey-index">{String(i+1).padStart(2,'0')}</span>{step.name}</a>)}
     </nav>
@@ -393,6 +397,10 @@ export default function App() {
       </section>}
       <PhrasePlayer reference={reference} take={take} comparison={comparison} selection={selected}/>
     </section>
+    <GrooveLab key={(take?.analysis?.analysis_id||'none')+':'+(activeSessionId||'new')}
+      take={take} reference={reference} selection={selected} comparison={comparison}
+      initialGroove={groovePattern} onPatternChange={setGroovePattern}
+      onStopDemo={()=>{stopAll();setLoops({});}}/>
     <Library entries={entries} title={title} onTitle={setTitle} isSaving={saving} onSave={keep} canSave={canSave}
       onOpen={openEntry} onDelete={deleteOne} onDeleteAll={deleteAll}
       onExport={exportEntry} onImport={importEntry} transferBusy={transferBusy}/>
@@ -403,7 +411,7 @@ export default function App() {
     </details>
     <nav className="mobile-nav" aria-label="Offbeat mobile navigation">
       <a href="#capture"><span aria-hidden="true">◌</span>Capture</a>
-      <a href="#mirror"><span aria-hidden="true">≋</span>Mirror</a>
+      <a href="#groove"><span aria-hidden="true">♫</span>Groove</a>
       <a href="#keep"><span aria-hidden="true">◇</span>Keep</a>
     </nav><footer>OFFBEAT · Local first · Only keep the parts you love.</footer>
   </main>;
