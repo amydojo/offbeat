@@ -41,7 +41,7 @@ cd analysis
 python -m pytest
 ```
 
-Current analysis limits: 25 MB, 60 s, monophonic pitch within approximately 36–650 Hz, stereo downmix, FFmpeg decoder required. Onset boundaries, high harmonics, low E bass and noisy recordings require careful listening checks. YIN is a DSP baseline; no pretrained models run. The versioned `/v1/compare` reports aligned attack correspondences, source timing and nonjudgmental contour descriptors. Sparse inputs can produce weak or misleading matches; use the original-time view to verify.
+Current analysis limits: 25 MB, 60 s, monophonic pitch within approximately 36–650 Hz, stereo downmix, FFmpeg decoder required. Onset boundaries, high harmonics, low E bass and noisy recordings require careful listening checks. YIN is a DSP baseline; no pretrained models run. The versioned `/v1/compare` reports aligned attack correspondences, source timing and nonjudgmental contour descriptors. Use **Find the moment in the reference** to select and preview a reference excerpt close to your performance's length; a 54-second song is no longer force-matched with a 13-second hum. Attack matches represent proximity in time **only** and do not establish the same notes or riff. Sparse inputs can produce weak or misleading matches; use the original-time view to verify. For voice performances choose **Humming** as the take's source type and reanalyze.
 
 **Mac hardware checklist:** [physical-device and Safari QA](docs/MAC_MICROPHONE_QA.md) must be completed by someone with the actual Mac. Linux Chromium CI only exercises a fake microphone.
 
