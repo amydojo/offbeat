@@ -46,7 +46,8 @@ export default function PhrasePlayer({ reference, take, comparison, selection })
     };
   }, [reference?.url, take?.url]);
 
-  useEffect(() => { stop(); }, [reference?.url, take?.url, comparison, selection.start, selection.end]);
+  useEffect(() => { stop(); }, [reference?.url, take?.url, reference?.excerptStart, take?.excerptStart,
+    reference?.analysis?.analysis_id, take?.analysis?.analysis_id, comparison, selection.start, selection.end]);
 
   const range = lane => selectionForLane(
     selection, comparison, lane,
