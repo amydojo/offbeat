@@ -17,7 +17,7 @@ def run():
    """)
    page.goto('http://127.0.0.1:5173/',wait_until='networkidle')
    page.get_by_role('button',name='● Record or hum').click()
-   expect(page.locator('p.status')).to_contain_text('User denied microphone permission',timeout=10000)
+   expect(page.locator('p.status')).to_contain_text('Microphone access was denied.',timeout=10000)
    expect(page.get_by_role('button',name='● Record or hum')).to_be_enabled()
    # Never create a fake audio recording on failed permission.
    assert page.get_by_label('Your take musical features').count()==0

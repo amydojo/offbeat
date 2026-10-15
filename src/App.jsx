@@ -20,6 +20,17 @@ const samples = [
 const allowedExtensions = /\.(wav|mp3|m4a|aac|flac|webm|ogg)$/i;
 const MAX_BYTES = 25 * 1024 * 1024;
 
+function microphoneFailure(error) {
+  const type=error?.name;
+  if(type==='NotAllowedError'||type==='PermissionDeniedError'||type==='SecurityError')
+    return 'Microphone access was denied. Allow OFFBEAT to use your microphone in browser site settings, then tap Record or hum again.';
+  if(type==='NotFoundError'||type==='DevicesNotFoundError')
+    return 'No microphone was found. Connect a microphone or check your device audio settings.';
+  if(type==='NotReadableError'||type==='TrackStartError'||type==='AbortError')
+    return 'The microphone may be in use by another app. Close other recording apps and retry.';
+  return error?.message||'Could not start the microphone. Try again or import an audio file.';
+}
+
 function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyzing, kind, onKind, index }) {
   const input = useRef(null);
   return <section className="lane">
@@ -185,7 +196,7 @@ export default function App() {
       const active=await createMicrophoneRecorder();
       if(!mounted.current){active.cancel();return;}
       recorder.current=active;setRecording(true);setMessage('Recording. Press Stop when done.');
-    }catch(e){if(mounted.current)setMessage(e.message);}
+    }catch(e){if(mounted.current)setMessage(microphoneFailure(e));}
     finally{micRequestPending.current=false;if(mounted.current)setRequestingMic(false);}
   };
   const stopRecording=async()=>{
