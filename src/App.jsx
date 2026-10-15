@@ -135,8 +135,8 @@ export default function App() {
       const next={...handle.current,analysis:result};
       handle.current=next;setter(next);
       if(lane==='reference')setSelection({start:0,end:result.source.duration_s});
-      setRefWindowStart(0);
       else if(!referenceRef.current?.analysis)setSelection({start:0,end:result.source.duration_s});
+      setRefWindowStart(0);
     }catch(e){if(!controller.signal.aborted&&mounted.current)setMessage(e.message);}
     finally{
       if(jobs.current.get(lane)===controller){jobs.current.delete(lane);setBusy(prev=>({...prev,[lane]:false}));}
