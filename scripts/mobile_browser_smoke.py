@@ -6,6 +6,10 @@ from pathlib import Path
 import json
 from browser_smoke import synthetic_bass
 
+def ensure_open(page,selector):
+ if not page.locator(selector).evaluate('(node)=>node.open'):
+  page.locator(selector+' > summary').click()
+
 def run():
  with sync_playwright() as p:
   browser=p.chromium.launch(headless=True,args=[
@@ -63,7 +67,7 @@ def run():
    assert mixed[:4]==b'RIFF' and mixed[8:12]==b'WAVE' and len(mixed)>12000
    page.get_by_placeholder('Name this idea…').fill('Pocket groove')
    page.get_by_role('button',name='Keep this phrase').click()
-   page.locator('details.saved-drawer > summary').click()
+   ensure_open(page,'details.saved-drawer')
    expect(page.get_by_text('Pocket groove',exact=True)).to_be_visible(timeout=15000)
    with page.expect_download() as exporting:
     page.get_by_role('button',name='Export project').click()
@@ -80,7 +84,7 @@ def run():
    expect(page.get_by_text('Pocket groove',exact=True)).to_be_visible(timeout=15000)
    expect(page.locator('p.status')).to_contain_text('integrity verified',timeout=15000)
    page.reload(wait_until='networkidle')
-   page.locator('details.saved-drawer > summary').click()
+   ensure_open(page,'details.saved-drawer')
    expect(page.get_by_text('Pocket groove',exact=True)).to_be_visible()
    page.get_by_role('button',name='Open',exact=True).click()
    expect(page.locator('.clip-done')).to_have_count(2)
@@ -103,7 +107,7 @@ def run():
    expect(take.locator('.clip-done')).to_be_visible(timeout=120000)
    page.get_by_placeholder('Name this idea…').fill('Long original kept')
    page.get_by_role('button',name='Keep this phrase').click()
-   page.locator('details.saved-drawer > summary').click()
+   ensure_open(page,'details.saved-drawer')
    expect(page.get_by_text('Long original kept',exact=True)).to_be_visible()
    take.locator('details.clip-details').last.locator('summary').click()
    with page.expect_download() as original_download:
@@ -116,7 +120,7 @@ def run():
    assert abs(data['session']['take']['full_duration_s']-69)<.2
    assert data['session']['take']['size']==len(long_audio)
    page.reload(wait_until='networkidle')
-   page.locator('details.saved-drawer > summary').click()
+   ensure_open(page,'details.saved-drawer')
    page.get_by_role('button',name='Open',exact=True).click()
    take.locator('details.clip-details').first.locator('summary').click()
    assert abs(float(take.get_by_role('slider',name='Your take analysis excerpt position').input_value())-8)<.01
