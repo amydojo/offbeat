@@ -7,6 +7,7 @@ import { saveSession, listSessions, removeSession, clearSessions, restoreClip } 
 import Contour from './components/Contour.jsx';
 import MirrorCompare from './components/MirrorCompare.jsx';
 import PhrasePlayer from './components/PhrasePlayer.jsx';
+import ExcerptPicker from './components/ExcerptPicker.jsx';
 import drums from '../loop1.mp3';
 import bass from '../loop2.mp3';
 import melody from '../loop3.mp3';
@@ -67,6 +68,7 @@ export default function App() {
   const [comparison,setComparison]=useState(null);
   const [normalized,setNormalized]=useState(false);
   const [selection,setSelection]=useState({start:0,end:4});
+  const [refWindowStart,setRefWindowStart]=useState(0);
   const [entries,setEntries]=useState([]);
   const [title,setTitle]=useState('');
   const [saving,setSaving]=useState(false);
@@ -113,6 +115,7 @@ export default function App() {
       setMessage('Choose a supported audio file under 25 MB.');return;
     }
     replaceClip(lane,{file,name:file.name,url:URL.createObjectURL(file),analysis:null});
+    setRefWindowStart(0);
     if(lane==='reference')setSelection({start:0,end:4});
     setMessage('');
   };
@@ -132,6 +135,7 @@ export default function App() {
       const next={...handle.current,analysis:result};
       handle.current=next;setter(next);
       if(lane==='reference')setSelection({start:0,end:result.source.duration_s});
+      setRefWindowStart(0);
       else if(!referenceRef.current?.analysis)setSelection({start:0,end:result.source.duration_s});
     }catch(e){if(!controller.signal.aborted&&mounted.current)setMessage(e.message);}
     finally{
@@ -145,10 +149,18 @@ export default function App() {
     const controller=new AbortController();
     compareJob.current=controller;setComparing(true);setMessage('');
     try{
+      const referenceDuration=reference.analysis.source.duration_s;
+      const takeDuration=take.analysis.source.duration_s;
+      const excerptLength=Math.min(referenceDuration,takeDuration);
+      const excerptStart=Math.max(0,Math.min(refWindowStart,referenceDuration-excerptLength));
+      const referenceRegion={
+        start_s:Number(excerptStart.toFixed(3)),
+        end_s:Number(Math.min(referenceDuration,excerptStart+excerptLength).toFixed(3)),
+      };
       const response=await fetch('http://127.0.0.1:8765/v1/compare',{
         method:'POST',signal:controller.signal,
         headers:{'Content-Type':'application/json','X-Offbeat-Client':'local-ui'},
-        body:JSON.stringify({reference:reference.analysis,take:take.analysis,mode:'onsets'})
+        body:JSON.stringify({reference:reference.analysis,take:take.analysis,mode:'onsets',reference_region:referenceRegion})
       });
       const data=await response.json();
       if(!response.ok)throw new Error(data.error?.message||'Comparison could not be completed.');
@@ -204,6 +216,9 @@ export default function App() {
     replaceClip('reference',r);
     replaceClip('take',t);
     setSelection(entry.selection);
+    setRefWindowStart(entry.comparison?.alignment?.reference_region_start_s||0);
+    if(r?.analysis?.source?.kind)setRefKind(r.analysis.source.kind);
+    if(t?.analysis?.source?.kind)setTakeKind(t.analysis.source.kind);
     setActiveSessionId(entry.id);
     // Comparison is derived only from the exact saved analyses; clear stale
     // references from previous open before attaching the stored version.
@@ -233,6 +248,10 @@ export default function App() {
 
   const refDuration=reference?.analysis?.source.duration_s||take?.analysis?.source.duration_s||0;
   const selected=selectableRange(selection.start,selection.end,refDuration||4);
+  const takeDuration=take?.analysis?.source.duration_s||0;
+  const referenceExcerptSeconds=takeDuration?Math.min(refDuration,takeDuration):0;
+  const maxReferenceWindowStart=Math.max(0,refDuration-referenceExcerptSeconds);
+  const effectiveReferenceWindowStart=Math.min(refWindowStart,maxReferenceWindowStart);
   const canSave=!!reference?.analysis||!!take?.analysis;
   return <main className="shell">
     <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / V0.1</span></header>
@@ -259,6 +278,12 @@ export default function App() {
       <div className="compare-head"><div><p className="eyebrow">02 / DISCOVER</p><h2>Find the musical gesture.</h2></div>
         <button className="button-record" disabled={!reference?.analysis||!take?.analysis||comparing}
           onClick={compare}>{comparing?'Comparing…':'Compare these phrases'}</button></div>
+      {reference?.analysis&&take?.analysis&&
+        <ExcerptPicker clip={reference} start={effectiveReferenceWindowStart}
+          length={referenceExcerptSeconds} maxStart={maxReferenceWindowStart}
+          onError={setMessage} onChange={value=>{
+            setRefWindowStart(value);invalidate();
+          }}/>}
       <MirrorCompare reference={reference} take={take} comparison={comparison} normalized={normalized} onNormalize={setNormalized}/>
       {reference?.analysis&&take?.analysis&&<section className="selection" aria-label="Select phrase segment">
         <p className="eyebrow">SELECTION / NON-DESTRUCTIVE</p><p className="hint">Choose a region on the reference timeline. Offbeat maps it to the corresponding region of your take for A/B listening.</p>
