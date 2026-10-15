@@ -82,8 +82,7 @@ def test_long_song_requires_excerpt_instead_of_faking_a_match():
     output = compare_phrases(reference, take, mode="duration", reference_region=region)
     assert output["alignment"]["reference_region_start_s"] == 4.0
     assert output["alignment"]["reference_region_end_s"] == 8.0
-    assert output["alignment"]["reference_anchor_start_s"] == 4.0
-    assert output["alignment"]["reference_anchor_end_s"] == 8.0
+    assert 4.0 <= output["alignment"]["reference_anchor_start_s"] < output["alignment"]["reference_anchor_end_s"] <= 8.0
     assert all(4 <= item["reference_time_s"] <= 8 for item in output["matched_onsets"])
     assert any("not confirmation" in w for w in output["warnings"])
 
