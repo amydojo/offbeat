@@ -56,8 +56,10 @@ def run():
             take_file.set_input_files({"name": "bass-take.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(1.25)})
             page.get_by_role("button", name="Analyze shape").first.click()
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(1, timeout=90000)
+            expect(page.get_by_role("link", name="Keep this idea")).to_be_visible()
             page.get_by_role("button", name="Analyze shape").click()
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(2, timeout=90000)
+            expect(page.get_by_role("link", name="Download original")).to_have_count(2)
 
             page.get_by_role("button", name="Compare these phrases").click()
             expect(page.get_by_text("temporally corresponding attacks", exact=False)).to_be_visible(timeout=15000)

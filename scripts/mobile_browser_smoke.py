@@ -16,7 +16,11 @@ def run():
    page.on('request',lambda request:calls.append(request.url))
    page.goto('http://127.0.0.1:5173/',wait_until='networkidle')
    expect(page.get_by_role('navigation',name='Offbeat mobile navigation')).to_be_visible()
-   assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 2'),'Horizontal mobile overflow'
+   for viewport_width in [320,360,390,430]:
+    page.set_viewport_size({"width":viewport_width,"height":844})
+    assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 2'),f'Horizontal mobile overflow at {viewport_width}px'
+    assert page.evaluate("""() => [...document.querySelectorAll('.capture-mode button,.mobile-nav a,.capture-panel .button-record')].every(el => el.getBoundingClientRect().height >= 44)"""),'Mobile tap targets under 44px'
+   page.set_viewport_size({"width":390,"height":844})
    expect(page.get_by_role('heading',name='Start with a sound.')).to_be_visible()
    expect(page.get_by_role('button',name='Record or hum')).to_be_visible()
    assert page.evaluate("""() => {
@@ -34,6 +38,8 @@ def run():
    page.get_by_label('Your take source type').select_option('humming')
    page.get_by_role('button',name='Analyze shape').first.click()
    expect(page.get_by_role('button',name='Analyze again')).to_have_count(1,timeout=45000)
+   expect(page.get_by_role('link',name='Keep this idea')).to_be_visible()
+   expect(page.get_by_role('link',name='Download original')).to_have_count(2)
    page.get_by_role('button',name='Analyze shape').click()
    expect(page.get_by_role('button',name='Analyze again')).to_have_count(2,timeout=45000)
    page.get_by_role('button',name='Compare these phrases').click()
