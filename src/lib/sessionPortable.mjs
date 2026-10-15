@@ -1,3 +1,4 @@
+import {validGroove} from './grooveEngine.mjs';
 // OFFBEAT portable session backups. All work is local; no fetch/upload.
 // This is intentionally bounded for phone memory, not a cloud sync format.
 const BACKUP_VERSION='offbeat.backup.v1';
@@ -84,7 +85,8 @@ export async function createSessionBackup(entry){
    selection:{start:entry.selection.start,end:entry.selection.end},
    reference:await pack(entry.reference),
    take:await pack(entry.take),
-   comparison:entry.comparison??null
+   comparison:entry.comparison??null,
+   groove:entry.groove&&entry.take?.analysis&&validGroove(entry.groove,entry.take.analysis)?entry.groove:null
   }
  };
  if(!payload.session.reference?.analysis&&!payload.session.take?.analysis)
@@ -120,7 +122,8 @@ export async function parseSessionBackup(file){
  return {
   title:session.title||'Imported phrase',
   reference,take,selection:{start:session.selection.start,end:session.selection.end},
-  comparison
+  comparison,
+  groove:session.groove&&take?.analysis&&validGroove(session.groove,take.analysis)?session.groove:null
  };
 }
 export async function downloadSessionBackup(entry){

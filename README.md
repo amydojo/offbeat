@@ -1,8 +1,11 @@
 # OFFBEAT — Bass Mirror
 
-An ear-first, mobile-first instrument for catching music you hum or play. **V0.1.3 experience:** capture → on-device pitch contour → optional reference comparison → A/B listening → Keep → local portable project backup. Responsive drums remain V0.2.
+An ear-first, mobile-first instrument for catching music you hum or play. **V0.2 GROOVE experience:** capture → on-device pitch contour → optional reference comparison → A/B listening → Keep → local portable project backup. Responsive drums remain V0.2.
 
 **Live web app:** https://offbeat-pi.vercel.app
+
+**New in V0.2:** [responsive Follow / Answer / Contrast drummer](docs/GROOVE_V02.md), generated kick/snare/hat loop playback, controlled density/response/swing, tap tempo, seeded variations, local mixed PCM WAV export, and deterministic pattern recipes included in portable saved projects. The original source stays unquantized.
+
 
 ## Product rules
 - No grades, forced note names, notation drills or judgments about musical intention.

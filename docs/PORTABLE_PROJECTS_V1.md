@@ -38,3 +38,17 @@ Tampered or unsupported versions are rejected without writing to IndexedDB.
   Save → Export → Delete → Import → Reload → Open, plus a tampered import that
   must not add an entry. This is not physical Safari or Android testing.
 - No new network request, third-party dependency or server function is needed.
+
+## GROOVE V0.2 extension
+New backups MAY include an optional \`session.groove\` object with the
+\`offbeat.groove.v1\` version, mode, deterministic seed, response settings,
+source SHA-256/analysis ID, source-relative selection and drum event list.
+Imports verify the groove recipe against the verified take analysis before
+retaining it. Invalid or mismatched recipes are ignored; the original audio
+and analysis remain importable. Legacy backups without this optional field
+remain compatible. Audio files themselves are never modified.
+
+The separate **Export mixed WAV** action renders the selected original take
+and deterministic drum events to an actual mono 22,050 Hz / 16-bit PCM WAV.
+That WAV is not a portable multitrack project or an MP3. Export is bounded to
+a 16-second phrase to protect mobile memory.

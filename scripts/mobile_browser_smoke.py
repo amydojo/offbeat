@@ -42,6 +42,32 @@ def run():
    expect(page.get_by_role('button',name='Analyze again')).to_have_count(1,timeout=45000)
    expect(page.get_by_role('link',name='Keep this idea')).to_be_visible()
    expect(page.get_by_role('link',name='Download original')).to_have_count(2)
+   groove=page.get_by_role('region',name='Responsive drummer')
+   expect(groove.get_by_role('button',name='Follow')).to_be_visible()
+   for width in [320,360,390,430]:
+    page.set_viewport_size({"width":width,"height":844})
+    assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 2'),'Groove overflow at '+str(width)
+   page.set_viewport_size({"width":390,"height":844})
+   groove.get_by_role('button',name='Answer').click()
+   expect(groove.get_by_role('button',name='Answer')).to_have_attribute('aria-pressed','true')
+   groove.get_by_role('button',name='Contrast').click()
+   expect(groove.get_by_role('button',name='Contrast')).to_have_attribute('aria-pressed','true')
+   groove.get_by_role('button',name='Follow').click()
+   expect(groove.get_by_role('button',name='Follow')).to_have_attribute('aria-pressed','true')
+   groove.get_by_role('slider',name='Drum density').fill('0.85')
+   groove.get_by_role('button',name='New variation').click()
+   groove.get_by_role('button',name='Play with drums').click()
+   expect(groove.get_by_role('button',name='Stop groove')).to_be_visible(timeout=12000)
+   expect(groove.get_by_role('status')).to_contain_text('2 loops started.',timeout=16000)
+   groove.get_by_role('button',name='Stop groove').click()
+   expect(groove.get_by_role('button',name='Play with drums')).to_be_enabled()
+   with page.expect_download(timeout=30000) as mixed_download:
+    groove.get_by_role('button',name='Export mixed WAV').click()
+   wav=mixed_download.value
+   assert wav.suggested_filename.endswith('.wav')
+   wav_bytes=Path(wav.path()).read_bytes()
+   assert wav_bytes[:4]==b'RIFF' and wav_bytes[8:12]==b'WAVE'
+   assert len(wav_bytes)>12000,'An actual mixed WAV should contain nontrivial PCM samples'
    page.get_by_role('button',name='Analyze shape').click()
    expect(page.get_by_role('button',name='Analyze again')).to_have_count(2,timeout=45000)
    page.get_by_role('button',name='Compare these phrases').click()
@@ -65,6 +91,9 @@ def run():
    manifest=json.loads(backup_bytes)
    assert manifest['schema_version']=='offbeat.backup.v1'
    assert manifest['session']['take']['base64']
+   assert manifest['session']['groove']['schema_version']=='offbeat.groove.v1'
+   assert manifest['session']['groove']['mode']=='follow'
+   assert manifest['session']['groove']['events']
    # A delete followed by a verified local import must restore the project.
    page.once('dialog',lambda dialog:dialog.accept())
    page.get_by_role('button',name='Delete',exact=True).click()
@@ -77,6 +106,7 @@ def run():
    expect(page.get_by_text('Pocket groove',exact=True)).to_be_visible()
    page.get_by_role('button',name='Open',exact=True).click()
    expect(page.get_by_role('button',name='Analyze again')).to_have_count(2)
+   expect(page.get_by_role('region',name='Responsive drummer').get_by_role('button',name='Follow')).to_have_attribute('aria-pressed','true')
    # Corrupting a still-valid base64 payload must fail SHA-256 integrity.
    bad=json.loads(backup_bytes)
    bad_audio=bad['session']['take']['base64']
