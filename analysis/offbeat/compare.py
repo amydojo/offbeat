@@ -150,7 +150,11 @@ def compare_phrases(reference, take, mode="onsets", reference_region=None):
     description = []
     if rdesc and tdesc:
         if rdesc == tdesc:
-            description.append("Both phrases " + ("stay near their starting registers" if rdesc == "stays near its starting register" else rdesc) + ".")
+            description.append({
+                "rises": "Both phrases rise.",
+                "falls": "Both phrases fall.",
+                "stays near its starting register": "Both phrases stay near their starting registers.",
+            }[rdesc])
         else:
             description.append("The reference " + rdesc + "; your take " + tdesc + ".")
     if reference_view["rests"] and take["rests"]:
