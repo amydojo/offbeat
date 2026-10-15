@@ -101,7 +101,8 @@ def run():
             page.once("dialog", lambda dialog: dialog.accept())
             page.get_by_role("button", name="Delete", exact=True).click()
             expect(page.get_by_text("Pick / Pluck", exact=True)).to_have_count(0)
-            page.locator("details.record-tray > summary").click()
+            if not page.locator("details.record-tray").evaluate("(node)=>node.open"):
+                page.locator("details.record-tray > summary").click()
             page.get_by_role("button", name="Record or hum").click()
             expect(page.get_by_role("button", name="Stop recording")).to_be_visible(timeout=15000)
             time.sleep(1)
