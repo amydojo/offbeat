@@ -27,7 +27,7 @@ def run():
    expect(page.get_by_role('button',name='● Record or hum')).to_be_enabled()
    print('PASS: denied permission recovers; unsupported file cannot enter analysis')
    # On a separate emulated phone where microphone is allowed, record actual
-   # browser MediaRecorder bytes, stop them and analyze with the new Worker.
+   # browser PCM/WAV bytes, stop them and analyze with the Worker.
    context_allowed=browser.new_context(
     viewport={"width":390,"height":844},is_mobile=True,has_touch=True,permissions=['microphone']
    )
@@ -46,7 +46,7 @@ def run():
     page_allowed.get_by_role('link',name='Download original').click()
    from pathlib import Path
    wav=Path(wav_download.value.path()).read_bytes()
-   assert wav[:4]==b'RIFF' and wav[8:12]==b'WAVE' and wav[20:22]==b'\\x01\\x00'
+   assert wav[:4]==b'RIFF' and wav[8:12]==b'WAVE' and wav[20:22]==bytes([1, 0])
    assert len(wav)>10000, 'Microphone recording must contain meaningful PCM audio'
    # The exact generated WAV must round-trip through the browser decoder.
    is_decodable=page_allowed.evaluate("""async () => {
@@ -59,7 +59,7 @@ def run():
    }""")
    assert is_decodable, 'Browser recorded WAV must decode via AudioContext'
 
-   print('PASS: emulated phone records via MediaRecorder, stops and analyzes locally')
+   print('PASS: emulated phone records valid PCM/WAV without MediaRecorder, stops and analyzes locally')
   finally:
    browser.close()
 if __name__=='__main__':run()
