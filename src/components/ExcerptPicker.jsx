@@ -25,7 +25,7 @@ export default function ExcerptPicker({ clip, start, length, maxStart, onChange,
     audio.pause();
     // Initiate play *inside the actual click*, before awaiting metadata.
     // Delaying play until after loadedmetadata loses user activation in Safari.
-    const seek = () => { audio.currentTime = start; };
+    const seek = () => { audio.currentTime = start+(clip?.excerptStart||0); };
     if (audio.readyState >= 1) seek();
     else audio.addEventListener('loadedmetadata', seek, { once: true });
     setPlaying(true);
@@ -57,7 +57,7 @@ export default function ExcerptPicker({ clip, start, length, maxStart, onChange,
       onEnded={()=>setPlaying(false)}
       onPause={()=>setPlaying(false)}
       onTimeUpdate={e=>{
-        if (e.currentTarget.currentTime >= start + length) stop();
+        if (e.currentTarget.currentTime >= start + length + (clip?.excerptStart||0)) stop();
       }}/>
   </section>;
 }

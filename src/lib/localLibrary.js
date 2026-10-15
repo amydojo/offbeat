@@ -39,6 +39,7 @@ export async function saveSession({ title, reference, take, selection, compariso
   const make = clip => clip ? {
     name: clip.name, mime: clip.file.type || 'application/octet-stream',
     blob: clip.file, analysis: clip.analysis || null,
+    excerptStart: clip.excerptStart || 0, fullDuration: clip.fullDuration || null,
   } : null;
   const entry = {
     id: crypto.randomUUID(), createdAt: new Date().toISOString(),
@@ -58,5 +59,6 @@ export async function clearSessions() { await transact('readwrite', store => sto
 export function restoreClip(entry) {
   if (!entry) return null;
   const file = new File([entry.blob], entry.name, { type: entry.mime });
-  return { name: entry.name, file, analysis: entry.analysis, url: URL.createObjectURL(file) };
+  return { name: entry.name, file, analysis: entry.analysis, url: URL.createObjectURL(file),
+    excerptStart: entry.excerptStart || 0, fullDuration: entry.fullDuration || null };
 }

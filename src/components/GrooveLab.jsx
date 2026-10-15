@@ -77,7 +77,7 @@ export default function GrooveLab({take,reference,selection,comparison,initialGr
   setNotice('');
   try{
    onStopDemo?.();
-   const did=await startGroove(take.url,pattern,()=>setCycles(c=>c+1));
+   const did=await startGroove(take.url,pattern,()=>setCycles(c=>c+1),take.excerptStart||0);
    setPlaying(!!did);
   }catch(e){stopGroove();setPlaying(false);setNotice(e.message||'Playback failed on this browser.');}
  };
@@ -95,7 +95,7 @@ export default function GrooveLab({take,reference,selection,comparison,initialGr
   if(!pattern||!take?.file)return;
   setExporting(true);setNotice('');
   try{
-   const file=await exportGrooveWav(take.file,pattern);
+   const file=await exportGrooveWav(take.file,pattern,take.excerptStart||0);
    const name=saveWav(file,'offbeat-'+mode+'-'+seed);
    setNotice('Saved '+name+' · actual 16-bit PCM WAV with your original phrase and the generated drums.');
   }catch(e){setNotice(e.message||'Could not render the mixed WAV on this device.');}

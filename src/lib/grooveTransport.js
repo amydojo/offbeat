@@ -22,7 +22,7 @@ export function stopGroove(){
  try{current.player?.dispose();}catch{}
  try{current.output?.disconnect();}catch{}
 }
-export async function startGroove(fileUrl,pattern,onTick){
+export async function startGroove(fileUrl,pattern,onTick,sourceOffset=0){
  stopGroove();
  const mine=launchNumber;
  if(!fileUrl||!pattern?.events)throw Error('Choose a recorded phrase to groove with.');
@@ -41,7 +41,7 @@ export async function startGroove(fileUrl,pattern,onTick){
  // Repeat is in *seconds*, not beats, so original expression cannot be quantized.
  active.repeatId=Tone.Transport.scheduleRepeat((time)=>{
    if(instance!==active)return;
-   player.start(time,pattern.range.start_s,duration);
+   player.start(time,sourceOffset+pattern.range.start_s,duration);
    for(const event of pattern.events)playDrumVoice(raw,output,event,time+event.time_s);
    onTick?.();
  },duration+'s',0);

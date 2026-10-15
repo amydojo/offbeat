@@ -68,11 +68,13 @@ export default function PhrasePlayer({ reference, take, comparison, selection })
       const audio = players.current[lane];
       if (!audio) { stop(); return; }
       const segment = range(lane);
+      const sourceStart=(lane==='reference'?reference:take)?.excerptStart||0;
+      const absolute={start:segment.start+sourceStart,end:segment.end+sourceStart};
       Object.values(players.current).forEach(a => { if (a !== audio) a.pause(); });
       try {
         audio.pause();
         audio.playbackRate = 1;
-        audio.currentTime = segment.start;
+        audio.currentTime = absolute.start;
         audio.volume = 0;
         await audio.play();
       } catch (e) {
@@ -85,11 +87,11 @@ export default function PhrasePlayer({ reference, take, comparison, selection })
         if (running.current !== token) return;
         const current = audio.currentTime;
         // Apply non-destructive edge ramps. No audio data is resampled or quantized.
-        const fadeIn = (current - segment.start) / FADE_S;
-        const fadeOut = (segment.end - current) / FADE_S;
+        const fadeIn = (current - absolute.start) / FADE_S;
+        const fadeOut = (absolute.end - current) / FADE_S;
         audio.volume = Math.max(0, Math.min(1, fadeIn, fadeOut));
         setPosition(`${lane === 'reference' ? 'Reference' : 'Your take'} · ${current.toFixed(2)}s`);
-        if (current >= segment.end - .01 || audio.ended) {
+        if (current >= absolute.end - .01 || audio.ended) {
           audio.pause();
           audio.volume = 1;
           if (nextMode === 'alternate' && lane === 'reference') {

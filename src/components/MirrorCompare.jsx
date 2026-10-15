@@ -29,7 +29,7 @@ function pointsFor(analysis, comparison, lane, normalized) {
 function Lane({ label, analysis, comparison, lane, normalized, tone }) {
   const paths = useMemo(() => pointsFor(analysis, comparison, lane, normalized), [analysis, comparison, lane, normalized]);
   return <section className="mirror-lane">
-    <div className="contour-head"><strong>{label}</strong><span>{analysis.source.duration_s.toFixed(2)}s original · {analysis.onsets.length} attacks</span></div>
+    <div className="contour-head"><strong>{label}</strong><span>{analysis.source.duration_s.toFixed(2)}s analyzed · {analysis.onsets.length} attacks</span></div>
     <svg role="img" aria-label={label + ' relative pitch. Disconnected paths represent silent or uncertain pitches.'} viewBox="0 0 960 150" className="contour-svg">
       {[30,78,124].map(y=><line key={y} x1="18" y1={y} x2="942" y2={y} stroke="#4a463e"/>)}
       {analysis.rests.map((rest,i)=>{
@@ -54,7 +54,7 @@ export default function MirrorCompare({ reference, take, comparison, normalized,
       <div><p className="eyebrow">03 / MIRROR</p><h2>Two phrases. Their own time.</h2></div>
       <label className="toggle-row"><input type="checkbox" checked={normalized} onChange={e=>onNormalize(e.target.checked)} /> Align the shapes</label>
     </div>
-    <p className="hint">{normalized ? 'Normalized display only: matched attack spans line up visually. Audio files retain their original tempo.' : 'Original recording time: each lane uses its own full duration. This is not an accuracy score.'}</p>
+    <p className="hint">{normalized ? 'Normalized display only: matched attack spans line up visually. Audio files retain their original tempo.' : 'Analyzed excerpt time: each lane uses its own extracted duration. Original recordings are preserved. This is not an accuracy score.'}</p>
     <Lane label="Reference" analysis={reference.analysis} comparison={comparison} lane="reference" normalized={normalized} tone="#d5a27e"/>
     <Lane label="Your take" analysis={take.analysis} comparison={comparison} lane="take" normalized={normalized} tone="#9dc7b2"/>
     <div className="compare-notes">
