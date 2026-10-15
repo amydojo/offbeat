@@ -88,6 +88,7 @@ def run():
    lane=fallback_page.get_by_role('region',name='Your take audio')
    lane.locator('input[type=file]').set_input_files(sample)
    # Native metadata must make this slider available BEFORE any analysis.
+   expect(lane.locator('details.clip-details').first.locator('summary')).to_contain_text('Choose excerpt',timeout=30000)
    lane.locator('details.clip-details').first.locator('summary').click()
    slider=fallback_page.get_by_role('slider',name='Your take analysis excerpt position')
    expect(slider).to_be_visible(timeout=20000)
