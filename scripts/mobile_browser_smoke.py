@@ -36,7 +36,7 @@ def run():
    page.reload(wait_until='networkidle')
    expect(page.get_by_text('Pocket groove',exact=True)).to_be_visible()
    assert all(':8765' not in url for url in calls),'Browser analysis must never depend on Python API'
-   assert all(url.startswith('http://127.0.0.1:5173/') for url in calls),'Unexpected external request: '+str(calls)
+   assert all(url.startswith(('http://127.0.0.1:5173/','blob:http://127.0.0.1:5173/')) for url in calls),'Unexpected external request: '+str(calls)
    print('PASS: mobile viewport, browser DSP, comparison, A/B, IndexedDB, zero audio network')
   finally:browser.close()
 if __name__=='__main__':run()
