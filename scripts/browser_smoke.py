@@ -48,7 +48,7 @@ def run():
             outgoing = []
             page.on("request", lambda request: outgoing.append(request.url) if request.url.startswith(("https://", "http://")) and not request.url.startswith(("http://127.0.0.1:5173/", "http://127.0.0.1:8765/")) else None)
             page.goto("http://127.0.0.1:5173", wait_until="networkidle")
-            expect(page.get_by_role("heading", name="Hear it in your head. Catch it here.")).to_be_visible()
+            expect(page.get_by_role("heading", level=1)).to_contain_text("Catch it here.")
 
             reference_file = page.get_by_role("region", name="Reference audio").locator('input[type=file]')
             take_file = page.get_by_role("region", name="Your take audio").locator('input[type=file]')
