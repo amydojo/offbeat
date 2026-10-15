@@ -17,7 +17,7 @@ jobs:
       - name: Install locked frontend dependencies
         run: npm ci --no-audit --no-fund
       - name: Test phrase range and alignment helpers
-        run: node --test src/lib/phraseRanges.test.mjs
+        run: node --test src/lib/phraseRanges.test.mjs src/lib/browserFeatures.test.mjs
       - name: Build Vite app
         run: npm run build
 
@@ -65,4 +65,6 @@ jobs:
           cat /tmp/offbeat-worker.log /tmp/offbeat-vite.log
           exit 1
       - name: Run actual browser journey with synthetic audio and fake microphone
-        run: python scripts/browser_smoke.py
+        run: |
+          python scripts/browser_smoke.py
+          python scripts/mobile_browser_smoke.py

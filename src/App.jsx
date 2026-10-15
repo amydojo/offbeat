@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { playLoop, stopLoop, stopAll } from './lib/audioEngine.js';
 import { createMicrophoneRecorder } from './audio/microphoneRecorder.js';
-import { analyzeClip } from './lib/analysisClient.js';
+import { analyzeClip, compareClips, ANALYSIS_LOCATION } from './lib/analysisClient.js';
 import { selectableRange } from './lib/phraseRanges.mjs';
 import { saveSession, listSessions, removeSession, clearSessions, restoreClip } from './lib/localLibrary.js';
 import Contour from './components/Contour.jsx';
@@ -41,7 +41,7 @@ function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyz
 }
 
 function Library({ entries, onOpen, onDelete, onDeleteAll, isSaving, onSave, canSave, title, onTitle }) {
-  return <section className="library" aria-label="Your locally saved phrases">
+  return <section className="library" id="keep" aria-label="Your locally saved phrases">
     <div className="compare-head"><div><p className="eyebrow">05 / PRESERVE</p><h2>Keep the accident.</h2></div><span className="hint">Saved on this device only</span></div>
     <div className="save-row">
       <label>Phrase name<input value={title} onChange={e=>onTitle(e.target.value)} maxLength={90} placeholder="That riff with the long pause" /></label>
@@ -157,13 +157,7 @@ export default function App() {
         start_s:Number(excerptStart.toFixed(3)),
         end_s:Number(Math.min(referenceDuration,excerptStart+excerptLength).toFixed(3)),
       };
-      const response=await fetch('http://127.0.0.1:8765/v1/compare',{
-        method:'POST',signal:controller.signal,
-        headers:{'Content-Type':'application/json','X-Offbeat-Client':'local-ui'},
-        body:JSON.stringify({reference:reference.analysis,take:take.analysis,mode:'onsets',reference_region:referenceRegion})
-      });
-      const data=await response.json();
-      if(!response.ok)throw new Error(data.error?.message||'Comparison could not be completed.');
+      const data=await compareClips(reference.analysis,take.analysis,referenceRegion,controller.signal);
       if(data.schema_version!=='offbeat.compare.v1')throw new Error('Comparison version mismatch.');
       if(compareJob.current!==controller)return;
       setComparison(data);setNormalized(true);
@@ -265,8 +259,8 @@ export default function App() {
   const effectiveReferenceWindowStart=Math.min(refWindowStart,maxReferenceWindowStart);
   const canSave=!!reference?.analysis||!!take?.analysis;
   return <main className="shell">
-    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / V0.1</span></header>
-    <section className="hero"><p className="eyebrow">01 / CAPTURE</p><h1>Hear what your hands remembered.</h1>
+    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / MOBILE V0.1</span></header>
+    <section className="hero" id="capture"><p className="eyebrow">01 / CAPTURE</p><h1>Hear what your hands remembered.</h1>
       <p>Record a phrase. Compare what moved, what stayed, and the silence between. No scores, no wrong notes, no sheet music.</p></section>
     <div className="workspace">
       <ClipLane title="Reference" description="A bass stem, hum, or other short musical example." clip={reference}
@@ -280,12 +274,12 @@ export default function App() {
       <div className="record-row">
         <button type="button" className={recording?'button-record active':'button-record'} disabled={requestingMic}
           onClick={recording?stopRecording:startRecording}>{requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record bass'}</button>
-        <p>Mic permission is requested only when you press Record. Audio analysis runs on your local machine.</p>
+        <p>Mic permission is requested only when you press Record. Audio analysis runs {ANALYSIS_LOCATION}; recordings are never uploaded.</p>
       </div>
       {message&&<p className="status" role="status">{message}</p>}
     </div>
 
-    <section className="compare-workspace">
+    <section className="compare-workspace" id="mirror">
       <div className="compare-head"><div><p className="eyebrow">02 / DISCOVER</p><h2>Find the musical gesture.</h2></div>
         <button className="button-record" disabled={!reference?.analysis||!take?.analysis||comparing}
           onClick={compare}>{comparing?'Comparing…':'Compare these phrases'}</button></div>
@@ -313,6 +307,6 @@ export default function App() {
     <Library entries={entries} title={title} onTitle={setTitle} isSaving={saving} onSave={keep} canSave={canSave} onOpen={openEntry} onDelete={deleteOne} onDeleteAll={deleteAll}/>
     <section className="samples"><div><p className="eyebrow">06 / ORIGINAL PLAYGROUND</p><h2>The loops are still here.</h2></div>
       <div className="sample-list">{samples.map(s=><button key={s.id} onClick={()=>toggleLoop(s)} className={loops[s.id]?'sample on':'sample'} aria-pressed={!!loops[s.id]}><span>{s.name}</span><span>{loops[s.id]?'■ Stop':'▶ Play'}</span></button>)}</div></section>
-    <footer>OFFBEAT · Local first · Only keep the parts you love.</footer>
+    <nav className="mobile-nav" aria-label="Offbeat mobile navigation"><a href="#capture">Capture</a><a href="#mirror">Mirror</a><a href="#keep">Keep</a></nav><footer>OFFBEAT · Local first · Only keep the parts you love.</footer>
   </main>;
 }
