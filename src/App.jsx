@@ -33,7 +33,7 @@ function microphoneFailure(error) {
   return error?.message||'Could not start the microphone. Try again or import an audio file.';
 }
 
-function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyzing, kind, onKind, onExcerptChange, index }) {
+function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyzing, kind, onKind, onExcerptChange, onDuration, index }) {
   const input = useRef(null);
   const playback = useRef(null);
   const longClip = clip?.fullDuration>60;
@@ -63,7 +63,7 @@ function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyz
     {longClip && <div className="source-excerpt" aria-label={title + ' analysis excerpt'}>
       <div className="source-excerpt-heading"><strong>ANALYSIS EXCERPT · {excerptStart.toFixed(1)}–{excerptEnd.toFixed(1)}s</strong>
         <span>{clip.fullDuration.toFixed(1)}s full recording · original preserved</span></div>
-      <p className="hint">OFFBEAT selected an active {LONG_CLIP_EXCERPT_SECONDS}-second section. Move the window to the part you want, then analyze again.</p>
+      <p className="hint">{clip.analysis ? 'Move the window to explore another part of your original recording, then analyze again.' : 'Choose where to listen, or leave this at the start for automatic active-section detection. Your original is untouched.'}</p>
       <div className="source-excerpt-actions">
         <input type="range" aria-label={title + ' analysis excerpt position'} min="0"
           max={Math.max(0,clip.fullDuration-LONG_CLIP_EXCERPT_SECONDS)} step=".1"
@@ -72,6 +72,7 @@ function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyz
       </div>
     </div>}
     {clip && <div className="lane-actions"><audio ref={playback} controls preload="metadata" src={clip.url} aria-label={title + ' original audio'}
+      onLoadedMetadata={e=>onDuration(clip.file,e.currentTarget.duration)}
       onTimeUpdate={e=>{if(longClip&&e.currentTarget.dataset.excerptPreview==='yes'&&e.currentTarget.currentTime>=excerptEnd&&e.currentTarget.currentTime>excerptStart+.2){e.currentTarget.pause();e.currentTarget.dataset.excerptPreview='no';}}} />
       <button className="button-quiet" onClick={onAnalyze} disabled={analyzing}>{analyzing ? 'Listening…' : clip.analysis ? 'Analyze again' : 'Analyze shape'}</button></div>}
     {clip?.analysis && <Contour analysis={clip.analysis} label={title}/>}
@@ -180,6 +181,19 @@ export default function App() {
     setRefWindowStart(0);
     if(lane==='reference')setSelection({start:0,end:4});
     setMessage('');
+  };
+
+  // Browsers know the full duration from the native audio player before DSP
+  // starts. Show the selection slider even if Safari cannot run its worker.
+  const setClipDuration=(lane,file,duration)=>{
+    if(!Number.isFinite(duration)||duration<=0||duration>3600)return;
+    const handle=lane==='reference'?referenceRef:takeRef;
+    const setter=lane==='reference'?setReference:setTake;
+    if(handle.current?.file!==file)return;
+    if(Math.abs((handle.current.fullDuration||0)-duration)<.05)return;
+    const updated={...handle.current,fullDuration:duration};
+    handle.current=updated;
+    setter(updated);
   };
 
   const analyze=async(lane,clip,sourceKind)=>{
@@ -402,7 +416,7 @@ export default function App() {
       <div id="take"><ClipLane title="Your take" description="Your captured idea. Listen and inspect the contour before comparing." clip={take}
         onFile={file=>setFile('take',file)} onClear={()=>replaceClip('take',null)}
         onAnalyze={()=>analyze('take',take,takeKind)} analyzing={busy.take}
-        kind={takeKind} onKind={value=>chooseSourceKind('take',value)} onExcerptChange={value=>chooseExcerptStart('take',value)} index="02"/></div>
+        kind={takeKind} onKind={value=>chooseSourceKind('take',value)} onExcerptChange={value=>chooseExcerptStart('take',value)} onDuration={(file,duration)=>setClipDuration('take',file,duration)} index="02"/></div>
       {take?.analysis&&!reference?.analysis&&<aside className="capture-next">
         <div><strong>Your idea has a shape.</strong><p>Keep it as it is, or add a reference to hear what changed.</p></div>
         <div className="capture-next-actions"><a href="#keep">◇ Keep this idea</a><a href="#reference">+ Add reference</a></div>
@@ -410,7 +424,7 @@ export default function App() {
       <div id="reference"><ClipLane title="Reference" description="Optional: add a bass stem or another recording when you're ready to compare." clip={reference}
         onFile={file=>setFile('reference',file)} onClear={()=>replaceClip('reference',null)}
         onAnalyze={()=>analyze('reference',reference,refKind)} analyzing={busy.reference}
-        kind={refKind} onKind={value=>chooseSourceKind('reference',value)} onExcerptChange={value=>chooseExcerptStart('reference',value)} index="03"/></div>
+        kind={refKind} onKind={value=>chooseSourceKind('reference',value)} onExcerptChange={value=>chooseExcerptStart('reference',value)} onDuration={(file,duration)=>setClipDuration('reference',file,duration)} index="03"/></div>
     </div>
 
     <section className="compare-workspace" id="mirror">
