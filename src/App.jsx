@@ -33,13 +33,27 @@ function microphoneFailure(error) {
   return error?.message||'Could not start the microphone. Try again or import an audio file.';
 }
 
+function clipTitle(file, fallback) {
+  if (!file) return fallback;
+  const filename=file.name||'';
+  if (/\b(pluck|fingerstyle|finger)[\s_.-]*/i.test(filename)) return 'Pluck';
+  if (/\bpick(?:ed|ing)?\b/i.test(filename)) return 'Pick';
+  if (/\bhum(?:ming)?\b/i.test(filename)) return 'Hum';
+  return fallback;
+}
+function inferSourceKind(name) {
+  if (/\b(stem|separated)[\s_.-]*/i.test(name)) return 'separated_stem';
+  if (/\b(bass|pluck|fingerstyle|pick)\b/i.test(name)) return 'solo_bass';
+  if (/\b(hum|humming|vocal|voice)\b/i.test(name)) return 'humming';
+  return null;
+}
+
 function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyzing, kind, onKind, onExcerptChange, onDuration, index }) {
-  const input = useRef(null);
-  const playback = useRef(null);
-  const longClip = clip?.fullDuration>60;
-  const excerptStart = clip?.excerptStart??0;
-  const excerptEnd = Math.min(clip?.fullDuration||0,excerptStart+LONG_CLIP_EXCERPT_SECONDS);
-  const previewExcerpt = () => {
+  const input=useRef(null),playback=useRef(null);
+  const longClip=clip?.fullDuration>60;
+  const excerptStart=clip?.excerptStart??0;
+  const excerptEnd=Math.min(clip?.fullDuration||0,excerptStart+LONG_CLIP_EXCERPT_SECONDS);
+  const previewExcerpt=()=>{
     const audio=playback.current;
     if(!audio)return;
     audio.pause();
@@ -48,63 +62,92 @@ function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyz
     audio.dataset.excerptPreview='yes';
     void audio.play().catch(()=>{audio.dataset.excerptPreview='no';});
   };
-  return <section className={'lane '+(title==='Your take'?'lane-take':'lane-reference')} aria-label={title + ' audio'}>
-    <div className="lane-heading"><div><p className="eyebrow">{title}</p><p className="hint">{description}</p></div><span className="lane-index">{clip?.analysis?'ANALYZED':clip?'LOADED':index}</span></div>
-    <label className="source-choice">Source type
-      <select aria-label={title + ' source type'} value={kind} onChange={e=>onKind(e.target.value)}>
-        <option value="solo_bass">Solo bass</option><option value="humming">Humming</option>
-        <option value="separated_stem">Separated stem</option><option value="mixed_reference">Mixed music (pitch may be unreliable)</option>
-      </select>
-    </label>
-    {clip ? <div className="clip"><div><strong>{clip.name}</strong><small>{(clip.file.size / 1048576).toFixed(2)} MB · {clip.file.type || 'unknown media type'}</small></div>
-      <div className="clip-actions"><a className="text-button" href={clip.url} download={clip.name}>Download original</a><button className="text-button" onClick={onClear} type="button">Remove</button></div></div>
-      : <button className="upload" onClick={() => input.current?.click()} type="button">{title==='Reference'?'+ Add reference recording':'+ Import your own recording'}</button>}
-    <input ref={input} className="sr-only" type="file" accept="audio/*,.wav,.mp3,.m4a,.flac,.webm,.ogg" onChange={e => { if (e.target.files?.[0]) onFile(e.target.files[0]); e.target.value=''; }} />
-    {longClip && <div className="source-excerpt" aria-label={title + ' analysis excerpt'}>
-      <div className="source-excerpt-heading"><strong>ANALYSIS EXCERPT · {excerptStart.toFixed(1)}–{excerptEnd.toFixed(1)}s</strong>
-        <span>{clip.fullDuration.toFixed(1)}s full recording · original preserved</span></div>
-      <p className="hint">{clip.analysis ? 'Move the window to explore another part of your original recording, then analyze again.' : 'Choose where to listen, or leave this at the start for automatic active-section detection. Your original is untouched.'}</p>
-      <div className="source-excerpt-actions">
-        <input type="range" aria-label={title + ' analysis excerpt position'} min="0"
-          max={Math.max(0,clip.fullDuration-LONG_CLIP_EXCERPT_SECONDS)} step=".1"
-          value={excerptStart} disabled={analyzing} onChange={e=>onExcerptChange(Number(e.target.value))}/>
-        <button className="button-quiet" type="button" onClick={previewExcerpt}>▶ Preview selection</button>
+  const name=clipTitle(clip?.file,title);
+  return <section className={'lane '+(title==='Your take'?'lane-take':'lane-reference')} aria-label={title+' audio'}>
+    <div className="lane-heading">
+      <div className="lane-label">
+        <span className="lane-letter">{index}</span>
+        <div><h3>{name}</h3><p className="lane-filename">{clip?.name||description}</p></div>
       </div>
-    </div>}
-    {clip && <div className="lane-actions"><audio ref={playback} controls preload="metadata" src={clip.url} aria-label={title + ' original audio'}
-      onLoadedMetadata={e=>onDuration(clip.file,e.currentTarget.duration)}
-      onTimeUpdate={e=>{if(longClip&&e.currentTarget.dataset.excerptPreview==='yes'&&e.currentTarget.currentTime>=excerptEnd&&e.currentTarget.currentTime>excerptStart+.2){e.currentTarget.pause();e.currentTarget.dataset.excerptPreview='no';}}} />
-      <button className="button-quiet" onClick={onAnalyze} disabled={analyzing}>{analyzing ? 'Listening…' : clip.analysis ? 'Analyze again' : 'Analyze shape'}</button></div>}
-    {clip?.analysis && <Contour analysis={clip.analysis} label={title}/>}
+      <span className="lane-index">{analyzing?'LISTENING…':clip?.analysis?'READY':clip?'LOADED':'EMPTY'}</span>
+    </div>
+    <input ref={input} className="sr-only" type="file" accept="audio/*,.wav,.mp3,.m4a,.flac,.webm,.ogg"
+      onChange={e=>{if(e.target.files?.[0])onFile(e.target.files[0]);e.target.value='';}}/>
+    {clip ? <>
+      <div className="clip-main-actions">
+        <button type="button" className="text-button" onClick={()=>input.current?.click()}>Replace</button>
+        <button type="button" className="text-button" onClick={onClear}>Remove</button>
+      </div>
+      <audio ref={playback} controls preload="metadata" src={clip.url} aria-label={title+' original audio'}
+        onLoadedMetadata={e=>onDuration(clip.file,e.currentTarget.duration)}
+        onTimeUpdate={e=>{
+          if(longClip&&e.currentTarget.dataset.excerptPreview==='yes'&&e.currentTarget.currentTime>=excerptEnd&&e.currentTarget.currentTime>excerptStart+.2){
+            e.currentTarget.pause();e.currentTarget.dataset.excerptPreview='no';
+          }
+        }}/>
+      {analyzing?<p className="clip-feedback" role="status">Finding the shape of this recording…</p>:
+        !clip.analysis?<button className="button-quiet clip-analyze" onClick={onAnalyze}>Analyze shape</button>:
+        <div className="clip-feedback clip-done"><span aria-hidden="true">✓</span> Shape ready</div>}
+      {longClip&&<details className="clip-details" key="excerpt">
+        <summary>Choose excerpt <span>{excerptStart.toFixed(0)}–{excerptEnd.toFixed(0)}s of {Math.round(clip.fullDuration)}s</span></summary>
+        <div className="clip-details-body">
+          <input type="range" aria-label={title+' analysis excerpt position'}
+            min="0" max={Math.max(0,clip.fullDuration-LONG_CLIP_EXCERPT_SECONDS)} step=".1"
+            value={excerptStart} disabled={analyzing} onChange={e=>onExcerptChange(Number(e.target.value))}/>
+          <button className="button-quiet" type="button" onClick={previewExcerpt}>▶ Preview excerpt</button>
+          <p className="caption">Changing this section requires a fresh analysis. Your original stays intact.</p>
+        </div>
+      </details>}
+      <details className="clip-details" key="options">
+        <summary>More about this recording</summary>
+        <div className="clip-details-body">
+          <label className="source-choice">Recording type
+            <select aria-label={title+' source type'} value={kind} onChange={e=>onKind(e.target.value)}>
+              <option value="solo_bass">Solo bass</option><option value="humming">Humming</option>
+              <option value="separated_stem">Separated stem</option><option value="mixed_reference">Mixed music</option>
+            </select>
+          </label>
+          {clip.analysis&&<Contour analysis={clip.analysis} label={title}/>}
+          <a className="text-button" href={clip.url} download={clip.name}>Download original</a>
+        </div>
+      </details>
+    </>:
+      <button className="upload" onClick={()=>input.current?.click()} type="button">+ {index==='A'?'Add your first sound':'Add another sound'}</button>}
   </section>;
 }
 
 function Library({ entries, onOpen, onDelete, onDeleteAll, onExport, onImport, transferBusy, isSaving, onSave, canSave, title, onTitle }) {
   const backupInput=useRef(null);
   return <section className="library" id="keep" aria-label="Your locally saved phrases">
-    <div className="compare-head"><div><p className="eyebrow">05 / PRESERVE</p><h2>Keep the accident.</h2></div><span className="hint">Private browser library</span></div>
-    <p className="library-intro">Your ideas stay in this browser. Export a project backup to keep its audio and musical shapes together—or bring one back on another device.</p>
+    <div className="compact-section-head"><h2>Keep the good part.</h2><span>On this device</span></div>
     <div className="save-row">
-      <label>Phrase name<input value={title} onChange={e=>onTitle(e.target.value)} maxLength={90} placeholder="That riff with the long pause" /></label>
-      <button className="button-record" disabled={!canSave || isSaving} onClick={onSave}>{isSaving ? 'Saving…' : 'Keep this phrase'}</button>
+      <label className="sr-only" htmlFor="phrase-name">Name your phrase</label>
+      <input id="phrase-name" aria-label="Phrase name" value={title} onChange={e=>onTitle(e.target.value)}
+        maxLength={90} placeholder="Name this idea…"/>
+      <button className="button-record" disabled={!canSave||isSaving} onClick={onSave}>{isSaving?'Saving…':'Keep this phrase'}</button>
     </div>
-    {entries.length ? <div className="saved-list">{entries.map(entry=><article key={entry.id} className="saved-item">
-      <div><strong>{entry.title}</strong><small>{new Date(entry.createdAt).toLocaleDateString()} · Original recordings preserved</small></div>
-      <div className="saved-actions">
-        <button className="button-quiet" onClick={()=>onOpen(entry)}>Open</button>
-        <button className="button-quiet" onClick={()=>onExport(entry)} disabled={transferBusy}>Export project</button>
-        <button className="text-button" onClick={()=>onDelete(entry.id)}>Delete</button>
+    <details className="quiet-drawer saved-drawer">
+      <summary>My saved ideas <span>{entries.length} saved</span></summary>
+      <div className="drawer-body">
+        {entries.length?<div className="saved-list">{entries.map(entry=><article key={entry.id} className="saved-item">
+          <div><strong>{entry.title}</strong><small>{new Date(entry.createdAt).toLocaleDateString()}</small></div>
+          <div className="saved-actions">
+            <button className="button-quiet" onClick={()=>onOpen(entry)}>Open</button>
+            <button className="button-quiet" onClick={()=>onExport(entry)} disabled={transferBusy}>Export project</button>
+            <button className="text-button" onClick={()=>onDelete(entry.id)}>Delete</button>
+          </div>
+        </article>)}</div>:<p className="caption">Ideas you save will live here.</p>}
+        <div className="backup-tools">
+          <p>Restore a previously exported OFFBEAT project.</p>
+          <button type="button" className="button-quiet" disabled={transferBusy} onClick={()=>backupInput.current?.click()}>
+            {transferBusy?'Working locally…':'Import project backup'}
+          </button>
+          <input className="sr-only" ref={backupInput} type="file" accept=".json,.offbeat.json,application/json"
+            aria-label="OFFBEAT project backup file" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)onImport(file);}}/>
+        </div>
+        {!!entries.length&&<button className="text-button library-delete-all" onClick={onDeleteAll}>Delete all local sessions</button>}
       </div>
-    </article>)}</div> : <p className="caption">Your saved musical discoveries will appear here.</p>}
-    <div className="backup-tools">
-      <div><strong>Bring an idea with you.</strong><p>Import a previous OFFBEAT project file. Nothing uploads to a server.</p></div>
-      <button type="button" className="button-quiet" disabled={transferBusy} onClick={()=>backupInput.current?.click()}>
-        {transferBusy?'Working locally…':'Import project backup'}
-      </button>
-      <input className="sr-only" ref={backupInput} type="file" accept=".json,.offbeat.json,application/json"
-        aria-label="OFFBEAT project backup file" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)onImport(file);}}/>
-    </div>
-    {!!entries.length && <button className="text-button library-delete-all" onClick={onDeleteAll}>Delete all local sessions</button>}
+    </details>
   </section>;
 }
 
@@ -138,6 +181,8 @@ export default function App() {
   const takeRef=useRef(null);
   const jobs=useRef(new Map());
   const compareJob=useRef(null);
+  const analysisQueue=useRef(Promise.resolve());
+  const autoComparePair=useRef(null);
 
   const invalidate=()=>{compareJob.current?.abort();compareJob.current=null;setComparison(null);setNormalized(false);setComparing(false);};
   const refreshLibrary=()=>listSessions().then(result=>{if(mounted.current)setEntries(result);}).catch(error=>{if(mounted.current)setMessage(error.message);});
@@ -177,7 +222,17 @@ export default function App() {
     if(!file.size||file.size>MAX_BYTES||!(file.type.startsWith('audio/')||allowedExtensions.test(file.name))){
       setMessage('Choose a supported audio file under 25 MB.');return;
     }
-    replaceClip(lane,{file,name:file.name,url:URL.createObjectURL(file),analysis:null,excerptStart:null,fullDuration:null});
+    const clip={file,name:file.name,url:URL.createObjectURL(file),analysis:null,excerptStart:null,fullDuration:null};
+    replaceClip(lane,clip);
+    const inferred=inferSourceKind(file.name);
+    if(inferred){if(lane==='take')setTakeKind(inferred);else setRefKind(inferred);}
+    // One on-device analysis at a time: two long imports must not overload iOS.
+    setBusy(prev=>({...prev,[lane]:true}));
+    analysisQueue.current=analysisQueue.current.catch(()=>{}).then(async()=>{
+      const current=lane==='take'?takeRef.current:referenceRef.current;
+      if(current?.file!==file)return;
+      await analyze(lane,current,inferred||(lane==='take'?takeKind:refKind));
+    });
     setRefWindowStart(0);
     if(lane==='reference')setSelection({start:0,end:4});
     setMessage('');
@@ -213,7 +268,7 @@ export default function App() {
       if(lane==='reference')setSelection({start:0,end:result.source.duration_s});
       else if(!referenceRef.current?.analysis)setSelection({start:0,end:result.source.duration_s});
       setRefWindowStart(0);
-      if(fullDuration>60)setMessage('Analyzed '+LONG_CLIP_EXCERPT_SECONDS+' seconds from your '+fullDuration.toFixed(1)+'-second original. Move the excerpt slider to explore another section.');
+      if(fullDuration>60)setMessage('Analyzed '+LONG_CLIP_EXCERPT_SECONDS+' seconds of '+Math.round(fullDuration)+'s. Change section under the clip if needed.');
       return true;
     }catch(e){if(!controller.signal.aborted&&mounted.current)setMessage(e.message);return false;}
     finally{
@@ -290,8 +345,6 @@ export default function App() {
       const ext=blob.type.includes('wav')?'wav':blob.type.includes('mp4')?'m4a':blob.type.includes('webm')?'webm':blob.type.includes('ogg')?'ogg':'audio';
       const file=new File([blob],`offbeat-take-${Date.now()}.${ext}`,{type:blob.type});
       setFile('take',file);
-      const analyzed=await analyze('take',{file},takeKind);
-      if(analyzed&&mounted.current)setMessage('Your musical shape is ready. Add a reference to compare, or save this idea.');
     }catch(e){if(mounted.current)setMessage(e.message);}
   };
 
@@ -381,97 +434,107 @@ export default function App() {
   const maxReferenceWindowStart=Math.max(0,refDuration-referenceExcerptSeconds);
   const effectiveReferenceWindowStart=Math.min(refWindowStart,maxReferenceWindowStart);
   const canSave=!!reference?.analysis||!!take?.analysis;
-  const currentStep=comparison?4:reference?.analysis&&take?.analysis?3:take?.analysis||reference?.analysis?2:1;
+  useEffect(()=>{
+    const id=take?.analysis?.analysis_id&&reference?.analysis?.analysis_id
+      ?take.analysis.analysis_id+':'+reference.analysis.analysis_id:null;
+    if(!id||id===autoComparePair.current)return;
+    autoComparePair.current=id;
+    if(comparison?.take_analysis_id===take.analysis.analysis_id&&
+       comparison?.reference_analysis_id===reference.analysis.analysis_id)return;
+    void compare();
+  },[take?.analysis?.analysis_id,reference?.analysis?.analysis_id]);
+
   const recordingClock=`${String(Math.floor(recordSeconds/60)).padStart(2,'0')}:${String(recordSeconds%60).padStart(2,'0')}`;
-  return <main className="shell">
-    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>GROOVE / V0.2</span></header>
-    <section className="hero"><p className="eyebrow">YOUR IDEAS, BEFORE THEY DISAPPEAR.</p><h1>Hear it in your head.<br/><em>Catch it here.</em></h1>
-      <p>Hum a melody. Play a bass line. See its shape, hear it back, and keep the part you love. No wrong notes.</p></section>
-    <nav className="journey" aria-label="Your Offbeat workflow">
-      {[{name:'Capture',href:'#capture'},{name:'Shape',href:'#take'},{name:'Groove',href:'#groove'},{name:'Keep',href:'#keep'}].map((step,i)=>
-        <a key={step.name} href={step.href} className={i+1===currentStep?'journey-current':i+1<currentStep?'journey-complete':''}
-          aria-current={i+1===currentStep?'step':undefined}><span className="journey-index">{String(i+1).padStart(2,'0')}</span>{step.name}</a>)}
-    </nav>
-    <div className="workspace">
-      <section className="capture-panel" id="capture" aria-label="Capture a musical idea">
-        <div className="capture-header"><div><p className="eyebrow">01 / CAPTURE</p><h2>Start with a sound.</h2></div><span className="capture-pill">PRIVATE · ON DEVICE</span></div>
-        <p className="capture-intro">No instrument needed. Pick what you're recording, then press once to begin.</p>
-        <div className="capture-mode" role="group" aria-label="What are you recording?">
-          <button type="button" aria-pressed={takeKind==='humming'} disabled={recording||requestingMic}
-            onClick={()=>chooseSourceKind('take','humming')}>◌ Humming</button>
-          <button type="button" aria-pressed={takeKind==='solo_bass'} disabled={recording||requestingMic}
-            onClick={()=>chooseSourceKind('take','solo_bass')}>♫ Playing bass</button>
-        </div>
-        <div className="record-row">
-          <button type="button" className={recording?'button-record active':'button-record'} disabled={requestingMic}
-            onClick={recording?stopRecording:startRecording}>
-            {requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record or hum'}
-          </button>
-          {recording?<span className="recording-clock" aria-live="off"><span className="recording-dot"/>REC {recordingClock}</span>
-            :<span className="record-privacy">Microphone only turns on when you tap Record.</span>}
-        </div>
-        <p className="capture-footnote">Audio analysis happens {ANALYSIS_LOCATION}. Your recordings aren't uploaded.</p>
-      </section>
+  const readyToCompare=!!take?.analysis&&!!reference?.analysis;
+  const takeLabel=clipTitle(take?.file,'Sound A');
+  const referenceLabel=clipTitle(reference?.file,'Sound B');
+  return <main className="shell quiet-shell">
+    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR YOUR IDEAS</span></header>
+    <section className="hero">
+      <p className="eyebrow">SOUND / PLAY / DISCOVER</p>
+      <h1>{take&&reference?'Hear what changed.':'Catch what you hear.'}</h1>
+      <p>{take&&reference?'Two takes, side by side. Find what feels different.':'Bring in a recording, or hum something new.'}</p>
+    </section>
+    <div className="workspace" id="capture">
+      <details className="record-tray" open={!take}>
+        <summary><span>◉ Record a new idea</span><span aria-hidden="true">＋</span></summary>
+        <section className="capture-panel" aria-label="Capture a musical idea">
+          <div className="capture-mode" role="group" aria-label="What are you recording?">
+            <button type="button" aria-pressed={takeKind==='humming'} disabled={recording||requestingMic}
+              onClick={()=>chooseSourceKind('take','humming')}>◌ Humming</button>
+            <button type="button" aria-pressed={takeKind==='solo_bass'} disabled={recording||requestingMic}
+              onClick={()=>chooseSourceKind('take','solo_bass')}>♫ Bass</button>
+          </div>
+          <div className="record-row">
+            <button type="button" className={recording?'button-record active':'button-record'} disabled={requestingMic}
+              onClick={recording?stopRecording:startRecording}>
+              {requestingMic?'Connecting mic…':recording?'■ Stop recording':'● Record or hum'}
+            </button>
+            {recording?<span className="recording-clock" aria-live="off"><span className="recording-dot"/>REC {recordingClock}</span>:null}
+          </div>
+          <p className="caption">Your recordings stay on this device.</p>
+        </section>
+      </details>
       {message&&<p className="status" role="status">{message}</p>}
-      <div id="take"><ClipLane title="Your take" description="Your captured idea. Listen and inspect the contour before comparing." clip={take}
+      <div id="take"><ClipLane title="Your take" description="First sound" clip={take}
         onFile={file=>setFile('take',file)} onClear={()=>replaceClip('take',null)}
         onAnalyze={()=>analyze('take',take,takeKind)} analyzing={busy.take}
-        kind={takeKind} onKind={value=>chooseSourceKind('take',value)} onExcerptChange={value=>chooseExcerptStart('take',value)} onDuration={(file,duration)=>setClipDuration('take',file,duration)} index="02"/></div>
-      {take?.analysis&&!reference?.analysis&&<aside className="capture-next">
-        <div><strong>Your idea has a shape.</strong><p>Keep it as it is, or add a reference to hear what changed.</p></div>
-        <div className="capture-next-actions"><a href="#keep">◇ Keep this idea</a><a href="#reference">+ Add reference</a></div>
-      </aside>}
-      <div id="reference"><ClipLane title="Reference" description="Optional: add a bass stem or another recording when you're ready to compare." clip={reference}
+        kind={takeKind} onKind={value=>chooseSourceKind('take',value)} onExcerptChange={value=>chooseExcerptStart('take',value)}
+        onDuration={(file,duration)=>setClipDuration('take',file,duration)} index="A"/></div>
+      <div id="reference"><ClipLane title="Reference" description="Second sound · optional" clip={reference}
         onFile={file=>setFile('reference',file)} onClear={()=>replaceClip('reference',null)}
         onAnalyze={()=>analyze('reference',reference,refKind)} analyzing={busy.reference}
-        kind={refKind} onKind={value=>chooseSourceKind('reference',value)} onExcerptChange={value=>chooseExcerptStart('reference',value)} onDuration={(file,duration)=>setClipDuration('reference',file,duration)} index="03"/></div>
+        kind={refKind} onKind={value=>chooseSourceKind('reference',value)} onExcerptChange={value=>chooseExcerptStart('reference',value)}
+        onDuration={(file,duration)=>setClipDuration('reference',file,duration)} index="B"/></div>
     </div>
-
     <section className="compare-workspace" id="mirror">
-      <div className="compare-head"><div><p className="eyebrow">03 / COMPARE</p><h2>Two sounds. One conversation.</h2></div>
-        <button className="button-record" disabled={!reference?.analysis||!take?.analysis||comparing}
-          onClick={compare}>{comparing?'Comparing…':'Compare these phrases'}</button></div>
-      {(!reference?.analysis||!take?.analysis)&&<p className="compare-prompt">
-        {take?.analysis?'Your shape is ready. Add and analyze a reference to compare it.':
-          'Record or import your idea first, then add a reference when you want to compare.'}
-      </p>}
-      {reference?.analysis&&take?.analysis&&
-        <ExcerptPicker clip={reference} start={effectiveReferenceWindowStart}
-          length={referenceExcerptSeconds} maxStart={maxReferenceWindowStart}
-          onError={setMessage} onChange={value=>{
-            setRefWindowStart(value);invalidate();
-          }}/>}
-      <MirrorCompare reference={reference} take={take} comparison={comparison} normalized={normalized} onNormalize={setNormalized}/>
-      {reference?.analysis&&take?.analysis&&<section className="selection" aria-label="Select phrase segment">
-        <p className="eyebrow">SELECTION / NON-DESTRUCTIVE</p><p className="hint">Choose a region on the reference timeline. Offbeat maps it to the corresponding region of your take for A/B listening.</p>
-        <div className="range-fields">
-          <label>Start · {selected.start.toFixed(2)}s
-            <input aria-label="Phrase start" type="range" min="0" max={Math.max(.2,refDuration-.12)} step=".01" value={selected.start}
-              onChange={e=>setSelection(prev=>selectableRange(Number(e.target.value),prev.end,refDuration))}/></label>
-          <label>End · {selected.end.toFixed(2)}s
-            <input aria-label="Phrase end" type="range" min=".12" max={Math.max(.2,refDuration)} step=".01" value={selected.end}
-              onChange={e=>setSelection(prev=>selectableRange(prev.start,Number(e.target.value),refDuration))}/></label>
-        </div>
-        <p className="caption">The original recordings are never trimmed or overwritten. Slider keys: arrows for fine adjustment.</p>
-      </section>}
-      <PhrasePlayer reference={reference} take={take} comparison={comparison} selection={selected}/>
+      <div className="compact-section-head"><h2>Listen side by side.</h2><span>{readyToCompare?'A / B ready':'Add two sounds'}</span></div>
+      {readyToCompare?<>
+        <PhrasePlayer reference={reference} take={take} comparison={comparison} selection={selected}
+          takeLabel={takeLabel} referenceLabel={referenceLabel}/>
+        {comparison&&<p className="quick-insight">{comparison.matched_onsets.length} nearby rhythmic attacks. <span>Timing only, not a score.</span></p>}
+        <details className="quiet-drawer compare-drawer">
+          <summary>See shapes & timing <span>Explore the details</span></summary>
+          <div className="drawer-body">
+            <MirrorCompare reference={reference} take={take} comparison={comparison} normalized={normalized} onNormalize={setNormalized}/>
+            <button className="button-quiet" disabled={comparing} onClick={compare}>{comparing?'Comparing…':'Compare these phrases'}</button>
+            <ExcerptPicker clip={reference} start={effectiveReferenceWindowStart} length={referenceExcerptSeconds}
+              maxStart={maxReferenceWindowStart} onError={setMessage} onChange={value=>{setRefWindowStart(value);invalidate();}}/>
+            <section className="selection" aria-label="Select phrase segment">
+              <h3>Choose a shorter moment</h3>
+              <div className="range-fields">
+                <label>Start · {selected.start.toFixed(2)}s
+                  <input aria-label="Phrase start" type="range" min="0" max={Math.max(.2,refDuration-.12)} step=".01" value={selected.start}
+                    onChange={e=>setSelection(prev=>selectableRange(Number(e.target.value),prev.end,refDuration))}/></label>
+                <label>End · {selected.end.toFixed(2)}s
+                  <input aria-label="Phrase end" type="range" min=".12" max={Math.max(.2,refDuration)} step=".01" value={selected.end}
+                    onChange={e=>setSelection(prev=>selectableRange(prev.start,Number(e.target.value),refDuration))}/></label>
+              </div>
+            </section>
+          </div>
+        </details>
+      </>:<p className="compare-prompt">{take||reference?'Analyze both recordings to unlock A/B listening.':'Start with a recording above.'}</p>}
     </section>
-    <GrooveLab key={(take?.analysis?.analysis_id||'none')+':'+(activeSessionId||'new')}
-      take={take} reference={reference} selection={selected} comparison={comparison}
-      initialGroove={groovePattern} onPatternChange={setGroovePattern}
-      onStopDemo={()=>{stopAll();setLoops({});}}/>
+    <details className="quiet-drawer feature-drawer" id="groove">
+      <summary>Make a beat from this riff <span>Follow · Answer · Contrast</span></summary>
+      <GrooveLab key={(take?.analysis?.analysis_id||'none')+':'+(activeSessionId||'new')}
+        take={take} reference={reference} selection={selected} comparison={comparison}
+        initialGroove={groovePattern} onPatternChange={setGroovePattern}
+        onStopDemo={()=>{stopAll();setLoops({});}}/>
+    </details>
     <Library entries={entries} title={title} onTitle={setTitle} isSaving={saving} onSave={keep} canSave={canSave}
       onOpen={openEntry} onDelete={deleteOne} onDeleteAll={deleteAll}
       onExport={exportEntry} onImport={importEntry} transferBusy={transferBusy}/>
-    <details className="playground">
-      <summary><span>OPTIONAL / LISTENING PLAYGROUND</span><strong>Explore the sample loops</strong><span aria-hidden="true">＋</span></summary>
-      <div className="samples"><p className="hint">Try the drum, bass and melody layers when you feel like experimenting.</p>
-        <div className="sample-list">{samples.map(s=><button key={s.id} onClick={()=>toggleLoop(s)} className={loops[s.id]?'sample on':'sample'} aria-pressed={!!loops[s.id]}><span>{s.name}</span><span>{loops[s.id]?'■ Stop':'▶ Play'}</span></button>)}</div></div>
+    <details className="quiet-drawer playground">
+      <summary>Sample loops <span>Optional playground</span></summary>
+      <div className="samples"><div className="sample-list">{samples.map(s=><button key={s.id} onClick={()=>toggleLoop(s)}
+        className={loops[s.id]?'sample on':'sample'} aria-pressed={!!loops[s.id]}><span>{s.name}</span><span>{loops[s.id]?'■ Stop':'▶ Play'}</span></button>)}</div></div>
     </details>
     <nav className="mobile-nav" aria-label="Offbeat mobile navigation">
-      <a href="#capture"><span aria-hidden="true">◌</span>Capture</a>
-      <a href="#groove"><span aria-hidden="true">♫</span>Groove</a>
-      <a href="#keep"><span aria-hidden="true">◇</span>Keep</a>
-    </nav><footer>OFFBEAT · Local first · Only keep the parts you love.</footer>
+      <a href="#capture"><span aria-hidden="true">◌</span>Sounds</a>
+      <a href="#mirror"><span aria-hidden="true">♫</span>Compare</a>
+      <a href="#keep"><span aria-hidden="true">◇</span>Save</a>
+    </nav>
+    <footer>OFFBEAT · Your audio stays yours.</footer>
   </main>;
 }

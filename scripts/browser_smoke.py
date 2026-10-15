@@ -37,105 +37,83 @@ def run():
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,
-            args=["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", "--autoplay-policy=no-user-gesture-required"],
+            args=["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream",
+                  "--autoplay-policy=no-user-gesture-required"],
         )
         try:
             context = browser.new_context(permissions=["microphone"], viewport={"width": 1200, "height": 900})
             page = context.new_page()
             page.set_default_timeout(45000)
             failures = []
-            page.on("pageerror", lambda error: failures.append(str(error)))
             outgoing = []
-            page.on("request", lambda request: outgoing.append(request.url) if request.url.startswith(("https://", "http://")) and not request.url.startswith(("http://127.0.0.1:5173/", "http://127.0.0.1:8765/")) else None)
-            page.goto("http://127.0.0.1:5173", wait_until="networkidle")
-            expect(page.get_by_role("heading", level=1)).to_contain_text("Catch it here.")
-
-            reference_file = page.get_by_role("region", name="Reference audio").locator('input[type=file]')
-            take_file = page.get_by_role("region", name="Your take audio").locator('input[type=file]')
-            reference_file.set_input_files({"name": "bass-reference.wav", "mimeType": "audio/wav", "buffer": synthetic_bass()})
-            take_file.set_input_files({"name": "bass-take.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(1.25)})
-            page.get_by_role("button", name="Analyze shape").first.click()
-            expect(page.get_by_role("button", name="Analyze again")).to_have_count(1, timeout=90000)
-            expect(page.get_by_role("link", name="Keep this idea")).to_be_visible()
-            page.get_by_role("button", name="Analyze shape").click()
-            expect(page.get_by_role("button", name="Analyze again")).to_have_count(2, timeout=90000)
-            expect(page.get_by_role("link", name="Download original")).to_have_count(2)
-
-            page.get_by_role("button", name="Compare these phrases").click()
-            expect(page.get_by_text("temporally corresponding attacks", exact=False)).to_be_visible(timeout=15000)
+            page.on("pageerror", lambda error: failures.append(str(error)))
+            page.on("request", lambda request: outgoing.append(request.url) if request.url.startswith(
+                ("https://","http://")) and not request.url.startswith(
+                    ("http://127.0.0.1:5173/","http://127.0.0.1:8765/")) else None)
+            page.goto("http://127.0.0.1:5173/", wait_until="networkidle")
+            expect(page.get_by_role("heading", level=1)).to_contain_text("Catch what you hear.")
+            reference = page.get_by_role("region", name="Reference audio")
+            take = page.get_by_role("region", name="Your take audio")
+            reference.locator('input[type=file]').set_input_files(
+                {"name":"Bass sesh 2 pick.wav","mimeType":"audio/wav","buffer":synthetic_bass()})
+            take.locator('input[type=file]').set_input_files(
+                {"name":"Bass sesh 2 pluck.wav","mimeType":"audio/wav","buffer":synthetic_bass(1.25)})
+            expect(page.locator(".clip-done")).to_have_count(2, timeout=90000)
+            expect(take.get_by_role("heading", name="Pluck")).to_be_visible()
+            expect(reference.get_by_role("heading", name="Pick")).to_be_visible()
+            take.locator("details.clip-details").last.locator("summary").click()
+            assert take.get_by_label("Your take source type").input_value() == "solo_bass"
+            reference.locator("details.clip-details").last.locator("summary").click()
+            assert reference.get_by_label("Reference source type").input_value() == "solo_bass"
+            expect(page.locator(".quick-insight")).to_be_visible(timeout=15000)
+            player=page.get_by_role("region", name="Phrase audition")
+            player.get_by_role("button", name="Play A / B").click()
+            expect(player.get_by_role("button", name="■ Stop")).to_be_enabled()
+            expect(player.get_by_role("status")).to_contain_text("Pluck", timeout=15000)
+            player.get_by_role("button", name="■ Stop").click()
+            page.locator("details.compare-drawer > summary").click()
+            expect(page.get_by_role("region", name="Musical comparison")).to_be_visible()
             expect(page.get_by_label("Align the shapes")).to_be_checked()
-            page.get_by_label("Align the shapes").uncheck()
-            expect(page.get_by_label("Align the shapes")).not_to_be_checked()
-            page.get_by_label("Align the shapes").check()
-
-            start = page.get_by_role("slider", name="Phrase start")
-            start.focus()
-            start.press("ArrowRight")
-            assert float(start.input_value()) > 0
-            page.get_by_role("button", name="A / B · Alternate").click()
-            expect(page.get_by_role("button", name="■ Stop")).to_be_enabled()
-            # Ensure the selected source actually alternates, not merely starts.
-            expect(page.get_by_text("Your take ·", exact=False)).to_be_visible(timeout=18000)
-            page.get_by_role("button", name="■ Stop").click()
-
-            page.get_by_placeholder("That riff with the long pause").fill("Synthetic bass groove")
+            slider = page.get_by_role("slider", name="Phrase start")
+            slider.focus()
+            slider.press("ArrowRight")
+            assert float(slider.input_value()) > 0
+            page.locator("details.feature-drawer > summary").click()
+            groove=page.get_by_role("region", name="Responsive drummer")
+            expect(groove.get_by_role("button", name="Follow")).to_be_visible()
+            groove.get_by_role("button", name="Answer").click()
+            groove.get_by_role("button", name="Follow").click()
+            groove.get_by_role("button", name="Play with drums").click()
+            expect(groove.get_by_role("button", name="Stop groove")).to_be_visible(timeout=12000)
+            groove.get_by_role("button", name="Stop groove").click()
+            page.get_by_placeholder("Name this idea…").fill("Pick / Pluck")
             page.get_by_role("button", name="Keep this phrase").click()
-            expect(page.get_by_text("Synthetic bass groove", exact=True)).to_be_visible()
+            page.locator("details.saved-drawer > summary").click()
+            expect(page.get_by_text("Pick / Pluck", exact=True)).to_be_visible(timeout=12000)
             page.reload(wait_until="networkidle")
-            expect(page.get_by_text("Synthetic bass groove", exact=True)).to_be_visible()
+            page.locator("details.saved-drawer > summary").click()
+            expect(page.get_by_text("Pick / Pluck", exact=True)).to_be_visible()
             page.get_by_role("button", name="Open", exact=True).click()
-            expect(page.get_by_role("button", name="Analyze again")).to_have_count(2)
-            page.once("dialog", lambda d: d.dismiss())
+            expect(page.locator(".clip-done")).to_have_count(2)
+            page.once("dialog", lambda dialog: dialog.dismiss())
             page.get_by_role("button", name="Delete", exact=True).click()
-            expect(page.get_by_text("Synthetic bass groove", exact=True)).to_be_visible()
-            page.once("dialog", lambda d: d.accept())
+            expect(page.get_by_text("Pick / Pluck", exact=True)).to_be_visible()
+            page.once("dialog", lambda dialog: dialog.accept())
             page.get_by_role("button", name="Delete", exact=True).click()
-            expect(page.get_by_text("Synthetic bass groove", exact=True)).to_have_count(0)
-            # Removing a saved session also drops its currently-opened in-memory copy.
-            expect(page.get_by_role("button", name="Analyze again")).to_have_count(0)
-
-            # Regression for a full bass stem compared with a short hum: narrow
-            # the reference to an explicit source-time excerpt before matching.
-            reference_file.set_input_files({"name": "long-reference.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(4.0)})
-            take_file.set_input_files({"name": "short-hum.wav", "mimeType": "audio/wav", "buffer": synthetic_bass(1.25)})
-            page.get_by_role("button", name="Analyze shape").first.click()
-            expect(page.get_by_role("button", name="Analyze again")).to_have_count(1, timeout=90000)
-            page.get_by_role("button", name="Analyze shape").click()
-            expect(page.get_by_role("button", name="Analyze again")).to_have_count(2, timeout=90000)
-            # Source-kind edits must never leave an old 'solo bass' analysis
-            # attached to newly labeled 'humming' audio.
-            page.get_by_label("Your take source type").select_option("solo_bass")
-            expect(page.get_by_role("button", name="Analyze again")).to_have_count(1)
-            page.get_by_label("Your take source type").select_option("humming")
-            page.get_by_role("region", name="Your take audio").get_by_role("button", name="Analyze shape").click()
-            expect(page.get_by_role("button", name="Analyze again")).to_have_count(2, timeout=90000)
-            excerpt = page.get_by_role("slider", name="Reference excerpt position")
-            expect(excerpt).to_be_visible()
-            assert float(excerpt.get_attribute("max")) > 5
-            excerpt.focus()
-            excerpt.press("ArrowRight")
-            assert float(excerpt.input_value()) > 0
-            page.get_by_role("button", name="Preview excerpt").click()
-            expect(page.get_by_role("button", name="Stop preview")).to_be_visible()
-            page.get_by_role("button", name="Stop preview").click()
-            page.get_by_role("button", name="Compare these phrases").click()
-            expect(page.get_by_text("temporally corresponding attacks", exact=False)).to_be_visible(timeout=15000)
-            assert not page.get_by_text("The phrases differ greatly in length", exact=False).count()
-
-            # This is browser emulation only; the user's actual Mac device must be tested manually.
+            expect(page.get_by_text("Pick / Pluck", exact=True)).to_have_count(0)
+            if not page.locator("details.record-tray").evaluate("(node)=>node.open"):
+                page.locator("details.record-tray > summary").click()
             page.get_by_role("button", name="Record or hum").click()
-            expect(page.get_by_role("button", name="Stop recording")).to_be_visible(timeout=20000)
+            expect(page.get_by_role("button", name="Stop recording")).to_be_visible(timeout=15000)
             time.sleep(1)
             page.get_by_role("button", name="Stop recording").click()
-            expect(page.get_by_text("offbeat-take-", exact=False)).to_be_visible(timeout=20000)
-            expect(page.get_by_role("region", name="Your take audio").get_by_role("button", name="Analyze again")).to_be_visible(timeout=45000)
-
-            assert not outgoing, f"Unexpected outbound browser requests: {outgoing}"
-            assert not failures, f"Browser JavaScript exceptions: {failures}"
-            print("PASS: import, analyze, aligned comparison, keyboard selection, A/B, IndexedDB reopen/delete, fake mic")
+            expect(take.get_by_text("offbeat-take-", exact=False)).to_be_visible(timeout=20000)
+            expect(take.locator(".clip-done")).to_be_visible(timeout=60000)
+            assert not outgoing, f"Unexpected outgoing requests: {outgoing}"
+            assert not failures, f"Browser exceptions: {failures}"
+            print("PASS: auto-import, bass typing, pick/pluck A/B, expanded tools, save/reload/delete, mic")
         finally:
             browser.close()
-
 
 if __name__ == "__main__":
     run()

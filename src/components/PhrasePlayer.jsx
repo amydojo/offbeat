@@ -5,7 +5,7 @@ const FADE_S = .03;
 
 // Two independent HTML media decoders, one audible lane at a time.
 // Browser owns scheduling; server is not called during playback.
-export default function PhrasePlayer({ reference, take, comparison, selection }) {
+export default function PhrasePlayer({ reference, take, comparison, selection, takeLabel='Your take', referenceLabel='Reference' }) {
   const players = useRef({});
   const running = useRef(null);
   const raf = useRef(null);
@@ -59,7 +59,7 @@ export default function PhrasePlayer({ reference, take, comparison, selection })
     stop();
     setError('');
     if (!reference?.analysis || !take?.analysis) return;
-    const token = { mode: nextMode, lane: nextMode === 'take' ? 'take' : 'reference' };
+    const token = { mode: nextMode, lane: nextMode === 'reference' ? 'reference' : 'take' };
     running.current = token;
     setMode(nextMode);
 
@@ -91,14 +91,14 @@ export default function PhrasePlayer({ reference, take, comparison, selection })
         const fadeIn = (current - absolute.start) / FADE_S;
         const fadeOut = (absolute.end - current) / FADE_S;
         audio.volume = Math.max(0, Math.min(1, fadeIn, fadeOut));
-        setPosition(`${lane === 'reference' ? 'Reference' : 'Your take'} · ${current.toFixed(2)}s`);
+        setPosition(`${lane === 'reference' ? referenceLabel : takeLabel} · ${current.toFixed(2)}s`);
         if (current >= absolute.end - .01 || audio.ended) {
           audio.pause();
           audio.volume = 1;
-          if (nextMode === 'alternate' && lane === 'reference') {
-            void playLane('take');
+          if (nextMode === 'alternate' && lane === 'take') {
+            void playLane('reference');
           } else if (repeatRef.current) {
-            void playLane(nextMode === 'alternate' ? 'reference' : lane);
+            void playLane(nextMode === 'alternate' ? 'take' : lane);
           } else stop();
         } else {
           raf.current = requestAnimationFrame(tick);
@@ -110,15 +110,17 @@ export default function PhrasePlayer({ reference, take, comparison, selection })
   }
 
   const ready = !!reference?.analysis && !!take?.analysis;
-  return <section className="player" aria-label="Phrase audition">
-    <div className="compare-head"><div><p className="eyebrow">04 / AUDITION</p><h2>Listen to the difference.</h2></div><label className="toggle-row"><input type="checkbox" checked={repeat} onChange={e=>setRepeat(e.target.checked)}/> Repeat selected phrase</label></div>
-    <p className="hint">A/B plays the aligned selected section of each original recording in sequence; it never modifies their tempos or pitches.</p>
+  return <section className="player quick-player" aria-label="Phrase audition">
     <div className="transport" role="group" aria-label="Phrase playback">
-      <button className="button-quiet" onClick={() => begin('reference')} disabled={!ready} aria-pressed={mode === 'reference'}>▶ Reference</button>
-      <button className="button-quiet" onClick={() => begin('take')} disabled={!ready} aria-pressed={mode === 'take'}>▶ Your take</button>
-      <button className="button-record" onClick={() => begin('alternate')} disabled={!ready} aria-pressed={mode === 'alternate'}>A / B · Alternate</button>
-      <button className="button-quiet" onClick={stop} disabled={mode === 'stopped'}>■ Stop</button>
+      <button className="button-record play-ab" onClick={()=>begin('alternate')} disabled={!ready} aria-pressed={mode==='alternate'}>
+        {mode==='alternate'?'▶ Playing A → B':'▶ Play A / B'}</button>
+      <button className="button-quiet" onClick={()=>begin('take')} disabled={!ready} aria-pressed={mode==='take'}>A · {takeLabel}</button>
+      <button className="button-quiet" onClick={()=>begin('reference')} disabled={!ready} aria-pressed={mode==='reference'}>B · {referenceLabel}</button>
+      <button className="button-quiet" onClick={stop} disabled={mode==='stopped'}>■ Stop</button>
     </div>
-    <p className="caption" role="status">{error || position || (ready ? 'Ready to audition the selected segment.' : 'Analyze both recordings to enable A/B listening.')}</p>
+    <div className="player-meta">
+      <p className="caption" role="status">{error||position||(ready?'A plays first, then B. Neither recording is changed.':'Analyze both clips to compare them.')}</p>
+      <label className="toggle-row"><input type="checkbox" checked={repeat} onChange={e=>setRepeat(e.target.checked)}/> Loop A/B</label>
+    </div>
   </section>;
 }
