@@ -1,13 +1,17 @@
 # OFFBEAT — Bass Mirror
 
-An ear-first music instrument for discovering the musical gesture in what you actually play. **V0.1 implementation:** two-track analysis, aligned rhythmic/pitch visualization, source-preserving A/B playback, keyboard-accessible phrase selection, and a local IndexedDB library. Responsive drums remain V0.2.
+An ear-first, mobile-first instrument for catching music you hum or play. **V0.1.3 experience:** capture → on-device pitch contour → optional reference comparison → A/B listening → Keep → local portable project backup. Responsive drums remain V0.2.
+
+**Live web app:** https://offbeat-pi.vercel.app
 
 ## Product rules
-- No grades, forced note names or fret-placement lessons.
-- Audio remains on your device. Microphone permission is requested only when you press Record.
-- Browser owns playback and capture; Python only analyzes after you ask.
-- Pitched lines are estimates. In particular, current YIN confidence is **not calibrated**; silence must appear as a gap.
-- Original audio stays intact. Click **Keep this phrase** to opt in to saving an immutable source plus analysis in your browser's IndexedDB; Open, Delete and Delete all are available locally.
+- No grades, forced note names, notation drills or judgments about musical intention.
+- The mobile site is a static Vite app hosted on Vercel. Audio is decoded, analyzed and compared locally in your browser by Web Audio and a dedicated Web Worker; no Python server is required to use the public app.
+- Microphone permission is requested only after you tap **Record or hum**. A short recording is automatically analyzed after Stop; imported files use **Analyze shape**.
+- On-device pitch/onset estimates are experimental and confidence is **not calibrated**. Silence and uncertain frames remain gaps; matched attacks indicate timing proximity, not identical melodies.
+- Click **Keep this phrase** to save source audio and analysis locally in your browser's IndexedDB. Files are scoped to that device/browser/origin and can be lost if site data is cleared.
+- **Export project** creates a user-triggered, portable backup containing original audio and analysis. **Import project backup** verifies the original audio checksum (SHA-256) before creating a new local saved session. Mobile export is limited to 12 MB aggregate source audio / 20 MB JSON; larger recordings can be saved separately using **Download original**.
+- Backups are **not encrypted**, not automatically synchronized and not sent to Vercel by OFFBEAT. Store exported files according to your privacy preferences.
 
 ## Run locally
 
@@ -29,9 +33,9 @@ python -m pip install -e '.[dev]'
 python -m uvicorn offbeat.api:app --host 127.0.0.1 --port 8765
 ```
 
-Open **http://localhost:5173**. Choose a reference audio file or record your bass using your microphone; press **Analyze shape**. First input is intended for short isolated bass/stem audio, not a dense polyphonic mix. Browser native `<audio>` players let you audition either clip at original timing.
+Open **http://localhost:5173**. Start with the microphone or import **Your take**, then optionally add a Reference; comparison never requires a reference to save your take. Browser native `<audio>` players let you audition each original at its own timing.
 
-The frontend should still open without Python; analyzing prompts you to start the local worker. No subscriptions, GPUs or secret keys required.
+The default browser analysis does not require Python. Only development/research sessions explicitly configured with `VITE_ANALYSIS_MODE=python` use the optional localhost FastAPI engine. No subscriptions, GPUs or secret keys required.
 
 ## Tests and known limitations
 
@@ -41,9 +45,11 @@ cd analysis
 python -m pytest
 ```
 
-Current analysis limits: 25 MB, 60 s, monophonic pitch within approximately 36–650 Hz, stereo downmix, FFmpeg decoder required. Onset boundaries, high harmonics, low E bass and noisy recordings require careful listening checks. YIN is a DSP baseline; no pretrained models run. The versioned `/v1/compare` reports aligned attack correspondences, source timing and nonjudgmental contour descriptors. Use **Find the moment in the reference** to select and preview a reference excerpt close to your performance's length; a 54-second song is no longer force-matched with a 13-second hum. Attack matches represent proximity in time **only** and do not establish the same notes or riff. Sparse inputs can produce weak or misleading matches; use the original-time view to verify. For voice performances choose **Humming** as the take's source type and reanalyze.
+Default browser limits: 25 MB source file, up to 60 seconds decoded audio, approximate 36–650 Hz monophonic pitch; audio formats vary by browser. The optional local Python engine has its own bounded FFmpeg decoder. Onset boundaries, high harmonics, low E bass and noisy recordings require careful listening checks. YIN is a DSP baseline; no pretrained models run. The versioned `/v1/compare` reports aligned attack correspondences, source timing and nonjudgmental contour descriptors. Use **Find the moment in the reference** to select and preview a reference excerpt close to your performance's length; a 54-second song is no longer force-matched with a 13-second hum. Attack matches represent proximity in time **only** and do not establish the same notes or riff. Sparse inputs can produce weak or misleading matches; use the original-time view to verify. For voice performances choose **Humming** as the take's source type and reanalyze.
 
 **Mobile DSP V0.1.1:** An on-device YIN-style pitch tracker with improved short-window attack/rest timing and conservative octave-glitch gaps replaces the initial browser autocorrelation peak selector. See [synthetic regression scope and remaining real-phone QA](docs/BROWSER_DSP_CALIBRATION_V011.md). These synthetic tests do **not** establish measured accuracy on real voices/bass. Source analysis records adapter provenance; older saved analyses remain unchanged.
+
+**Portable projects:** [mobile backup/import format, integrity checks and limitations](docs/PORTABLE_PROJECTS_V1.md).
 
 **Mac hardware checklist:** [physical-device and Safari QA](docs/MAC_MICROPHONE_QA.md) must be completed by someone with the actual Mac. Linux Chromium CI only exercises a fake microphone.
 
