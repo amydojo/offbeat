@@ -23,11 +23,29 @@ export default function ExcerptPicker({ clip, start, length, maxStart, onChange,
     if (!audio) return;
     if (playing) { stop(); return; }
     audio.pause();
-    audio.currentTime = start;
     try {
-      await audio.play();
+      // A newly uploaded M4A/WebM/WAV may not have metadata decoded yet.
+      // Seeking before metadata is ready can leave the preview idle.
+      if (audio.readyState < 1) {
+        await new Promise((resolve, reject) => {
+          const cleanup = () => {
+            audio.removeEventListener('loadedmetadata', loaded);
+            audio.removeEventListener('error', failed);
+          };
+          const loaded = () => { cleanup(); resolve(); };
+          const failed = () => { cleanup(); reject(new Error('Audio metadata unavailable.')); };
+          audio.addEventListener('loadedmetadata', loaded, { once: true });
+          audio.addEventListener('error', failed, { once: true });
+          audio.load();
+        });
+      }
+      audio.currentTime = start;
+      // Show that playback was requested immediately; onPause/onEnded
+      // and the catch path still clear the state if it cannot continue.
       setPlaying(true);
+      await audio.play();
     } catch {
+      setPlaying(false);
       onError('Could not preview this section. Try the reference audio player above.');
     }
   };
@@ -49,6 +67,7 @@ export default function ExcerptPicker({ clip, start, length, maxStart, onChange,
     </div>
     <audio ref={player} src={clip.url} preload="metadata" aria-hidden="true"
       onEnded={()=>setPlaying(false)}
+      onPause={()=>setPlaying(false)}
       onTimeUpdate={e=>{
         if (e.currentTarget.currentTime >= start + length) stop();
       }}/>
