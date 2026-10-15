@@ -4,6 +4,7 @@ import { createMicrophoneRecorder } from './audio/microphoneRecorder.js';
 import { analyzeClip, compareClips, ANALYSIS_LOCATION } from './lib/analysisClient.js';
 import { selectableRange } from './lib/phraseRanges.mjs';
 import { saveSession, listSessions, removeSession, clearSessions, restoreClip } from './lib/localLibrary.js';
+import { downloadSessionBackup, parseSessionBackup } from './lib/sessionPortable.mjs';
 import Contour from './components/Contour.jsx';
 import MirrorCompare from './components/MirrorCompare.jsx';
 import PhrasePlayer from './components/PhrasePlayer.jsx';
@@ -51,18 +52,32 @@ function ClipLane({ title, description, clip, onFile, onClear, onAnalyze, analyz
   </section>;
 }
 
-function Library({ entries, onOpen, onDelete, onDeleteAll, isSaving, onSave, canSave, title, onTitle }) {
+function Library({ entries, onOpen, onDelete, onDeleteAll, onExport, onImport, transferBusy, isSaving, onSave, canSave, title, onTitle }) {
+  const backupInput=useRef(null);
   return <section className="library" id="keep" aria-label="Your locally saved phrases">
-    <div className="compare-head"><div><p className="eyebrow">05 / PRESERVE</p><h2>Keep the accident.</h2></div><span className="hint">Saved on this device only</span></div>
+    <div className="compare-head"><div><p className="eyebrow">05 / PRESERVE</p><h2>Keep the accident.</h2></div><span className="hint">Private browser library</span></div>
+    <p className="library-intro">Your ideas stay in this browser. Export a project backup to keep its audio and musical shapes together—or bring one back on another device.</p>
     <div className="save-row">
       <label>Phrase name<input value={title} onChange={e=>onTitle(e.target.value)} maxLength={90} placeholder="That riff with the long pause" /></label>
       <button className="button-record" disabled={!canSave || isSaving} onClick={onSave}>{isSaving ? 'Saving…' : 'Keep this phrase'}</button>
     </div>
     {entries.length ? <div className="saved-list">{entries.map(entry=><article key={entry.id} className="saved-item">
       <div><strong>{entry.title}</strong><small>{new Date(entry.createdAt).toLocaleDateString()} · Original recordings preserved</small></div>
-      <div className="saved-actions"><button className="button-quiet" onClick={()=>onOpen(entry)}>Open</button><button className="text-button" onClick={()=>onDelete(entry.id)}>Delete</button></div>
+      <div className="saved-actions">
+        <button className="button-quiet" onClick={()=>onOpen(entry)}>Open</button>
+        <button className="button-quiet" onClick={()=>onExport(entry)} disabled={transferBusy}>Export project</button>
+        <button className="text-button" onClick={()=>onDelete(entry.id)}>Delete</button>
+      </div>
     </article>)}</div> : <p className="caption">Your saved musical discoveries will appear here.</p>}
-    {!!entries.length && <button className="text-button" onClick={onDeleteAll}>Delete all local sessions</button>}
+    <div className="backup-tools">
+      <div><strong>Bring an idea with you.</strong><p>Import a previous OFFBEAT project file. Nothing uploads to a server.</p></div>
+      <button type="button" className="button-quiet" disabled={transferBusy} onClick={()=>backupInput.current?.click()}>
+        {transferBusy?'Working locally…':'Import project backup'}
+      </button>
+      <input className="sr-only" ref={backupInput} type="file" accept=".json,.offbeat.json,application/json"
+        aria-label="OFFBEAT project backup file" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)onImport(file);}}/>
+    </div>
+    {!!entries.length && <button className="text-button library-delete-all" onClick={onDeleteAll}>Delete all local sessions</button>}
   </section>;
 }
 
@@ -84,6 +99,7 @@ export default function App() {
   const [entries,setEntries]=useState([]);
   const [title,setTitle]=useState('');
   const [saving,setSaving]=useState(false);
+  const [transferBusy,setTransferBusy]=useState(false);
   const [activeSessionId,setActiveSessionId]=useState(null);
   const [message,setMessage]=useState('');
   const recorder=useRef(null);
@@ -237,6 +253,26 @@ export default function App() {
     }catch(e){setMessage('Could not save locally: '+e.message);}
     finally{setSaving(false);}
   };
+  const exportEntry=async entry=>{
+    if(transferBusy)return;
+    setTransferBusy(true);setMessage('');
+    try{
+      const filename=await downloadSessionBackup(entry);
+      if(mounted.current)setMessage('Project backup prepared: '+filename+'. Your original recordings were not changed.');
+    }catch(error){if(mounted.current)setMessage('Could not export project: '+error.message);}
+    finally{if(mounted.current)setTransferBusy(false);}
+  };
+  const importEntry=async file=>{
+    if(transferBusy)return;
+    setTransferBusy(true);setMessage('');
+    try{
+      const recovered=await parseSessionBackup(file);
+      const saved=await saveSession(recovered);
+      await refreshLibrary();
+      if(mounted.current)setMessage('Imported "'+saved.title+'" into this browser. Original audio integrity verified.');
+    }catch(error){if(mounted.current)setMessage('Could not import project: '+error.message);}
+    finally{if(mounted.current)setTransferBusy(false);}
+  };
   const openEntry=entry=>{
     jobs.current.forEach(c=>c.abort());jobs.current.clear();
     const r=restoreClip(entry.reference),t=restoreClip(entry.take);
@@ -357,7 +393,9 @@ export default function App() {
       </section>}
       <PhrasePlayer reference={reference} take={take} comparison={comparison} selection={selected}/>
     </section>
-    <Library entries={entries} title={title} onTitle={setTitle} isSaving={saving} onSave={keep} canSave={canSave} onOpen={openEntry} onDelete={deleteOne} onDeleteAll={deleteAll}/>
+    <Library entries={entries} title={title} onTitle={setTitle} isSaving={saving} onSave={keep} canSave={canSave}
+      onOpen={openEntry} onDelete={deleteOne} onDeleteAll={deleteAll}
+      onExport={exportEntry} onImport={importEntry} transferBusy={transferBusy}/>
     <details className="playground">
       <summary><span>OPTIONAL / LISTENING PLAYGROUND</span><strong>Explore the sample loops</strong><span aria-hidden="true">＋</span></summary>
       <div className="samples"><p className="hint">Try the drum, bass and melody layers when you feel like experimenting.</p>
