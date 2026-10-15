@@ -358,8 +358,11 @@ export default function App() {
       <PhrasePlayer reference={reference} take={take} comparison={comparison} selection={selected}/>
     </section>
     <Library entries={entries} title={title} onTitle={setTitle} isSaving={saving} onSave={keep} canSave={canSave} onOpen={openEntry} onDelete={deleteOne} onDeleteAll={deleteAll}/>
-    <section className="samples"><div><p className="eyebrow">06 / ORIGINAL PLAYGROUND</p><h2>The loops are still here.</h2></div>
-      <div className="sample-list">{samples.map(s=><button key={s.id} onClick={()=>toggleLoop(s)} className={loops[s.id]?'sample on':'sample'} aria-pressed={!!loops[s.id]}><span>{s.name}</span><span>{loops[s.id]?'■ Stop':'▶ Play'}</span></button>)}</div></section>
+    <details className="playground">
+      <summary><span>OPTIONAL / LISTENING PLAYGROUND</span><strong>Explore the sample loops</strong><span aria-hidden="true">＋</span></summary>
+      <div className="samples"><p className="hint">Try the drum, bass and melody layers when you feel like experimenting.</p>
+        <div className="sample-list">{samples.map(s=><button key={s.id} onClick={()=>toggleLoop(s)} className={loops[s.id]?'sample on':'sample'} aria-pressed={!!loops[s.id]}><span>{s.name}</span><span>{loops[s.id]?'■ Stop':'▶ Play'}</span></button>)}</div></div>
+    </details>
     <nav className="mobile-nav" aria-label="Offbeat mobile navigation">
       <a href="#capture"><span aria-hidden="true">◌</span>Capture</a>
       <a href="#mirror"><span aria-hidden="true">≋</span>Mirror</a>
