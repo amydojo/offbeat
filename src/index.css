@@ -201,3 +201,21 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
  .clip-actions{width:100%;justify-content:flex-start}
  .clip-actions .text-button{padding:10px 12px;min-height:44px}
 }
+
+/* The sample playground remains available without distracting from capture */
+.playground{border-top:1px solid #4b4038;margin:30px 0 0}
+.playground summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:15px;min-height:66px;padding:10px 4px;color:#dfcebf}
+.playground summary::-webkit-details-marker{display:none}
+.playground summary span:first-child{font-size:10px;letter-spacing:.14em;color:#ae9686}
+.playground summary strong{font-weight:500;font-size:16px;margin-right:auto}
+.playground summary span:last-child{font-size:20px;color:#d6a07c;transition:transform .2s}
+.playground[open] summary span:last-child{transform:rotate(45deg)}
+.playground .samples{padding:9px 0 30px;border-bottom:1px solid #4b4038;display:flex;align-items:center;justify-content:space-between}
+.playground .samples .hint{max-width:300px;margin:0}
+@media(max-width:760px){
+ .playground summary{flex-wrap:wrap;gap:7px;padding:14px 1px}
+ .playground summary span:first-child{width:100%}
+ .playground summary strong{font-size:15px}
+ .playground .samples{align-items:stretch;flex-direction:column;gap:15px}
+}
+@media(prefers-reduced-motion:reduce){.playground summary span:last-child{transition:none}}
