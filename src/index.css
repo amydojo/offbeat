@@ -31,3 +31,13 @@
 .source-choice{display:flex;gap:12px;align-items:center;color:#b4a99e;font-size:11px;margin-bottom:14px}
 .source-choice select{background:#2c2823;border:1px solid #5d544a;color:#ede0d5;padding:7px;font-size:12px}
 @media(max-width:680px){.compare-workspace,.library{padding:20px 16px}.compare-head,.save-row,.saved-item{align-items:stretch;flex-direction:column}.range-fields{grid-template-columns:1fr}.source-choice{align-items:flex-start;flex-direction:column;gap:7px}.transport button{flex:1;min-width:130px}}
+
+/* Reference excerpt navigation — local source-time, never a destructive edit */
+.excerpt-picker{border:1px solid #55473d;background:#29241f;padding:20px;margin:16px 0 26px}
+.excerpt-picker .eyebrow{margin-bottom:10px}
+.excerpt-picker .hint{line-height:1.65;max-width:730px}
+.excerpt-controls{display:flex;align-items:end;gap:20px}
+.excerpt-controls label{flex:1;display:flex;flex-direction:column;gap:12px;font-size:13px;color:#dfcdbd}
+.excerpt-controls input[type=range]{width:100%;accent-color:#d7a27e;min-height:32px}
+.excerpt-controls button{white-space:nowrap}
+@media(max-width:680px){.excerpt-controls{flex-direction:column;align-items:stretch}.excerpt-controls label{width:100%}}
