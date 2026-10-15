@@ -21,7 +21,7 @@ def run():
    expect(page.get_by_role('button',name='● Record or hum')).to_be_enabled()
    # Never create a fake audio recording on failed permission.
    assert page.get_by_label('Your take musical features').count()==0
-   uploader=page.locator('input[type=file]').nth(1)
+   uploader=page.get_by_role('region',name='Your take audio').locator('input[type=file]')
    uploader.set_input_files({"name":"unsafe.exe","mimeType":"application/octet-stream","buffer":b'untrusted'})
    expect(page.locator('p.status')).to_contain_text('supported audio file',timeout=5000)
    expect(page.get_by_role('button',name='● Record or hum')).to_be_enabled()
@@ -37,9 +37,8 @@ def run():
    expect(page_allowed.get_by_role('button',name='■ Stop recording')).to_be_enabled(timeout=10000)
    page_allowed.wait_for_timeout(1200)
    page_allowed.get_by_role('button',name='■ Stop recording').click()
-   expect(page_allowed.get_by_role('button',name='Analyze shape')).to_be_visible(timeout=12000)
-   page_allowed.get_by_role('button',name='Analyze shape').click()
-   expect(page_allowed.get_by_role('button',name='Analyze again')).to_be_visible(timeout=30000)
+   expect(page_allowed.get_by_role('region',name='Your take audio').get_by_role('button',name='Analyze again')).to_be_visible(timeout=30000)
+   expect(page_allowed.locator('p.status')).to_contain_text('Your musical shape is ready.',timeout=30000)
    print('PASS: emulated phone records via MediaRecorder, stops and analyzes locally')
   finally:
    browser.close()
