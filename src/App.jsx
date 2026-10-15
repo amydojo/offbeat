@@ -259,7 +259,7 @@ export default function App() {
   const effectiveReferenceWindowStart=Math.min(refWindowStart,maxReferenceWindowStart);
   const canSave=!!reference?.analysis||!!take?.analysis;
   return <main className="shell">
-    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / MOBILE V0.1</span></header>
+    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR LISTENING TO YOURSELF</span><span>MIRROR / MOBILE V0.1.1</span></header>
     <section className="hero" id="capture"><p className="eyebrow">01 / CAPTURE</p><h1>Hear what your hands remembered.</h1>
       <p>Record a phrase. Compare what moved, what stayed, and the silence between. No scores, no wrong notes, no sheet music.</p></section>
     <div className="workspace">
@@ -267,13 +267,13 @@ export default function App() {
         onFile={file=>setFile('reference',file)} onClear={()=>replaceClip('reference',null)}
         onAnalyze={()=>analyze('reference',reference,refKind)} analyzing={busy.reference}
         kind={refKind} onKind={value=>chooseSourceKind('reference',value)} index="01"/>
-      <ClipLane title="Your take" description="Record your bass or import your own improvisation." clip={take}
+      <ClipLane title="Your take" description="Hum, play bass, or import a short idea of your own." clip={take}
         onFile={file=>setFile('take',file)} onClear={()=>replaceClip('take',null)}
         onAnalyze={()=>analyze('take',take,takeKind)} analyzing={busy.take}
         kind={takeKind} onKind={value=>chooseSourceKind('take',value)} index="02"/>
       <div className="record-row">
         <button type="button" className={recording?'button-record active':'button-record'} disabled={requestingMic}
-          onClick={recording?stopRecording:startRecording}>{requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record bass'}</button>
+          onClick={recording?stopRecording:startRecording}>{requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record or hum'}</button>
         <p>Mic permission is requested only when you press Record. Audio analysis runs {ANALYSIS_LOCATION}; recordings are never uploaded.</p>
       </div>
       {message&&<p className="status" role="status">{message}</p>}
