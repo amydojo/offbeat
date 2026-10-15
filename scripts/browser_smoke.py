@@ -96,6 +96,12 @@ def run():
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(1, timeout=90000)
             page.get_by_role("button", name="Analyze shape").click()
             expect(page.get_by_role("button", name="Analyze again")).to_have_count(2, timeout=90000)
+            # Source-kind edits must never leave an old 'solo bass' analysis
+            # attached to newly labeled 'humming' audio.
+            page.get_by_label("Your take source type").select_option("humming")
+            expect(page.get_by_role("button", name="Analyze again")).to_have_count(1)
+            page.get_by_role("button", name="Analyze shape").click()
+            expect(page.get_by_role("button", name="Analyze again")).to_have_count(2, timeout=90000)
             excerpt = page.get_by_role("slider", name="Reference excerpt position")
             expect(excerpt).to_be_visible()
             assert float(excerpt.get_attribute("max")) > 5

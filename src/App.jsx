@@ -173,6 +173,17 @@ export default function App() {
     finally{if(compareJob.current===controller){compareJob.current=null;setComparing(false);}}
   };
 
+  const chooseSourceKind=(lane,kind)=>{
+    const setter=lane==='reference'?setReference:setTake;
+    const handle=lane==='reference'?referenceRef:takeRef;
+    if(lane==='reference')setRefKind(kind);
+    else setTakeKind(kind);
+    if(handle.current?.analysis && handle.current.analysis.source.kind!==kind){
+      const updated={...handle.current,analysis:null};
+      handle.current=updated;setter(updated);invalidate();
+      setMessage('Source type updated. Choose Analyze shape to refresh the recording analysis.');
+    }
+  };
   const startRecording=async()=>{
     if(micRequestPending.current||recorder.current)return;
     micRequestPending.current=true;setRequestingMic(true);
@@ -261,11 +272,11 @@ export default function App() {
       <ClipLane title="Reference" description="A bass stem, hum, or other short musical example." clip={reference}
         onFile={file=>setFile('reference',file)} onClear={()=>replaceClip('reference',null)}
         onAnalyze={()=>analyze('reference',reference,refKind)} analyzing={busy.reference}
-        kind={refKind} onKind={setRefKind} index="01"/>
+        kind={refKind} onKind={value=>chooseSourceKind('reference',value)} index="01"/>
       <ClipLane title="Your take" description="Record your bass or import your own improvisation." clip={take}
         onFile={file=>setFile('take',file)} onClear={()=>replaceClip('take',null)}
         onAnalyze={()=>analyze('take',take,takeKind)} analyzing={busy.take}
-        kind={takeKind} onKind={setTakeKind} index="02"/>
+        kind={takeKind} onKind={value=>chooseSourceKind('take',value)} index="02"/>
       <div className="record-row">
         <button type="button" className={recording?'button-record active':'button-record'} disabled={requestingMic}
           onClick={recording?stopRecording:startRecording}>{requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record bass'}</button>

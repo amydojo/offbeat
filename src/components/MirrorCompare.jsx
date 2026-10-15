@@ -58,7 +58,7 @@ export default function MirrorCompare({ reference, take, comparison, normalized,
     <Lane label="Reference" analysis={reference.analysis} comparison={comparison} lane="reference" normalized={normalized} tone="#d5a27e"/>
     <Lane label="Your take" analysis={take.analysis} comparison={comparison} lane="take" normalized={normalized} tone="#9dc7b2"/>
     <div className="compare-notes">
-      <p>{comparison ? `${comparison.matched_onsets.length} temporally corresponding attacks · ${comparison.unmatched_take_indices.length} unmatched attacks in your take.` : 'Run Compare to find correspondences; visualization still shows both original phrases.'}</p>
+      <p>{comparison ? `${comparison.matched_onsets.length} temporally corresponding attacks in the selected excerpt · ${comparison.unmatched_take_indices.length} unmatched attacks in your take (timing only; not proof of the same notes).` : 'Run Compare to find correspondences; visualization still shows both original phrases.'}</p>
       {(comparison?.descriptors||[]).map((desc,i)=><p key={i}>{desc}</p>)}
       {(comparison?.warnings||[]).map((w,i)=><p key={i} className="warning">{w}</p>)}
     </div>
