@@ -305,7 +305,7 @@ export default function App() {
         </div>
         <div className="record-row">
           <button type="button" className={recording?'button-record active':'button-record'} disabled={requestingMic}
-            onClick={recording?stopRecording:startRecording} aria-label={recording?'Stop recording': 'Record or hum'}>
+            onClick={recording?stopRecording:startRecording}>
             {requestingMic?'Waiting for microphone…':recording?'■ Stop recording':'● Record or hum'}
           </button>
           {recording?<span className="recording-clock" aria-live="off"><span className="recording-dot"/>REC {recordingClock}</span>
