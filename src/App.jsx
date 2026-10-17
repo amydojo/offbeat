@@ -449,7 +449,7 @@ export default function App() {
   const takeLabel=clipTitle(take?.file,'Sound A');
   const referenceLabel=clipTitle(reference?.file,'Sound B');
   return <main className="shell quiet-shell">
-    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR YOUR IDEAS</span></header>
+    <header className="topbar"><strong>OFFBEAT<span className="mark">◦</span></strong><span>AN INSTRUMENT FOR YOUR IDEAS</span><a href="/bass-mirror/" aria-label="Open Bass Mirror instrument" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",color:"#f1c1a2",textDecoration:"none",border:"1px solid #855c49",background:"#2a211c",borderRadius:"4px",padding:"0 12px",minHeight:"44px",fontSize:"11px",fontWeight:700,letterSpacing:".05em",whiteSpace:"nowrap"}}>✳ BASS MIRROR ↗</a></header>
     <section className="hero">
       <p className="eyebrow">SOUND / PLAY / DISCOVER</p>
       <h1>{take&&reference?'Hear what changed.':'Catch what you hear.'}</h1>
