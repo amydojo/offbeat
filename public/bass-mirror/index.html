@@ -27,7 +27,7 @@ button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus
  .rowname{font-size:10px}
 }
 </style>
-</head>
+<link rel="stylesheet" href="/bass-mirror/v2.css"></head>
 <body>
 <main class="shell">
  <div class="meta"><a href="/" class="back-link">← OFFBEAT</a><span>LAB / BASS MIRROR 001</span></div>
@@ -93,4 +93,5 @@ const cvs=$('scope'),c=cvs.getContext('2d');let phase=0;const fft=new Uint8Array
 function draw(){const dpr=Math.min(devicePixelRatio||1,2),w=cvs.clientWidth,h=cvs.clientHeight;const W=Math.max(1,Math.floor(w*dpr)),H=Math.max(1,Math.floor(h*dpr));if(cvs.width!==W||cvs.height!==H){cvs.width=W;cvs.height=H}c.clearRect(0,0,W,H);const mid=H/2;const grad=c.createLinearGradient(0,0,W,0);grad.addColorStop(0,'#754534');grad.addColorStop(.52,'#dca482');grad.addColorStop(1,'#754534');c.strokeStyle='#3a2c25';c.lineWidth=dpr;c.beginPath();c.moveTo(0,mid);c.lineTo(W,mid);c.stroke();c.strokeStyle=grad;c.lineWidth=2*dpr;c.beginPath();if(analyser){analyser.getByteTimeDomainData(fft);for(let i=0;i<W;i++){const value=(fft[Math.floor(i*fft.length/W)]-128)/128;const y=mid-value*mid*.81;if(i===0)c.moveTo(i,y);else c.lineTo(i,y)}}else{for(let i=0;i<W;i++){let x=i/W;let envelope=.27+.12*Math.sin(x*30+phase);let wave=Math.sin(x*76+phase)*Math.sin(x*15+phase*.5)*envelope;let y=mid+wave*H*.28;if(i===0)c.moveTo(i,y);else c.lineTo(i,y)}phase+=.015}c.stroke();requestAnimationFrame(draw)}
 reset();updateControls();draw();
 </script>
+<script src="/bass-mirror/v2.js"></script>
 </body></html>
