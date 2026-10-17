@@ -22,7 +22,7 @@ const notes=[],wave=new Uint8Array(2048),spec=new Uint8Array(1024);
 const names={form:['THE SHAPE OF YOUR PLAYING','AMPLITUDE / RESONANCE'],spectrum:['FREQUENCIES INSIDE THE SOUND','LOW → HIGH / LIVE'],memory:['THE NOTES YOU CHOSE TO KEEP','PAST → PRESENT / 16 SECONDS']};
 tabs.querySelectorAll('[data-vis]').forEach(b=>b.onclick=()=>{
  selected=b.dataset.vis;tabs.querySelectorAll('[data-vis]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
- $('visualLabel')?.replaceChildren(document.createTextNode(names[selected][0]));
+ document.querySelector('.bm-lab .art-label')?.replaceChildren(document.createTextNode(names[selected][0]));
  $('bmDescriptor').textContent=names[selected][1];
 });
 canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect();touchX=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))},{passive:true});
