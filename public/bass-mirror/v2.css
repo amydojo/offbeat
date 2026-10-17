@@ -1,0 +1,35 @@
+/* OFFBEAT Bass Mirror 002 — editorial mobile visualization */
+.bm-lab{margin:25px 0 20px}
+.bm-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.bm-bar>span{color:#d4ac8c;letter-spacing:.16em;font-size:10px;font-weight:700}
+.bm-modes{display:flex;gap:5px}
+.bm-modes button{min-height:44px;border:1px solid #553c30;background:#221b17;color:#c1a38b;padding:9px 14px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.09em}
+.bm-modes button[aria-pressed=true]{background:#71412f;border-color:#cb8a68;color:#ffebdc}
+.bm-lab .hero-art{height:clamp(235px,34vw,375px);margin:0;border:1px solid #694635;box-shadow:inset 0 0 50px #0004}
+.bm-lab canvas{touch-action:pan-y}
+.bm-signal{position:absolute;top:17px;left:16px;display:flex;align-items:center;gap:9px;color:#d2ab8d;font-size:10px;letter-spacing:.12em}
+.bm-signal i{display:inline-block;width:7px;height:7px;background:#6b4939;border-radius:50%}
+.bm-signal i.on{background:#f2b982;box-shadow:0 0 12px #e8aa75aa}
+.bm-below{display:flex;justify-content:space-between;gap:12px;margin:10px 1px 0;color:#a89180;font-size:10px;letter-spacing:.06em}
+.bm-below strong{color:#edb58e;font-size:11px;letter-spacing:.08em}
+.bm-preview{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 16px;margin:18px 0 22px;background:#231b17;border:1px solid #604332;border-radius:7px}
+.bm-preview strong{display:block;font-size:11px;letter-spacing:.10em;color:#ecd0bb;margin-bottom:4px}
+.bm-preview span{display:block;font-size:11px;line-height:1.55;color:#ad9685}
+.bm-preview audio{height:41px;min-width:210px;width:230px;max-width:100%;flex-shrink:0}
+.bm-boost{display:inline-flex;align-items:center;gap:9px;min-height:44px;color:#e0b79a;font-size:10px;font-weight:700;letter-spacing:.06em;white-space:nowrap}
+.bm-boost input{width:19px;height:19px;accent-color:#cc8963}
+@media(max-width:800px){
+ .bm-bar{align-items:stretch;flex-direction:column}
+ .bm-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ .bm-modes button{min-width:0;padding:9px 4px;min-height:46px}
+ .bm-lab .hero-art{height:310px}
+ .bm-below{flex-wrap:wrap;align-items:start}
+ .bm-preview{flex-direction:column;align-items:stretch;padding:14px}
+ .bm-preview audio{width:100%;min-width:0}
+ .bm-boost{width:100%}
+ .gridbox{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+ .gridbox .sequence,.gridbox .step-num{min-width:740px}
+ .gridbox .seqrow{grid-template-columns:72px repeat(16,minmax(34px,1fr));gap:4px}
+ .gridbox .step{height:44px;min-width:34px}
+ .gridbox .legend{min-width:700px}
+}
