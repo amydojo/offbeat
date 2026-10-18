@@ -90,7 +90,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
   <section class="rhythm-toolbar" aria-label="Rhythm partner controls">
     <div class="rhythm-info"><b>RHYTHM PARTNER</b><small id="bpmReadout">~100 BPM · YOUR TAPS LEAD</small></div>
     <button id="drumMode" type="button" aria-label="Auto drums: off" aria-pressed="false">○ DRUMS OFF</button>
-    <button id="pocket" type="button" aria-label="Replay timing correction: raw" title="Changes replay timing only; your original capture remains untouched">POCKET / RAW</button>
+    <button id="pocket" type="button" aria-label="Replay timing correction: raw" title="Gently pockets melodic gestures and drum hits on replay only. Original capture stays untouched">POCKET / RAW</button>
   </section>
   <section class="instrument" aria-label="Playable surface">
     <div class="pitch" id="pitch" role="application" aria-label="Touch and drag here to shape pitch vertically and tone horizontally.">
@@ -311,7 +311,7 @@ $('pocket').addEventListener('click',function(){
   pocketMode=pocketMode==='raw'?'soft':pocketMode==='soft'?'tight':'raw';
   $('pocket').textContent='POCKET / '+pocketMode.toUpperCase();
   $('pocket').setAttribute('aria-label','Replay timing correction: '+pocketMode);
-  status(pocketMode==='raw'?'Original timing · Nothing corrected':'Only recorded drum hits are gently aligned on REPLAY / WAV');
+  status(pocketMode==='raw'?'Original timing · Nothing corrected':'Melody + manual drums gently nudged on REPLAY / WAV · Original stays intact');
 });
 function log(type,p,b,extra){
   if(!rec)return;
@@ -424,9 +424,9 @@ function finish(){
   var length=clamp((performance.now()-recAt)/1000,.1,MAX);
   var hasNotes=events.some(function(x){return x.type==='down'||(x.type==='drum'&&!x.generated)||x.type==='hit'});
   if(!hasNotes){status('Nothing captured — play a note and try again');updateControls();return}
-  phrase={version:2,duration:+length.toFixed(3),events:events.slice().sort(function(a,b){return a.t-b.t}),sound:sound,bpm:bpm,anchor:events.find(function(e){return e.type==='drum'&&!e.generated})?.t||0,drummer:drumMode};
+  phrase={version:2,duration:+length.toFixed(3),events:events.slice().sort(function(a,b){return a.t-b.t}),sound:sound,bpm:bpm,anchor:events.find(function(e){return e.type==='down'||e.type==='drum'&&!e.generated})?.t||0,drummer:drumMode};
   drawing=[];ghostOn=true;draw();updateControls();clock(phrase.duration);
-  hint('CAPTURED / YOUR MUSICAL SHAPE');status('Captured your exact gestures and timing · Tap REPLAY')
+  hint('CAPTURED / YOUR MUSICAL SHAPE');status('Captured original timing · POCKET can gently assist replay')
 }
 $('record').addEventListener('click',function(){if(rec)finish();else startCapture()});
 function updateControls(){
