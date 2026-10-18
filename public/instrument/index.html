@@ -97,7 +97,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
   <header class="header">
     <a class="back" href="/bass-mirror/" aria-label="Back to Bass Mirror">← BASS MIRROR</a>
     <div class="brand">OFFBEAT <em>/ FORM</em></div>
-    <span class="version">INSTRUMENT 005</span>
+    <span class="version">INSTRUMENT 006</span>
   </header>
   <section class="intro">
     <div><h1>Play a riff.</h1><p>Touch a string. Drag between strings. Feel the groove.</p></div>
@@ -148,6 +148,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
 <script src="/instrument/pluck-v4.js"></script>
 <script src="/instrument/studio-bass-samples-v5.js"></script>
 <script src="/instrument/studio-bass-v5.js"></script>
+<script src="/instrument/studio-glide-v6.js"></script>
 <script>
 (function(){
 'use strict';
@@ -157,7 +158,7 @@ var ctx=null, graph=null, active=null, nodes=[], pressed=null, restPressed=false
 var playingTouchIds=new Set(), drawPending=false;
 var MAX=20, STORE='offbeat.form.instrument.v1', dpr=1, WIDTH=1, HEIGHT=1, frame=0;
 var lastPluckIndex=-1,lastPluckX=0,lastPluckAt=-1,pluckHistory=[],lastStudioVoice=null;
-var rhythm=window.OffbeatRhythm, bassEngine=window.OffbeatBass, pluckEngine=window.OffbeatPluck, studioBass=window.OffbeatStudioBass, bassGesture='pluck', drumMode='off', pocketMode='raw', bpm=100, tapTimes=[], recentDrums=[], drumTimer=null, drumNext=0, drumStep=0, recAudioAt=0, playbackBus=null;
+var rhythm=window.OffbeatRhythm, bassEngine=window.OffbeatBass, pluckEngine=window.OffbeatPluck, studioBass=window.OffbeatStudioBass, studioGlide=window.OffbeatStudioGlide, bassGesture='pluck', drumMode='off', pocketMode='raw', bpm=100, tapTimes=[], recentDrums=[], drumTimer=null, drumNext=0, drumStep=0, recAudioAt=0, playbackBus=null;
 function clamp(x,a,b){return Math.min(b,Math.max(a,x))}
 function status(s){$('status').textContent=s}
 function hint(s){$('hint').textContent=s}
@@ -225,17 +226,26 @@ function buildGraph(c,out){
   master.gain.value=.78;comp.threshold.value=-15;comp.knee.value=8;comp.ratio.value=4;comp.attack.value=.006;comp.release.value=.18;
   master.connect(comp);comp.connect(out);return master;
 }
-function voice(c,dest,at,p,b,kind,variant,gesture){
+function voice(c,dest,at,p,b,kind,variant,gesture,instrument){
+  if(instrument==='studio-v6'&&gesture==='glide'&&kind==='hold'){
+    return studioGlide.create(c,dest,at,p,b,variant)
+  }
   return bassEngine.create(c,dest,at,p,b,kind,variant,gesture||'glide');
 }
-function moveVoice(v,t,p,b){return bassEngine.move(v,t,p,b)}
-function endVoice(v,at){return bassEngine.stop(v,at)}
+function moveVoice(v,t,p,b){
+  if(v&&v.kind==='sample-glide')return studioGlide.move(v,t,p,b);
+  return bassEngine.move(v,t,p,b)
+}
+function endVoice(v,at){
+  if(v&&v.kind==='sample-glide')return studioGlide.stop(v,at);
+  return bassEngine.stop(v,at)
+}
 function nowTime(){return ctx?ctx.currentTime:0}
 function noteStart(){
   if(!$('audioGate').hidden||!beginAudio()||restPressed)return;
   if(bassGesture==='pluck'){strikeString(pitch,brightness,.8);return}
   if(active)endVoice(active,nowTime());
-  active=voice(ctx,graph,nowTime()+.002,pitch,brightness,'hold',sound,bassGesture);
+  active=voice(ctx,graph,nowTime()+.002,pitch,brightness,'hold',sound,bassGesture,'studio-v6');
   nodes.push(active)
 }
 function strikeString(p,b,velocity){
@@ -459,7 +469,7 @@ function finish(){
   var length=clamp((performance.now()-recAt)/1000,.1,MAX);
   var hasNotes=events.some(function(x){return x.type==='down'||x.type==='pluck'||(x.type==='drum'&&!x.generated)||x.type==='hit'});
   if(!hasNotes){status('Nothing captured — play a note and try again');updateControls();return}
-  phrase={version:5,instrument:'studio-v5',duration:+length.toFixed(3),events:events.slice().sort(function(a,b){return a.t-b.t}),sound:sound,gesture:bassGesture,bpm:bpm,anchor:events.find(function(e){return e.type==='down'||e.type==='drum'&&!e.generated})?.t||0,drummer:drumMode};
+  phrase={version:6,instrument:'studio-v6',duration:+length.toFixed(3),events:events.slice().sort(function(a,b){return a.t-b.t}),sound:sound,gesture:bassGesture,bpm:bpm,anchor:events.find(function(e){return e.type==='down'||e.type==='drum'&&!e.generated})?.t||0,drummer:drumMode};
   drawing=[];ghostOn=true;draw();updateControls();clock(phrase.duration);
   hint('CAPTURED / YOUR MUSICAL SHAPE');status('Captured original timing · POCKET can gently assist replay')
 }
@@ -478,13 +488,13 @@ function schedule(seq,c,dest,at){
     var t=at+e.t;
     if(e.type==='down'){
       if(running)endVoice(running,t);
-      running=voice(c,dest,t,e.p,e.b,'hold',seq.sound,seq.gesture||'glide');list.push(running)
+      running=voice(c,dest,t,e.p,e.b,'hold',seq.sound,seq.gesture||'glide',seq.instrument);list.push(running)
     }else if(e.type==='move'&&running){moveVoice(running,t,e.p,e.b)}
     else if(e.type==='up'||e.type==='rest'){if(running){endVoice(running,t);running=null}}
     else if(e.type==='hit'){list.push(voice(c,dest,t,e.p,e.b,'hit',seq.sound,seq.gesture||'glide'))}
     else if(e.type==='drum'){rhythm.drum(c,dest,e.kind,t,e.velocity)}
     else if(e.type==='pluck'){
-      var recorded=seq.instrument==='studio-v5';
+      var recorded=seq.instrument==='studio-v5'||seq.instrument==='studio-v6';
       list.push(recorded?studioBass.play(c,dest,t,e.p,e.b,seq.sound):pluckEngine.play(c,dest,t,e.p,e.b,seq.sound))
     }
   });
@@ -496,7 +506,8 @@ function stopPlayback(){
   playing=false;
   if(playbackBus){var t0=nowTime();playbackBus.gain.cancelScheduledValues(t0);playbackBus.gain.setValueAtTime(0,t0);playbackBus=null}
   nodes.forEach(function(v){
-    if(v&&v.recorded)studioBass.kill(v,nowTime()+.006);
+    if(v&&v.kind==='sample-glide')studioGlide.kill(v,nowTime()+.006);
+    else if(v&&v.recorded)studioBass.kill(v,nowTime()+.006);
     else if(v&&v.sources)pluckEngine.kill(v,nowTime()+.006);
     else bassEngine.kill(v,nowTime()+.006)
   });nodes=[];
@@ -535,7 +546,7 @@ $('bassMode').addEventListener('click',function(e){
   b.dataset.mode=bassGesture;
   b.textContent=bassGesture==='pluck'?'● PLUCK':'↝ GLIDE';
   b.setAttribute('aria-label','Melody style: '+(bassGesture==='pluck'?'Pluck separate string notes':'Glide free pitch'));
-  status(bassGesture==='pluck'?'PLUCK · Tap strings; drag to play riffs':'GLIDE · Bend freely between pitches');
+  status(bassGesture==='pluck'?'PLUCK · Tap strings; drag to play riffs':'GLIDE · Bending actual recorded bass strings');
   hint(bassGesture==='pluck'?'TAP A STRING · DRAG FOR A RIFF':'GLIDE / DRAW CONTINUOUS BASS BENDS');
   requestDraw();
 });
@@ -567,9 +578,10 @@ $('wav').addEventListener('click',async function(){
     var O=window.OfflineAudioContext||window.webkitOfflineAudioContext;
     if(!O)throw new Error('Offline rendering unavailable');
     var seq=phrase,sr=44100,c=new O(1,Math.ceil((seq.duration+.45)*sr),sr);
-    if(seq.events.some(function(e){return e.type==='pluck'})){
-      if(seq.instrument==='studio-v5')await studioBass.preload(c);
-      else await pluckEngine.preload(c);
+    if(seq.instrument==='studio-v6'||seq.instrument==='studio-v5'){
+      await studioBass.preload(c);
+    }else if(seq.events.some(function(e){return e.type==='pluck'})){
+      await pluckEngine.preload(c);
     }
     schedule(seq,c,buildGraph(c,c.destination),.015);
     var buf=await c.startRendering(), blob=makeWav(buf), url=URL.createObjectURL(blob), a=document.createElement('a');
@@ -649,7 +661,7 @@ window.addEventListener('blur',function(){stopDrummer();drumMode='off';updateDru
 document.addEventListener('visibilitychange',function(){if(document.hidden){stopDrummer();drumMode='off';updateDrummerUI();noteEnd();if(rec)finish();if(playing)stopPlayback()}});
 try{
   var saved=JSON.parse(localStorage.getItem(STORE)||'null');
-  if(saved&&[1,2,3,4,5].includes(saved.version)&&saved.duration>0&&saved.duration<=MAX&&Array.isArray(saved.events)&&saved.events.length<2500&&saved.events.every(function(e){return typeof e.t==='number'&&e.t>=0&&e.t<=MAX&&['down','move','up','rest','hit','drum','pluck'].includes(e.type)&&(e.type!=='drum'||(['kick','snare','hat'].includes(e.kind)&&Number.isFinite(e.velocity)&&e.velocity>=0&&e.velocity<=1))&&e.p>=0&&e.p<=1&&e.b>=0&&e.b<=1})){
+  if(saved&&[1,2,3,4,5,6].includes(saved.version)&&saved.duration>0&&saved.duration<=MAX&&Array.isArray(saved.events)&&saved.events.length<2500&&saved.events.every(function(e){return typeof e.t==='number'&&e.t>=0&&e.t<=MAX&&['down','move','up','rest','hit','drum','pluck'].includes(e.type)&&(e.type!=='drum'||(['kick','snare','hat'].includes(e.kind)&&Number.isFinite(e.velocity)&&e.velocity>=0&&e.velocity<=1))&&e.p>=0&&e.p<=1&&e.b>=0&&e.b<=1})){
     phrase=saved;ghostOn=true;updateControls();hint('YOUR KEPT PHRASE / READY TO REPLAY');status('Your saved riff is here — tap REPLAY');clock(saved.duration)
   }
 }catch(e){}
