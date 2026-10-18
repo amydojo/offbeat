@@ -100,6 +100,7 @@ with sync_playwright() as p:
     page.reload(wait_until="networkidle")
     page.wait_for_function("document.querySelector('#shape .bass-line')!==null")
     assert page.locator("#saved button").count() >= 1
+    page.locator("#more summary").click()  # details returns closed after reload
     page.locator("#saved button").first.click()
     assert page.locator("#compareOriginal").is_enabled()
 
