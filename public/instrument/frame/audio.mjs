@@ -205,6 +205,9 @@ export class FrameAudio{
      const t=this.ctx.currentTime;
      this.mix.master.gain.cancelScheduledValues(t);
      this.mix.master.gain.setTargetAtTime(.0001,t,.012);
+     // Stop the remaining scheduled loop tails, then reopen the output
+     // after the lookahead window. Sculpt preview still works while paused.
+     this.mix.master.gain.setTargetAtTime(.82,t+.24,.028);
    }
    this.onProgress(0,0);this.onState({playing:false,ready:this.audioReady});
  }
