@@ -100,10 +100,10 @@ function showScan(){
  return result;
 }
 function updateViewCopy(){
- if(view==='memory'){
-  el('bmDescriptor').textContent='READ THE GRID · TAP A FILLED NOTE';
-  const header=document.querySelector('.bm-bar>span');if(header)header.textContent='01 / YOUR MUSICAL MEMORY';
- }
+ const headings={memory:'01 / YOUR MUSICAL MEMORY',form:'01 / SOUND BECOMES FORM',spectrum:'01 / LIVE FREQUENCY'};
+ const header=document.querySelector('.bm-bar>span');if(header)header.textContent=headings[view]||headings.memory;
+ const guide=document.querySelector('.bm-meaning');if(guide)guide.hidden=view!=='memory';
+ if(view==='memory')el('bmDescriptor').textContent='READ THE GRID · TAP A FILLED NOTE';
  showScan();
 }
 function pickChange(p,id,from,to,type){
@@ -172,6 +172,7 @@ function makeProposal(){
   }
  }
  if(!diffs){
+  proposal=null;original=null;candidate=null;changed=[];render();
   el('bmDiffTitle').textContent='Nothing to change in this direction.';
   el('bmDiffDescription').textContent='Your protected sound and the available positions leave no meaningful single change. Choose another direction.';
   el('bmProposal').hidden=false;
@@ -290,6 +291,14 @@ function drawMemory(){
    if(selectedCell&&selectedCell.id===ids[i]&&selectedCell.step===step){
     ctx.strokeStyle='#f2cfae';ctx.lineWidth=1.5*dpr;ctx.strokeRect(x-colW*.44,cy-rowH*.43,colW*.88,rowH*.86);
    }
+  }
+  // Empty-but-changed cells are shown as outlined ghosts in A/B compare.
+  for(const d of (changed||[]).filter(change=>change.id===ids[i]&&!p.includes(change.i))){
+    const cx=left+d.i*colW+colW*.5,cy=y+rowH*.5;
+    ctx.strokeStyle='rgba(245,207,168,.85)';ctx.lineWidth=1.1*dpr;
+    ctx.setLineDash([2*dpr,2*dpr]);
+    ctx.strokeRect(cx-colW*.30,cy-rowH*.26,colW*.60,rowH*.52);
+    ctx.setLineDash([]);
   }
  }
  ctx.fillStyle='#938071';ctx.textAlign='left';ctx.font=(9*dpr)+'px system-ui';ctx.fillText('BASS SAMPLES',9*dpr,top-14*dpr);
