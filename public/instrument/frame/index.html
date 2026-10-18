@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#191310">
-<title>FORM 007 — Music, through interaction.</title>
+<title>FORM 008 — Music, through interaction.</title>
 <meta name="description" content="A new way to make music. Change one shape and hear a whole groove respond.">
 <style>
 :root{--bg:#191310;--panel:#251b16;--panel2:#2c211b;--ink:#f2e8df;--muted:#aa9181;--faint:#786456;--stroke:#4c382e;--accent:#d69b77;--accent2:#edbf9e;--harmony:#c5b5a4;--green:#979c8b}
@@ -79,6 +79,31 @@ h1{font-weight:390;font-size:clamp(39px,6vw,74px);letter-spacing:-.075em;line-he
 .saved button{border:1px solid #6b4d3d;background:#37261e;color:#e5b897;border-radius:5px;padding:8px 13px;min-height:38px;font-size:11px}
 .live-status{font-size:11px;color:#b99981;min-height:18px;margin-top:16px;line-height:1.5}
 a.sample-credit{color:#997b68}
+/* FORM 008 / tactile causality, not a graph of static control points. */
+.frame.is-touching{border-color:#a87759;box-shadow:0 0 0 1px rgba(219,157,111,.14)}
+.form-canvas{cursor:grab}
+.form-canvas.is-sculpting{cursor:grabbing}
+.bass-line{stroke-width:4.1;filter:drop-shadow(0 0 6px rgba(224,158,111,.19))}
+.elastic-fill{fill:#c88d67;fill-opacity:.13;pointer-events:none}
+.elastic-ghost{fill:none;stroke:#bfa48e;stroke-width:2;stroke-opacity:.30;stroke-dasharray:4 7}
+.sculpt-link{stroke:#e9b38e;stroke-width:1.8;stroke-opacity:.52;stroke-dasharray:3 6}
+.delta-node{fill:#e9b38e;stroke:#fff1df;stroke-width:1.5}
+.change-strip{border-top:1px solid rgba(166,118,88,.36);display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 27px;padding:13px 0 15px}
+.change-title{font-size:9px;color:#a28572;letter-spacing:.13em;margin-right:6px}
+.change-part{border:1px solid #75543e;background:#39281e;color:#e8b697;border-radius:4px;padding:7px 9px;font-size:10px;letter-spacing:.035em;min-height:30px;display:inline-flex;align-items:center}
+.change-part.harmony{border-color:#786c5f;background:#322a24;color:#e0c7b4}
+.change-part.drums{border-color:#56594b;background:#292b24;color:#c5caaf}
+.audition-marker{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:4px;min-width:92px}
+.audition-marker span{font-size:9px;letter-spacing:.065em;color:#d8b393;white-space:nowrap}
+.audition-marker span[id="nextVersion"]{color:#edc497}
+@media(max-width:720px){
+.change-strip{margin:0 15px;gap:5px;padding:10px 0 12px}
+.change-title{flex-basis:100%;margin-bottom:2px}
+.change-part{font-size:9px;padding:6px 7px}
+.audition-marker span{font-size:8px}
+.right-action{flex-wrap:wrap;gap:10px}
+}
+
 @media(max-width:720px){
  .page{padding-left:17px;padding-right:17px}
  .top{height:62px}.brand{font-size:23px}.top-right span{font-size:9px}
@@ -112,7 +137,7 @@ a.sample-credit{color:#997b68}
 <main class="page">
 <header class="top">
  <a href="/instrument/" class="brand" aria-label="FORM original instrument">FORM<i>·</i></a>
- <div class="top-right"><span>STUDY 007</span><a href="/instrument/" class="back">← INSTRUMENT</a></div>
+ <div class="top-right"><span>STUDY 008</span><a href="/instrument/" class="back">← INSTRUMENT</a></div>
 </header>
 <section class="intro">
  <div><div class="kicker">MUSIC, THROUGH INTERACTION</div>
@@ -128,7 +153,13 @@ a.sample-credit{color:#997b68}
  </div>
  <div class="frame-foot">
    <span class="dotted" id="gestureLabel">BASS → HARMONY → DRUMS</span>
-   <span class="frame-note" id="instruction">One small change can move the whole groove.</span>
+   <span class="frame-note" id="instruction">Grab anywhere on the curve. Pull and listen.</span>
+ </div>
+ <div id="changeStrip" class="change-strip" aria-live="polite" hidden>
+   <span class="change-title">WHAT MOVED</span>
+   <span id="bassChange" class="change-part">BASS · —</span>
+   <span id="harmonyChange" class="change-part harmony">HARMONY · —</span>
+   <span id="drumChange" class="change-part drums">DRUMS · —</span>
  </div>
 </section>
 <div class="ui">
@@ -138,6 +169,7 @@ a.sample-credit{color:#997b68}
   <span id="playingLabel" class="chip">READY TO EXPLORE</span>
  </div>
  <div class="right-action">
+  <div class="audition-marker" aria-live="polite"><span id="hearing">HEARING / STARTER</span><span id="nextVersion" hidden>NEXT LOOP / NEW VERSION</span></div>
   <div class="compare" role="group" aria-label="Compare your variation with original">
    <button id="compareOriginal" type="button" aria-pressed="false" disabled>Original</button>
    <button id="compareYours" type="button" aria-pressed="true" disabled>Your version</button>
@@ -149,7 +181,7 @@ a.sample-credit{color:#997b68}
  <div>
   <div class="kicker">02 / DISCOVER</div>
   <div class="headline" id="prompt">What if this went higher?</div>
-  <div class="desc" id="promptDetail">The highlighted point is yours to move. You don't need to know why it works.</div>
+  <div class="desc" id="promptDetail">Pull anywhere along the curve. A little of the surrounding music moves with it.</div>
  </div>
  <div class="discovery-buttons">
   <button class="secondary" type="button" id="higher">↑ HIGHER</button>
@@ -178,7 +210,7 @@ a.sample-credit{color:#997b68}
 <div id="status" class="live-status" aria-live="polite">Ready when you are.</div>
 <footer class="bottom">
  <p>A shape is an invitation. Pull a point, leave a space, change the relation. The sound responds—and the original remains.</p>
- <small>FORM 007 · ON-DEVICE AUDIO · <a class="sample-credit" href="https://github.com/nbrosowsky/tonejs-instruments" target="_blank" rel="noopener noreferrer">BASS SAMPLE CREDITS / CC BY</a></small>
+ <small>FORM 008 · ON-DEVICE AUDIO · <a class="sample-credit" href="https://github.com/nbrosowsky/tonejs-instruments" target="_blank" rel="noopener noreferrer">BASS SAMPLE CREDITS / CC BY</a></small>
 </footer>
 </main>
 <script src="/instrument/studio-bass-samples-v5.js"></script>
