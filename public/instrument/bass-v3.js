@@ -66,8 +66,9 @@ function move(v,when,p,b){
   var t=Math.max(v.on,when),f;
   if(v.gesture==='riff'){
     var proposed=noteIndex(p),norm=clamp(p,0,1)*7;
-    // 1.8% screen hysteresis, plus a 65 ms articulation debounce.
-    if(proposed!==v.index&&t-v.lastNoteAt>=.065){
+    // Physical hysteresis is enough to prevent boundary chatter. Do not
+    // discard a quick slide's last note merely because a timer hasn't elapsed.
+    if(proposed!==v.index){
       var border=(proposed>v.index?v.index+.5:v.index-.5);
       if(proposed>v.index?norm>border+.13:norm<border-.13){
         v.index=proposed;v.lastNoteAt=t;
