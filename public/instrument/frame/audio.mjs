@@ -78,7 +78,10 @@ export class FrameAudio{
        const v=window.OffbeatStudioGlide.create(ctx,mix.bass,time,e.sampleP,.36,'warm');
        window.OffbeatStudioGlide.stop(v,time+Math.min(e.duration,.89));
      }else{
-       window.OffbeatStudioBass.play(ctx,mix.bass,time,e.sampleP,.36,'warm');
+       const v=window.OffbeatStudioBass.play(ctx,mix.bass,time,e.sampleP,.36,'warm');
+       // Duration is an actual musical parameter, not just a decorative handle.
+       // Samples remain one-shot but release according to the authored note length.
+       window.OffbeatStudioBass.kill(v,time+Math.min(e.duration,.87));
      }
    }else if(e.kind==='harmony'){
      pad(ctx,mix.harmony,e,time);
