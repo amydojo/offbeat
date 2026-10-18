@@ -81,7 +81,7 @@ export function compileFrame(frame){
    // A little upper voice follows each authored gesture, with intentional space
    // and low volume; harmony OFF freezes relationships to the original preset.
    const harmonicIdx=free?heightToIndex(seedBeat.find(seed=>seed[0]===n.id)?.[3]??.4):idx;
-   const upper=SCALE[Math.min(7,harmonicIdx+2)]*2;
+   const upper=SCALE[harmonicIdx]*3; // octaved perfect fifth; changes with every bass degree
    return {id:'harm:'+n.id,sourceId:n.id,origin:'generated',kind:'harmony',
     derivedFromIds:[n.id],time:round(dur(n.beat,bpm)),
     duration:round(Math.min(.52,dur(n.duration+.1,bpm))),
