@@ -42,7 +42,7 @@ function estimate(buffer,time,{fmin=36,fmax=390,threshold=.19}={}){
   const v=cmndf[tau];
   if(v<minimum){minimum=v;best=tau}
   if(v<threshold){
-   while(tau+1<=maxLag&&cmndf[tau+1]<v){tau++}
+   while(tau+1<=maxLag&&cmndf[tau+1]<cmndf[tau])tau++;
    best=tau;break;
   }
  }
