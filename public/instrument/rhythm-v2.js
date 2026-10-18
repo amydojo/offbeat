@@ -75,10 +75,37 @@ function pocketTime(t,anchor,bpm,mode){
   return Math.max(0,t+clamp((snapped-t)*(mode==='tight'?.85:.52),-max,max));
 }
 function kitEvents(events,anchor,bpm,mode){
-  return events.map(function(e){
-    if(e.type!=='drum'||e.generated||mode==='raw')return e;
-    return Object.assign({},e,{t:+pocketTime(e.t,anchor,bpm,mode).toFixed(3)})
+  var out=events.map(function(e){return Object.assign({},e)});
+  if(mode==='raw')return out;
+  // Shift a whole melody gesture as one unit: onset + every pitch bend + release.
+  // This preserves the shape and length of the player's physical expression.
+  var active=null,segments=[];
+  var order=out.map(function(e,i){return i}).sort(function(a,b){return out[a].t-out[b].t});
+  order.forEach(function(i){
+    var e=out[i];
+    if(e.type==='down'){
+      if(active&&active.length)segments.push(active);
+      active=[i];
+    }else if(active&&(e.type==='move'||e.type==='up'||e.type==='rest')){
+      active.push(i);
+      if(e.type==='up'||e.type==='rest'){segments.push(active);active=null}
+    }
   });
+  if(active&&active.length)segments.push(active);
+  var previousEnd=0;
+  segments.forEach(function(seg,n){
+    var start=out[seg[0]].t,end=out[seg[seg.length-1]].t;
+    var nextStart=n+1<segments.length?out[segments[n+1][0]].t:Infinity;
+    var suggested=pocketTime(start,anchor,bpm,mode)-start;
+    // Do not move a gesture through an adjacent note or before time zero.
+    var delta=clamp(suggested,Math.max(-start,previousEnd-start),Math.max(0,nextStart-end-.002));
+    seg.forEach(function(i){out[i].t=+Math.max(0,out[i].t+delta).toFixed(3)});
+    previousEnd=end+delta;
+  });
+  out.forEach(function(e){
+    if(e.type==='drum'&&!e.generated)e.t=+pocketTime(e.t,anchor,bpm,mode).toFixed(3);
+  });
+  return out;
 }
 root.OffbeatRhythm={estimateTempo:estimateTempo,drum:drum,pocketTime:pocketTime,kitEvents:kitEvents};
 })(window);
