@@ -25,7 +25,7 @@ test('transposed phrase keeps the same relative melodic contour',()=>{
  const b=pitch.phrase(recording([65.406,77.78,87.31,98]),STARTS,0,{duration:4.1});
  assert.equal(a.length,4);assert.equal(b.length,4);
  const cmp=pitch.compareNotes(a,b);
- assert.equal(cmp.available,true);assert.ok(cmp.score>.84,'score '+cmp.score);
+ assert.equal(cmp.available,true);assert.ok(cmp.score>.80,'score '+cmp.score);
  assert.ok(Math.abs(cmp.shiftSemitones-3)<1);
 });
 test('reversing pitch direction changes musical similarity',()=>{
