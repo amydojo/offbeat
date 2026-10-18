@@ -221,18 +221,27 @@ function endDrag(e){
 }
 shape.addEventListener('pointerup',endDrag);
 shape.addEventListener('pointercancel',()=>{drag=null;draft=null;updateUI()});
-shape.addEventListener('keydown',e=>{
- if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter',' '].includes(e.key))return;
- e.preventDefault();
- const n=history.current.notes.find(n=>n.id===selected);
- if(!n)return;
- if(e.key==='Enter'||e.key===' '){adjust(update(history.current,selected,{rest:!n.rest}),'Silence becomes part of the groove.');return}
- if(e.key==='ArrowUp'||e.key==='ArrowDown'){
-   const direction=e.key==='ArrowUp'?1:-1;
-   adjust(update(history.current,selected,{height:n.height+direction*(e.shiftKey?.22:.13)}),'A small move changes the sound.');
- }else{
-   adjust(update(history.current,selected,{duration:n.duration+(e.key==='ArrowRight'?.14:-.14)}),'You've changed how long the note stays.');
+shape.addEventListener('keydown',(event)=>{
+ const key=event.key;
+ if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter',' '].includes(key))return;
+ event.preventDefault();
+ const current=history.current.notes.find(note=>note.id===selected);
+ if(!current)return;
+ if(key==='Enter'||key===' '){
+   const next=update(history.current,selected,{rest:!current.rest});
+   adjust(next,'Silence becomes part of the groove.');
+   return;
  }
+ if(key==='ArrowUp'||key==='ArrowDown'){
+   const step=event.shiftKey?0.22:0.13;
+   const direction=key==='ArrowUp'?1:-1;
+   const next=update(history.current,selected,{height:current.height+direction*step});
+   adjust(next,'A small move changes the sound.');
+   return;
+ }
+ const delta=key==='ArrowRight'?0.14:-0.14;
+ const next=update(history.current,selected,{duration:current.duration+delta});
+ adjust(next,'You changed how long the note stays.');
 });
 $('transport').addEventListener('click',async ()=>{
  if(busy)return;
