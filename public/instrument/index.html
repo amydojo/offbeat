@@ -20,6 +20,10 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
 .sound{display:flex;align-items:center;gap:5px;background:#241b17;border:1px solid var(--rule);padding:4px;border-radius:22px;white-space:nowrap}
 .sound button{min-width:48px;min-height:34px;border:0;border-radius:19px;font-size:10px;letter-spacing:.06em;color:var(--muted);background:transparent}
 .sound button[aria-pressed=true]{background:#bd7d60;color:#160f0b;font-weight:760}
+.rhythm-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:5px;align-items:center;flex:0 0 48px;margin:0 0 9px;padding:4px 0;border-top:1px solid #423127;border-bottom:1px solid #423127}
+.rhythm-info{display:flex;flex-direction:column;gap:3px;min-width:0}.rhythm-info b{font-size:10px;letter-spacing:.09em;font-weight:760;color:#f2c0a0}.rhythm-info small{font-size:9px;letter-spacing:.045em;color:#b49a87;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rhythm-toolbar button{background:#2b211b;border:1px solid #664737;color:#e4bd9f;font-size:10px;font-weight:730;border-radius:6px;padding:0 7px;height:36px;min-width:79px;white-space:nowrap;touch-action:manipulation}
+.rhythm-toolbar #drumMode[data-mode="follow"],.rhythm-toolbar #drumMode[data-mode="fill"]{background:#9c6347;color:#1b110d;border-color:#c78967}
 .instrument{display:grid;grid-template-columns:minmax(0,1fr) minmax(102px,31%);gap:10px;flex:1;min-height:0;margin-bottom:10px;touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .instrument *, .instrument *::before, .instrument *::after{touch-action:none!important;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .actions button,.utility button,.sound button{touch-action:manipulation;-webkit-touch-callout:none}
@@ -40,10 +44,15 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
 .pads{display:flex;flex-direction:column;gap:10px;min-height:0}
 .strike{flex:1;min-height:0;border:1px solid #986148;border-radius:12px;color:#f7dac3;background:radial-gradient(circle at 45% 40%,#78503a,#4d3024 64%,#35231c);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;touch-action:none;user-select:none}
 .strike:active,.strike.flash{background:#b87855;color:#180f0b}
+.drum-pad{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;flex:1;min-height:44px;border:1px solid #725043;border-radius:9px;color:#f0d0b7;background:#38261f;touch-action:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none}
+.drum-pad strong{font-size:13px;letter-spacing:.115em;font-weight:760}.drum-pad small{font-size:9px;letter-spacing:.12em;color:#c7a68f}
+.drum-pad.kick{background:#4c3024;border-color:#9b6548}.drum-pad.snare{background:#393129;border-color:#8d725e}.drum-pad.hat{background:#2d302d;border-color:#6c796f}
+.drum-pad:active,.drum-pad.flash{background:#cf956e!important;color:#251510;transform:scale(.98)}
+.drum-pad:active small,.drum-pad.flash small{color:#492e20}
 .strike .orb{height:60px;width:60px;border-radius:100%;border:1px solid #f0b68c;display:grid;place-items:center;box-shadow:inset 0 0 0 11px #ffffff07}
 .strike .orb:after{content:"";width:10px;height:10px;border-radius:50%;background:currentColor}
 .strike strong{font-size:12px;letter-spacing:.11em;font-weight:760}.strike small{font-size:9px;letter-spacing:.06em;opacity:.75}
-.rest{height:24%;min-height:75px;border:1px solid var(--rule);border-radius:12px;background:#241c17;color:#d8c3b3;font-size:11px;letter-spacing:.11em;font-weight:700;touch-action:none}
+.rest{height:19%;min-height:44px;border:1px solid var(--rule);border-radius:12px;background:#241c17;color:#d8c3b3;font-size:11px;letter-spacing:.11em;font-weight:700;touch-action:none}
 .rest:active{background:#4f382c}
 .readout{display:flex;justify-content:space-between;gap:8px;align-items:center;color:#cfad96;font-size:10px;letter-spacing:.045em;margin-bottom:10px;min-height:17px;flex:0 0 auto}
 .readout span:last-child{font-variant-numeric:tabular-nums;color:#a99a8d}
@@ -59,7 +68,8 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
 .foot{font-size:9px;color:#947d70;letter-spacing:.02em;text-align:center;line-height:1.2;margin:-1px 0 2px}
 @media(min-width:650px){.shell{padding-left:22px;padding-right:22px}.intro{padding-top:24px;padding-bottom:22px}.instrument{gap:16px;margin-bottom:14px}.pads{gap:16px}.actions{gap:13px}.header{height:68px;flex-basis:68px}.foot{margin-bottom:8px}}
 @media(max-height:670px){.header{height:48px;flex-basis:48px}.intro{padding:8px 0}.intro h1{font-size:30px}.intro p{font-size:10px}.instrument{margin-bottom:5px}.readout{margin-bottom:4px}.actions{flex-basis:46px}.actions button{min-height:44px}.utility{height:41px;flex-basis:41px}.foot{display:none}.strike .orb{height:48px;width:48px}.rest{min-height:55px}}
-@media(max-width:350px){.shell{padding-left:9px;padding-right:9px}.instrument{grid-template-columns:minmax(0,1fr) 102px;gap:6px}.intro h1{font-size:30px}.strike .orb{width:45px;height:45px}.sound button{min-width:40px}.readout{font-size:9px}}
+@media(max-width:350px){.shell{padding-left:9px;padding-right:9px}.instrument{grid-template-columns:minmax(0,1fr) 102px;gap:6px}.intro h1{font-size:30px}.strike .orb{width:45px;height:45px}.sound button{min-width:40px}.readout{font-size:9px}.rhythm-toolbar button{min-width:69px;padding:0 4px;font-size:9px}.rhythm-info b{font-size:9px}.rhythm-info small{font-size:8px}}
+@media(max-height:650px){.rhythm-toolbar{flex-basis:42px;margin-bottom:5px}.rhythm-toolbar button{height:33px}.drum-pad strong{font-size:11px}.drum-pad small{font-size:8px}.instrument{gap:6px}.pads{gap:6px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -77,6 +87,11 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
       <button id="edge" aria-pressed="false">EDGE</button>
     </div>
   </section>
+  <section class="rhythm-toolbar" aria-label="Rhythm partner controls">
+    <div class="rhythm-info"><b>RHYTHM PARTNER</b><small id="bpmReadout">~100 BPM · YOUR TAPS LEAD</small></div>
+    <button id="drumMode" type="button" aria-label="Auto drums: off" aria-pressed="false">○ DRUMS OFF</button>
+    <button id="pocket" type="button" aria-label="Replay timing correction: raw" title="Changes replay timing only; your original capture remains untouched">POCKET / RAW</button>
+  </section>
   <section class="instrument" aria-label="Playable surface">
     <div class="pitch" id="pitch" role="application" aria-label="Touch and drag here to shape pitch vertically and tone horizontally.">
       <span class="cap top">↑ HIGH / BRIGHT</span><canvas id="field"></canvas>
@@ -89,13 +104,13 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
       <span class="cap bottom">↓ LOW</span><span class="cap right">SOFT ← → EDGE</span>
     </div>
     <div class="pads">
-      <button class="strike" id="strike" aria-label="Strike a rhythmic note at the current pitch">
-        <span class="orb"></span><strong>STRIKE</strong><small>TAP YOUR BEAT</small>
-      </button>
-      <button class="rest" id="rest" aria-label="Cut off the current sound">■ REST / CUT</button>
+      <button class="drum-pad kick" id="kick" aria-label="Play kick drum. Tap higher for a stronger hit"><strong>KICK</strong><small>LOW</small></button>
+      <button class="drum-pad snare" id="snare" aria-label="Play snare drum. Tap higher for a stronger hit"><strong>SNARE</strong><small>SNAP</small></button>
+      <button class="drum-pad hat" id="hat" aria-label="Play hi-hat. Tap higher for a stronger hit"><strong>HAT</strong><small>TIME</small></button>
+      <button class="rest" id="rest" aria-label="Cut off the current melody sound">■ CUT</button>
     </div>
   </section>
-  <div class="readout"><span id="hint">START BY TOUCHING THE LEFT SURFACE</span><span id="clock">00.0s</span></div>
+  <div class="readout"><span id="hint">TOUCH MELODY · TAP KICK / SNARE / HAT</span><span id="clock">00.0s</span></div>
   <nav class="actions" aria-label="Record and replay controls">
     <button class="record" id="record">● CAPTURE</button>
     <button class="play" id="play" disabled>▶ REPLAY</button>
@@ -108,14 +123,16 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
   </div>
   <div class="foot">HEADPHONES RECOMMENDED FOR DEEP BASS · PRIVATE / ON DEVICE</div>
 </main>
+<script src="/instrument/rhythm-v2.js"></script>
 <script>
 (function(){
 'use strict';
 var $=function(id){return document.getElementById(id)};
-var field=$('field'), canvas=$('field'), pad=$('pitch'), strike=$('strike');
+var field=$('field'), canvas=$('field'), pad=$('pitch');
 var ctx=null, graph=null, active=null, nodes=[], pressed=null, restPressed=false, restPointer=null, rec=false, recAt=0, events=[], phrase=null, timer=null, playing=false, ghostOn=false, sound='warm', pitch=0.46, brightness=0.48, drawing=[], touched=false;
 var playingTouchIds=new Set(), drawPending=false;
 var MAX=20, STORE='offbeat.form.instrument.v1', dpr=1, WIDTH=1, HEIGHT=1, frame=0;
+var rhythm=window.OffbeatRhythm, drumMode='off', pocketMode='raw', bpm=100, tapTimes=[], recentDrums=[], drumTimer=null, drumNext=0, drumStep=0, recAudioAt=0, playbackBus=null;
 function clamp(x,a,b){return Math.min(b,Math.max(a,x))}
 function freq(p){return 98*Math.pow(2,1.66*p)}
 function status(s){$('status').textContent=s}
@@ -219,19 +236,89 @@ function noteStart(){
   nodes.push(active)
 }
 function noteEnd(){if(active){endVoice(active,nowTime());active=null}}
-function tapBeat(){
-  if(!$('audioGate').hidden||restPressed||!beginAudio())return;
-  var v=voice(ctx,graph,nowTime()+.001,pitch,brightness,'hit');nodes.push(v);
-  strike.classList.add('flash');setTimeout(function(){strike.classList.remove('flash')},100);
-  log('hit',pitch,brightness);
-  hint('STRIKE / YOUR RHYTHM');
+function drumHit(kind,element,e){
+  if(!$('audioGate').hidden||!beginAudio()||ctx.state!=='running')return;
+  var rect=element.getBoundingClientRect();
+  var vel=clamp(.96-(e.clientY-rect.top)/Math.max(1,rect.height)*.47,.49,.96);
+  var when=nowTime()+.002;
+  rhythm.drum(ctx,graph,kind,when,vel);
+  element.classList.add('flash');
+  setTimeout(function(){element.classList.remove('flash')},105);
+  recentDrums.push({kind:kind,t:when});recentDrums=recentDrums.filter(function(x){return when-x.t<.3});
+  tapTimes.push(performance.now()/1000);tapTimes=tapTimes.filter(function(t){return performance.now()/1000-t<6}).slice(-18);
+  var estimate=rhythm.estimateTempo(tapTimes,bpm);
+  if(estimate.confidence!=='waiting'&&estimate.confidence!=='low')bpm=estimate.bpm;
+  $('bpmReadout').textContent=(estimate.confidence==='steady'?'≈':'~')+bpm+' BPM · '+(estimate.confidence==='waiting'?'KEEP TAPPING':estimate.confidence==='steady'?'PULSE FOUND':'FINDING PULSE');
+  log('drum',pitch,brightness,{kind:kind,velocity:vel});
+  hint(kind.toUpperCase()+' / '+(drumMode==='off'?'YOUR TIMING':'DRUMMER LISTENING'));
 }
-function log(type,p,b){
+function stopDrummer(){
+  if(drumTimer!==null){clearInterval(drumTimer);drumTimer=null}
+  drumNext=0;drumStep=0;
+}
+function updateDrummerUI(){
+  var b=$('drumMode');
+  b.dataset.mode=drumMode;
+  b.textContent=drumMode==='off'?'○ DRUMS OFF':drumMode==='follow'?'◉ FOLLOW':'✦ FILL';
+  b.setAttribute('aria-label','Auto drums: '+drumMode);
+  b.setAttribute('aria-pressed',String(drumMode!=='off'));
+}
+function backingStep(step,when){
+  var eighth=step%8,fill=drumMode==='fill';
+  // Exactly one deterministic drum role per generated event, independently of the player's hits.
+  var plans=[
+    {kind:'hat',yes:fill||eighth%2===0,v:fill?.29:.24},
+    {kind:'kick',yes:eighth===0||eighth===4||(fill&&eighth===7&&step%16===15),v:fill?.62:.45},
+    {kind:'snare',yes:eighth===2||eighth===6,v:fill?.58:.42}
+  ];
+  plans.forEach(function(p){
+    if(!p.yes)return;
+    // Give human hits priority when recent timing is close enough to know about.
+    if(recentDrums.some(function(h){return h.kind===p.kind&&Math.abs(h.t-when)<.10}))return;
+    rhythm.drum(ctx,graph,p.kind,when,p.v);
+    if(rec){
+      var offset=when-recAudioAt;
+      if(offset>=0&&offset<MAX)events.push({t:+offset.toFixed(3),type:'drum',kind:p.kind,velocity:p.v,generated:true,p:pitch,b:brightness})
+    }
+  });
+}
+function tickDrummer(){
+  if(drumMode==='off'||!ctx||ctx.state!=='running')return;
+  var now=nowTime();
+  if(drumNext<now-.15)drumNext=now+.026;
+  for(var i=0;drumNext<now+.07&&i<3;i++){
+    backingStep(drumStep,drumNext);
+    drumStep++;
+    drumNext+=60/bpm/2;
+  }
+}
+function cycleDrummer(){
+  if(!$('audioGate').hidden){status('Enable sound first to hear drums');return}
+  if(!beginAudio())return;
+  drumMode=drumMode==='off'?'follow':drumMode==='follow'?'fill':'off';
+  stopDrummer();
+  if(drumMode!=='off'){
+    drumNext=nowTime()+.045;
+    drumTimer=setInterval(tickDrummer,25);tickDrummer();
+  }
+  updateDrummerUI();
+  status(drumMode==='off'?'Drummer off · Only your taps':'Drummer '+drumMode+' · Tap the pads to shape its pulse');
+}
+$('drumMode').addEventListener('click',cycleDrummer);
+$('pocket').addEventListener('click',function(){
+  pocketMode=pocketMode==='raw'?'soft':pocketMode==='soft'?'tight':'raw';
+  $('pocket').textContent='POCKET / '+pocketMode.toUpperCase();
+  $('pocket').setAttribute('aria-label','Replay timing correction: '+pocketMode);
+  status(pocketMode==='raw'?'Original timing · Nothing corrected':'Only recorded drum hits are gently aligned on REPLAY / WAV');
+});
+function log(type,p,b,extra){
   if(!rec)return;
   var t=clamp((performance.now()-recAt)/1000,0,MAX);
   var last=events[events.length-1];
   if(type==='move'&&last&&last.type==='move'&&t-last.t<.035)return;
-  events.push({t:+t.toFixed(3),type:type,p:+p.toFixed(4),b:+b.toFixed(4)});
+  var item={t:+t.toFixed(3),type:type,p:+p.toFixed(4),b:+b.toFixed(4)};
+  if(extra){item.kind=extra.kind;item.velocity=+extra.velocity.toFixed(3)}
+  events.push(item);
   if(t>=MAX)finish()
 }
 function geometry(e){
@@ -269,7 +356,7 @@ function onPitchUp(e){
  // Cancel ONLY touch gestures that originate on performance controls; preserve page
  // accessibility outside the instrument, plus normal clicks on the audio unlock gate.
  function isPlayControl(target){
-   return !!(target&&target.closest&&target.closest('#pitch, #strike, #rest')&&!target.closest('#audioGate'));
+   return !!(target&&target.closest&&target.closest('#pitch, .drum-pad, #rest')&&!target.closest('#audioGate'));
  }
  document.addEventListener('touchstart',function(e){
    if(!isPlayControl(e.target))return;
@@ -300,7 +387,10 @@ pad.addEventListener('pointermove',onPitchMove);
 pad.addEventListener('pointerup',onPitchUp);
 pad.addEventListener('pointercancel',onPitchUp);
 pad.addEventListener('lostpointercapture',onPitchUp);
-strike.addEventListener('pointerdown',function(e){e.preventDefault();tapBeat()});
+['kick','snare','hat'].forEach(function(kind){
+  var el=$(kind);
+  el.addEventListener('pointerdown',function(e){e.preventDefault();drumHit(kind,el,e)});
+});
 $('rest').addEventListener('pointerdown',function(e){
   if(restPointer!==null)return;
   e.preventDefault();restPointer=e.pointerId;restPressed=true;
@@ -317,7 +407,7 @@ $('rest').addEventListener('pointercancel',releaseRest);
 $('rest').addEventListener('lostpointercapture',releaseRest);
 function startCapture(){
   if(playing)stopPlayback();
-  events=[];rec=true;recAt=performance.now();drawing=[];draw();
+  events=[];rec=true;recAt=performance.now();recAudioAt=nowTime();drawing=[];draw();
   $('record').textContent='■ FINISH';$('record').classList.add('active');$('play').disabled=true;$('wav').disabled=true;$('keep').disabled=true;
   hint('RECORDING / PLAY YOUR RIFF');status('Recording up to 20 seconds — all timing stays yours');
   if(pressed!==null)log('down',pitch,brightness);
@@ -330,9 +420,9 @@ function finish(){
   clearInterval(timer);timer=null;
   $('record').textContent='● CAPTURE';$('record').classList.remove('active');
   var length=clamp((performance.now()-recAt)/1000,.1,MAX);
-  var hasNotes=events.some(function(x){return x.type==='down'||x.type==='hit'});
+  var hasNotes=events.some(function(x){return x.type==='down'||(x.type==='drum'&&!x.generated)||x.type==='hit'});
   if(!hasNotes){status('Nothing captured — play a note and try again');updateControls();return}
-  phrase={version:1,duration:+length.toFixed(3),events:events.slice(),sound:sound};
+  phrase={version:2,duration:+length.toFixed(3),events:events.slice().sort(function(a,b){return a.t-b.t}),sound:sound,bpm:bpm,anchor:events.find(function(e){return e.type==='drum'&&!e.generated})?.t||0,drummer:drumMode};
   drawing=[];ghostOn=true;draw();updateControls();clock(phrase.duration);
   hint('CAPTURED / YOUR MUSICAL SHAPE');status('Captured your exact gestures and timing · Tap REPLAY')
 }
@@ -346,7 +436,8 @@ function updateControls(){
 }
 function schedule(seq,c,dest,at){
   var running=null, list=[];
-  seq.events.forEach(function(e){
+  var timeline=rhythm.kitEvents(seq.events,Number(seq.anchor)||0,Number(seq.bpm)||100,pocketMode).slice().sort(function(a,b){return a.t-b.t});
+  timeline.forEach(function(e){
     var t=at+e.t;
     if(e.type==='down'){
       if(running)endVoice(running,t);
@@ -354,13 +445,16 @@ function schedule(seq,c,dest,at){
     }else if(e.type==='move'&&running){moveVoice(running,t,e.p,e.b)}
     else if(e.type==='up'||e.type==='rest'){if(running){endVoice(running,t);running=null}}
     else if(e.type==='hit'){list.push(voice(c,dest,t,e.p,e.b,'hit',seq.sound))}
+    else if(e.type==='drum'){rhythm.drum(c,dest,e.kind,t,e.velocity)}
   });
   if(running)endVoice(running,at+seq.duration);
   return list;
 }
 function stopPlayback(){
   if(!playing)return;
-  playing=false;nodes.forEach(function(v){try{var t=nowTime()+.006;v.g.gain.cancelScheduledValues(t);v.g.gain.setValueAtTime(0,t);v.o.stop(t);v.u.stop(t)}catch(e){}});nodes=[];
+  playing=false;
+  if(playbackBus){var t0=nowTime();playbackBus.gain.cancelScheduledValues(t0);playbackBus.gain.setValueAtTime(0,t0);playbackBus=null}
+  nodes.forEach(function(v){try{var t=nowTime()+.006;v.g.gain.cancelScheduledValues(t);v.g.gain.setValueAtTime(0,t);v.o.stop(t);v.u.stop(t)}catch(e){}});nodes=[];
   $('play').textContent='▶ REPLAY';status('Playback stopped')
 }
 $('play').addEventListener('click',function(){
@@ -368,13 +462,15 @@ $('play').addEventListener('click',function(){
   if(!phrase)return;
   if(!$('audioGate').hidden){status('Tap ENABLE SOUND before replay');return}
   if(!beginAudio())return;
+  stopDrummer();drumMode='off';updateDrummerUI();
   noteEnd();playing=true;var seq=phrase, start=nowTime()+.075;
-  nodes=schedule(seq,ctx,graph,start);
+  playbackBus=ctx.createGain();playbackBus.connect(graph);
+  nodes=schedule(seq,ctx,playbackBus,start);
   $('play').textContent='■ STOP';status('Playing your captured riff · Unquantized');
   clearInterval(timer);timer=setInterval(function(){
     if(!playing){clearInterval(timer);timer=null;return}
     var t=nowTime()-start;clock(Math.min(seq.duration,t));
-    if(t>=seq.duration+.2){playing=false;clearInterval(timer);timer=null;$('play').textContent='▶ REPLAY';status('Replay complete · Try tracing its ghost')}
+    if(t>=seq.duration+.2){playing=false;clearInterval(timer);timer=null;playbackBus=null;$('play').textContent='▶ REPLAY';status('Replay complete · Try tracing its ghost')}
   },40)
 });
 $('ghost').addEventListener('click',function(){ghostOn=!ghostOn;updateControls();draw();status(ghostOn?'Ghost shows your last gesture path':'Ghost hidden — play freely')});
@@ -453,11 +549,11 @@ function draw(){
 }
 if(typeof ResizeObserver!=='undefined'){new ResizeObserver(resize).observe(canvas)}
 else window.addEventListener('resize',resize);
-window.addEventListener('blur',function(){noteEnd();restPressed=false;restPointer=null;pressed=null;playingTouchIds.clear();document.body.classList.remove('is-playing');pad.classList.remove('is-down');if(rec)finish();if(playing)stopPlayback()});
-document.addEventListener('visibilitychange',function(){if(document.hidden){noteEnd();if(rec)finish();if(playing)stopPlayback()}});
+window.addEventListener('blur',function(){stopDrummer();drumMode='off';updateDrummerUI();noteEnd();restPressed=false;restPointer=null;pressed=null;playingTouchIds.clear();document.body.classList.remove('is-playing');pad.classList.remove('is-down');if(rec)finish();if(playing)stopPlayback()});
+document.addEventListener('visibilitychange',function(){if(document.hidden){stopDrummer();drumMode='off';updateDrummerUI();noteEnd();if(rec)finish();if(playing)stopPlayback()}});
 try{
   var saved=JSON.parse(localStorage.getItem(STORE)||'null');
-  if(saved&&saved.version===1&&saved.duration>0&&saved.duration<=MAX&&Array.isArray(saved.events)&&saved.events.length<2500&&saved.events.every(function(e){return typeof e.t==='number'&&e.t>=0&&e.t<=MAX&&['down','move','up','rest','hit'].includes(e.type)&&e.p>=0&&e.p<=1&&e.b>=0&&e.b<=1})){
+  if(saved&&(saved.version===1||saved.version===2)&&saved.duration>0&&saved.duration<=MAX&&Array.isArray(saved.events)&&saved.events.length<2500&&saved.events.every(function(e){return typeof e.t==='number'&&e.t>=0&&e.t<=MAX&&['down','move','up','rest','hit','drum'].includes(e.type)&&(e.type!=='drum'||(['kick','snare','hat'].includes(e.kind)&&Number.isFinite(e.velocity)&&e.velocity>=0&&e.velocity<=1))&&e.p>=0&&e.p<=1&&e.b>=0&&e.b<=1})){
     phrase=saved;ghostOn=true;updateControls();hint('YOUR KEPT PHRASE / READY TO REPLAY');status('Your saved riff is here — tap REPLAY');clock(saved.duration)
   }
 }catch(e){}
