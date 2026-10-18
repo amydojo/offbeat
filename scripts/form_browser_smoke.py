@@ -22,6 +22,8 @@ with sync_playwright() as p:
     assert page.locator("#hat").count() == 1
     assert page.evaluate("typeof window.OffbeatBass==='object'")
     assert page.evaluate("typeof window.OffbeatRhythm==='object'")
+    assert page.evaluate("typeof window.OffbeatPluck==='object'")
+    assert page.evaluate("Object.keys(window.OffbeatBassSamples).length>=4")
 
     # Render the actual bass synthesizer offline: no speakers or hardware needed.
     stats = page.evaluate("""async () => {
@@ -44,24 +46,45 @@ with sync_playwright() as p:
     assert stats["nonzero"] > 8000, f"Too short/silent: {stats}"
     assert stats["peak"] < 1, f"Clipping bass render: {stats}"
 
+    # A string is an impulse-and-decay voice, not an endlessly sustained oscillator.
+    plucked = page.evaluate("""async () => {
+      const c = new OfflineAudioContext(1, 44100, 44100);
+      const ready = await window.OffbeatPluck.preload(c);
+      const m = c.createGain();m.gain.value=.72;m.connect(c.destination);
+      const v=window.OffbeatPluck.play(c,m,.012,.43,.52,'warm');
+      const buf=await c.startRendering(),a=buf.getChannelData(0);
+      let peak=0,sum=0,early=0,late=0,nonzero=0;
+      for(let i=0;i<a.length;i++){
+        const x=Math.abs(a[i]);peak=Math.max(peak,x);sum+=x*x;
+        if(i>=.04*44100&&i<.14*44100)early+=x*x;
+        if(i>=.6*44100&&i<.72*44100)late+=x*x;
+        if(x>.00005)nonzero++;
+      }
+      return {ready,peak,rms:Math.sqrt(sum/a.length),early,late,nonzero};
+    }""")
+    assert plucked["rms"] > 0.008, f"Pluck voice too quiet: {plucked}"
+    assert plucked["peak"] < 1, f"Pluck voice clips: {plucked}"
+    assert plucked["nonzero"] > 6500, f"Pluck voice silent/short: {plucked}"
+    assert plucked["early"] > plucked["late"] * 2, f"No pluck decay: {plucked}"
     # Audio gate intentionally covers the instrument until explicitly unlocked.
     page.locator("#unlock").click()
     page.wait_for_function("document.querySelector('#audioGate').hidden", timeout=10000)
 
-    # Confirm RIFF and GLIDE can be switched without scrolling or navigating.
+    # Confirm PLUCK and optional GLIDE can be switched without scrolling or navigating.
     page.locator("#bassMode").click()
     assert page.locator("#bassMode").inner_text().strip().endswith("GLIDE")
     page.locator("#bassMode").click()
-    assert page.locator("#bassMode").inner_text().strip().endswith("RIFF")
+    assert page.locator("#bassMode").inner_text().strip().endswith("PLUCK")
     assert page.evaluate("document.scrollingElement.scrollHeight <= innerHeight + 6"), "Page scrolls when instrument should be locked"
     page.locator("#record").click()
-    page.touchscreen.tap(100, 300)
-    page.touchscreen.tap(300, 330)
+    page.touchscreen.tap(100, 340)
+    page.touchscreen.tap(100, 490)
+    page.touchscreen.tap(320, 370)
     page.locator("#record").click()
     assert page.locator("#play").is_enabled(), "Capture did not enable replay"
     page.locator("#play").click()
     assert page.locator("#play").inner_text().strip().endswith("STOP")
     page.locator("#play").click()
     assert not errors, f"JS errors: {errors}"
-    print("FORM browser audio + mobile controls PASS", stats)
+    print("FORM plucked-string audio + mobile controls PASS", stats, plucked)
     browser.close()
