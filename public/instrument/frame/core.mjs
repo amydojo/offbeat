@@ -45,6 +45,24 @@ export function update(frame,id,patch){
     })};
  return next;
 }
+// A sculpting gesture exerts local influence instead of moving an isolated dot.
+// Closest neighbors gently follow; authored note IDs, time positions and rests
+// remain intact. Same movement + same source frame => same musical arrangement.
+export function deformFrame(frame,id,height){
+ if(!validate(frame))throw Error('Invalid musical frame');
+ const center=frame.notes.find(n=>n.id===id);
+ if(!center)throw Error('Unknown gesture');
+ const target=round(clamp(height,0,1)),delta=target-center.height;
+ const next=frame.notes.map(n=>{
+   if(n.id===id)return {...n,height:target};
+   if(n.rest)return n;
+   const distance=Math.abs(n.beat-center.beat);
+   const weight=.34*Math.exp(-Math.pow(distance/1.12,2));
+   if(weight<.018)return n;
+   return {...n,height:round(clamp(n.height+delta*weight,0,1))};
+ });
+ return {...frame,revision:frame.revision+1,parentRevision:frame.revision,notes:next};
+}
 export function setConstraint(frame,key,value){
  if(!['pulse','harmony','feel'].includes(key))throw new Error('Unknown relationship');
  return {...frame,revision:frame.revision+1,parentRevision:frame.revision,
