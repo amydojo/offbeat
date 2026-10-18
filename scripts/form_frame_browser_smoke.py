@@ -13,7 +13,7 @@ with sync_playwright() as p:
     resp=page.goto(URL,wait_until="networkidle")
     assert resp.status==200,f"FORM 007 route not found: {resp.status}"
     page.wait_for_function("document.querySelector('#shape .bass-line')!==null")
-    assert "FORM 007" in page.title()
+    assert "FORM 008" in page.title()
     assert page.locator("#transport").is_enabled()
     assert page.locator("#original").is_disabled()
     assert page.locator("#compareOriginal").is_disabled()
@@ -49,9 +49,16 @@ with sync_playwright() as p:
     assert baseline["originalHarmony"]!=baseline["changedHarmony"],baseline
     assert baseline["originalDrums"]==baseline["changedDrums"],baseline
     page.locator("#higher").click()
+    assert page.locator("#changeStrip").is_visible()
+    assert "BASS" in page.locator("#bassChange").inner_text()
+    assert "HARMONY" in page.locator("#harmonyChange").inner_text()
+    assert page.locator("#nextVersion").is_visible(),"New version should say it is queued"
+    assert "ORIGINAL" in page.locator("#hearing").inner_text(),"The UI must not claim a change is already playing"
     altered=page.locator("#shape .bass-line").first.get_attribute("d")
     assert initial!=altered,"Moving a note did not alter the contour"
     assert page.locator("#compareOriginal").is_enabled()
+    page.wait_for_function("document.querySelector('#hearing').textContent.includes('YOUR VERSION')",timeout=8500)
+    assert not page.locator("#nextVersion").is_visible()
     page.locator("#compareOriginal").click()
     assert page.locator("#shape .bass-line").first.get_attribute("d")==initial
     page.locator("#compareYours").click()
@@ -65,8 +72,11 @@ with sync_playwright() as p:
     page.mouse.move(x,y)
     page.mouse.down()
     page.mouse.move(x,y+22,steps=6)
+    assert page.locator("#shape").get_attribute("class").find("is-sculpting")>=0
+    assert "BASS" in page.locator("#bassChange").inner_text()
     page.mouse.up()
     assert page.locator("#undo").is_enabled()
+    assert "is-sculpting" not in (page.locator("#shape").get_attribute("class") or "")
 
     # Empty space and active constraint controls should materially affect state.
     page.locator("#space").click()
