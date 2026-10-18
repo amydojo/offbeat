@@ -19,7 +19,7 @@ export function starter(){
  return {schema:SCHEMA,frameId:'a-little-offbeat-01',revision:0,parentRevision:null,seed:17,
   name:'A LITTLE OFFBEAT',bpm:96,bars:2,beats:BEATS,
   harmonyMode:'guided',constraints:{pulse:true,harmony:true,feel:true},
-  notes:seedBeat.map(n=>note(...n))};
+  notes:seedBeat.map((n,i)=>({...note(...n),delay:[0,-.022,.033,-.015,.021,-.03,.028,-.018][i]}))};
 }
 export function validate(frame){
  return !!(frame&&frame.schema===SCHEMA&&frame.bpm>=48&&frame.bpm<=200&&frame.beats===8&&
@@ -94,10 +94,18 @@ export function compileFrame(frame){
    drums.push({id:'drum:'+kind+':'+round(beat),kind,beat:round(beat),time:round(dur(beat,bpm)),
       velocity:round(velocity),origin:'generated',derivedFromIds:parent?[parent]:[],reason:why});
  };
- // Preserve essential meter; bouncy syncopation and small phrase-dependent echoes.
- [0,2.5,4,6.5].forEach((b,i)=>add('kick',b,i===0?.68:.46,'pulse'));
- [1,3,5,7].forEach(b=>add('snare',b,.38,'pulse'));
- for(let b=.5;b<8;b+=.5)add('hat',b,b%1===0?.14:.23,'pulse');
+ // Locked pulse preserves the recurring backbeat. Unlocked pulse can instead
+ // follow the authored bass onsets (still inside the two-bar frame).
+ if(frame.constraints.pulse){
+   [0,2.5,4,6.5].forEach((b,i)=>add('kick',b,i===0?.68:.46,'pulse'));
+   [1,3,5,7].forEach(b=>add('snare',b,.38,'pulse'));
+   for(let b=.5;b<8;b+=.5)add('hat',b,b%1===0?.14:.23,'pulse');
+ }else{
+   const active=ordered.filter(n=>!n.rest);
+   active.filter((n,i)=>i%2===0).forEach((n,i)=>add('kick',n.beat,i===0?.62:.43,'authored_pulse',n.id));
+   active.filter((n,i)=>i%2===1).forEach(n=>add('snare',n.beat,.36,'authored_pulse',n.id));
+   active.forEach(n=>add('hat',n.beat+.24,.19,'authored_pulse',n.id));
+ }
  for(let i=0;i<ordered.length;i++){
    const n=ordered[i];if(n.rest)continue;
    if(n.beat%1!==0&&n.velocity>.61){
