@@ -36,6 +36,7 @@ inspect.innerHTML=
 '<div class="bmi-report"><div class="bmi-finding"><span class="bmi-overline">REPEATED GESTURE</span><strong id="bmiFinding">Reading your pattern…</strong><p id="bmiExplain"></p></div><div class="bmi-stats"><div><small>REPEAT SIMILARITY</small><strong id="bmiRepeat">—</strong></div><div><small>ACTIVE BASS HITS</small><strong id="bmiHits">—</strong></div><div><small>STRONGEST ANCHOR</small><strong id="bmiAnchor">—</strong></div></div></div>'+
 '<p class="bmi-proof">The scan compares repeated four-step gestures in this sequencer. It is not detecting pitch or motifs directly from your full original recordings—yet.</p>';
 if(wrap)wrap.insertAdjacentElement('afterend',inspect);
+const actions=document.createElement('div');actions.className='bmi-actions';actions.innerHTML='<button id="bmiCreate">TRY A MUSICAL VARIATION <span aria-hidden="true">↗</span></button><button id="bmiEdit">EDIT THE 16 STEPS ↓</button>';const proof=inspect.querySelector('.bmi-proof');if(proof)proof.insertAdjacentElement('beforebegin',actions);
 const pane=Array.from(document.querySelectorAll('.pane')).find(n=>n.textContent.includes('DECISION ENGINE'));
 if(!pane)return;
 pane.classList.add('bm-decision-pane');
@@ -52,7 +53,7 @@ if(presetDesc)presetDesc.insertAdjacentHTML('afterend',
 const legacyMutate=el('mutate');
 if(legacyMutate){
  legacyMutate.textContent='✳ TRY A CHANGE';
- legacyMutate.onclick=()=>el('bmSuggest').click();
+ legacyMutate.onclick=()=>{makeProposal();el('bmEngine')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});};
 }
 const fitPattern=p=>ids.every(id=>Array.isArray(p?.[id])) && Object.values(p).every(v=>Array.isArray(v)) &&
  ids.every(id=>p[id].every(x=>Number.isInteger(x)&&x>=0&&x<16));
@@ -203,6 +204,8 @@ function clearProposal(restore=false){
  proposal=null;original=null;candidate=null;el('bmProposal').hidden=true;changed=[];render();showScan();
 }
 el('bmSuggest').onclick=makeProposal;
+el('bmiCreate').onclick=()=>legacyMutate?.click();
+el('bmiEdit').onclick=()=>el('sequence')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});
 el('bmBefore').onclick=()=>setVariant('before');
 el('bmAfter').onclick=()=>setVariant('after');
 el('bmCancel').onclick=()=>{clearProposal(true);setStatus('Discarded the variation. Your original pattern is back.')};
