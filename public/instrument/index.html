@@ -244,7 +244,7 @@ function drumHit(kind,element,e){
   rhythm.drum(ctx,graph,kind,when,vel);
   element.classList.add('flash');
   setTimeout(function(){element.classList.remove('flash')},105);
-  recentDrums.push({kind:kind,t:when});recentDrums=recentDrums.filter(function(x){return when-x.t<.3});
+  recentDrums.push({kind:kind,t:when});recentDrums=recentDrums.filter(function(x){return when-x.t<6});
   tapTimes.push(performance.now()/1000);tapTimes=tapTimes.filter(function(t){return performance.now()/1000-t<6}).slice(-18);
   var estimate=rhythm.estimateTempo(tapTimes,bpm);
   if(estimate.confidence!=='waiting'&&estimate.confidence!=='low')bpm=estimate.bpm;
@@ -265,11 +265,13 @@ function updateDrummerUI(){
 }
 function backingStep(step,when){
   var eighth=step%8,fill=drumMode==='fill';
-  // Exactly one deterministic drum role per generated event, independently of the player's hits.
+  var recent=recentDrums.filter(function(h){return h.t<=when&&when-h.t<2.5});
+  var sparse=recent.length<4,space=recent.length?when-recent[recent.length-1].t:3;
+  // Human density guides fills: busy hands get space, quieter hands get responses.
   var plans=[
-    {kind:'hat',yes:fill||eighth%2===0,v:fill?.29:.24},
-    {kind:'kick',yes:eighth===0||eighth===4||(fill&&eighth===7&&step%16===15),v:fill?.62:.45},
-    {kind:'snare',yes:eighth===2||eighth===6,v:fill?.58:.42}
+    {kind:'hat',yes:eighth%2===0||(fill&&sparse),v:fill?.30:.24},
+    {kind:'kick',yes:eighth===0||eighth===4||(fill&&eighth===7&&space>.65),v:fill?.63:.46},
+    {kind:'snare',yes:eighth===2||eighth===6||(fill&&eighth===7&&space>.8),v:fill?.58:.42}
   ];
   plans.forEach(function(p){
     if(!p.yes)return;
@@ -466,7 +468,7 @@ $('play').addEventListener('click',function(){
   noteEnd();playing=true;var seq=phrase, start=nowTime()+.075;
   playbackBus=ctx.createGain();playbackBus.connect(graph);
   nodes=schedule(seq,ctx,playbackBus,start);
-  $('play').textContent='■ STOP';status('Playing your captured riff · Unquantized');
+  $('play').textContent='■ STOP';status(pocketMode==='raw'?'Playing your original timing':'Playing with '+pocketMode+' drum pocket · Original saved unchanged');
   clearInterval(timer);timer=setInterval(function(){
     if(!playing){clearInterval(timer);timer=null;return}
     var t=nowTime()-start;clock(Math.min(seq.duration,t));
