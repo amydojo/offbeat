@@ -44,9 +44,26 @@ test('pocket does not overwrite the original and nudges only manually played dru
  assert.equal(raw[0].t,.034);
  assert.notEqual(adjusted[0].t,.034);
  assert.equal(adjusted[2].t,.523);
- assert.equal(adjusted[3].t,.42);
- assert.equal(adjusted[4].t,.68);
+ assert.notEqual(adjusted[3].t,.42);
+ assert.equal(adjusted[4].t,.68); // move belongs to no open note in this fixture
  assert.ok(Math.abs(adjusted[1].t-original[1].t)<=.07);
+});
+test('bass gesture timing can be improved while internal pitch bends stay intact',()=>{
+ const events=[
+  {t:.025,type:'down',p:.35,b:.3},
+  {t:.100,type:'move',p:.48,b:.3},
+  {t:.210,type:'move',p:.55,b:.42},
+  {t:.300,type:'up',p:.55,b:.42},
+  {t:.520,type:'down',p:.50,b:.2},
+  {t:.620,type:'up',p:.50,b:.2}
+ ];
+ const before=JSON.stringify(events);
+ const result=rhythm.kitEvents(events,0,100,'tight');
+ assert.equal(JSON.stringify(events),before);
+ assert.ok(Math.abs((result[2].t-result[0].t)-.185)<.002);
+ assert.ok(Math.abs((result[3].t-result[0].t)-.275)<.002);
+ assert.equal(result[0].p,events[0].p);
+ assert.ok(result[3].t<=result[4].t);
 });
 test('standalone FORM page loads rhythm dependency before instrument initialization',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../public/instrument/index.html'),'utf8');
