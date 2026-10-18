@@ -93,6 +93,16 @@ with sync_playwright() as p:
     page.locator("#transport").click()
     assert "START" in page.locator("#transport").inner_text() or "HEAR" in page.locator("#transport").inner_text()
 
+    # A saved musical possibility survives reload, not just the current DOM.
+    page.locator("#more summary").click()
+    page.locator("#keep").click()
+    assert page.locator("#saved button").count() >= 1
+    page.reload(wait_until="networkidle")
+    page.wait_for_function("document.querySelector('#shape .bass-line')!==null")
+    assert page.locator("#saved button").count() >= 1
+    page.locator("#saved button").first.click()
+    assert page.locator("#compareOriginal").is_enabled()
+
     # Tight mobile screen remains editable and readable.
     page.set_viewport_size({"width":320,"height":700})
     page.wait_for_timeout(100)
