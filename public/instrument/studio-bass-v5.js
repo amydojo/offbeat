@@ -58,6 +58,7 @@ function preload(ctx){
   return state.promise;
 }
 function ready(ctx){const s=weak.get(ctx);return !!(s&&s.ready)}
+function decoded(ctx){const s=weak.get(ctx);return s&&s.ready?s.sounds:{}}
 function play(ctx,out,when,p,b,character){
   const state=weak.get(ctx),entry=choose(pickNote(p),state&&state.sounds||{});
   // Never pretend a model is a recording; this is an explicit fallback on failure.
@@ -96,5 +97,5 @@ function kill(v,t){
   });
   v.sources.forEach(s=>{try{s.stop(at+.075)}catch(e){}});
 }
-root.OffbeatStudioBass={preload,ready,play,kill,notes:notes.slice(),choose,analyze};
+root.OffbeatStudioBass={preload,ready,decoded,roots:Object.assign({},roots),play,kill,notes:notes.slice(),choose,analyze};
 })(window);
