@@ -249,9 +249,11 @@ shape.addEventListener('pointerdown',e=>{
  const n=handle?now().notes.find(n=>n.id===target.getAttribute('data-note')):chooseNoteNear(p.x);
  if(!n)return;
  selected=n.id;
- if(viewOriginal)viewOriginal=false;
+ if(viewOriginal){viewOriginal=false;updateUI()}
  drag={id:n.id,kind:handle?'stretch':'pitch',start:p,initial:history.current,origin:n,
    moved:false,pointerId:e.pointerId};
+ shape.classList.add('is-sculpting');
+ document.querySelector('.frame').classList.add('is-touching');
  try{shape.setPointerCapture(e.pointerId)}catch{}
  e.preventDefault();updateUI();
 });
@@ -263,12 +265,23 @@ shape.addEventListener('pointermove',e=>{
  if(!drag.moved)return;
  const next=drag.kind==='stretch'?
    update(drag.initial,drag.id,{duration:clamp(drag.origin.duration+(p.x-drag.start.x)/77,.15,1.45)}):
-   update(drag.initial,drag.id,{height:clamp(drag.origin.height-(p.y-drag.start.y)/165,.02,.98)});
- draft=next;draw();e.preventDefault();
+   deformFrame(drag.initial,drag.id,clamp(drag.origin.height-(p.y-drag.start.y)/165,.02,.98));
+ draft=next;
+ if(drag.kind==='pitch'){
+   const t=performance.now();
+   if(t-lastSculptMove>27){
+     audio.sculpt(next.notes.find(n=>n.id===drag.id).height);
+     lastSculptMove=t;
+   }
+ }
+ draw();showChanges(drag.initial,next,drag.id);e.preventDefault();
 });
 function endDrag(e){
  if(!drag||drag.pointerId!==e.pointerId)return;
  const old=drag;drag=null;
+ audio.releaseSculpt();
+ shape.classList.remove('is-sculpting');
+ document.querySelector('.frame').classList.remove('is-touching');
  try{shape.releasePointerCapture(e.pointerId)}catch{}
  if(old.moved&&draft){
    adjust(draft,old.kind==='stretch'?'You stretched the phrase.':'You changed the whole relationship.',old.id);
@@ -277,7 +290,13 @@ function endDrag(e){
  }
 }
 shape.addEventListener('pointerup',endDrag);
-shape.addEventListener('pointercancel',()=>{drag=null;draft=null;updateUI()});
+shape.addEventListener('pointercancel',()=>{
+ audio.releaseSculpt();drag=null;draft=null;
+ shape.classList.remove('is-sculpting');
+ document.querySelector('.frame').classList.remove('is-touching');
+ $('changeStrip').hidden=!held();
+ updateUI();
+});
 shape.addEventListener('keydown',(event)=>{
  const key=event.key;
  if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter',' '].includes(key))return;
@@ -292,7 +311,7 @@ shape.addEventListener('keydown',(event)=>{
  if(key==='ArrowUp'||key==='ArrowDown'){
    const step=event.shiftKey?0.22:0.13;
    const direction=key==='ArrowUp'?1:-1;
-   const next=update(history.current,selected,{height:current.height+direction*step});
+   const next=deformFrame(history.current,selected,current.height+direction*step);
    adjust(next,'A small move changes the sound.');
    return;
  }
@@ -309,7 +328,7 @@ $('transport').addEventListener('click',async ()=>{
    $('introHelp').textContent='Touch a point, move it, and listen to the relationships shift.';
    $('prompt').textContent=held()?'What happens if you change it again?':'What if this went higher?';
    $('promptDetail').textContent='Move the glowing point. The whole arrangement responds.';
-   $('instruction').textContent='Move a point. The other layers respond.';
+   $('instruction').textContent='Grab the curve anywhere. Pull it; listen while it moves.';
    status('Playing / A little offbeat.');
  }catch(error){status(error.message||'Could not start audio.');}
  finally{busy=false;$('transport').disabled=false;updateTransport()}
@@ -317,7 +336,7 @@ $('transport').addEventListener('click',async ()=>{
 $('higher').addEventListener('click',()=>{
  const n=history.current.notes.find(n=>n.id===selected);
  if(!n)return;
- adjust(update(history.current,selected,{height:clamp(n.height+.27,0,1)}),'Higher. What else could move?');
+ adjust(deformFrame(history.current,selected,clamp(n.height+.27,0,1)),'You pulled the form higher.');
 });
 $('space').addEventListener('click',()=>{
  const n=history.current.notes.find(n=>n.id===selected);
@@ -386,4 +405,4 @@ try{
    saved=history.variants.slice();renderSavedVersions();
  }
 }catch{history.variants=[]}
-updateUI();updateTransport();
+updateUI();updateTransport();updateAudition();
