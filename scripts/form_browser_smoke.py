@@ -92,6 +92,34 @@ with sync_playwright() as p:
     assert sampled["nonzero"] > 9000, f"Recorded note too short: {sampled}"
     assert sampled["early"] > sampled["late"] * 1.5, f"Recorded note did not decay: {sampled}"
 
+    # The actual continuous GLIDE must use recorded audio, smoothly bend its
+    # playback rate, and crossfade between different recorded root notes.
+    gliding = page.evaluate("""async () => {
+      const sr=44100,c=new OfflineAudioContext(1,sr*2,sr);
+      const loaded=await window.OffbeatStudioBass.preload(c);
+      const m=c.createGain();m.gain.value=.7;m.connect(c.destination);
+      const v=window.OffbeatStudioGlide.create(c,m,.02,.18,.40,'warm');
+      window.OffbeatStudioGlide.move(v,.23,.24,.50);
+      window.OffbeatStudioGlide.move(v,.60,.74,.64);
+      window.OffbeatStudioGlide.move(v,.91,.91,.38);
+      window.OffbeatStudioGlide.stop(v,1.28);
+      const buf=await c.startRendering(),a=buf.getChannelData(0);
+      let peak=0,sum=0,main=0,tail=0,nonzero=0;
+      for(let i=0;i<a.length;i++){
+        const val=Math.abs(a[i]);peak=Math.max(peak,val);sum+=val*val;
+        if(i>=sr*.35&&i<sr*.8)main+=val*val;
+        if(i>=sr*1.75&&i<sr*1.95)tail+=val*val;
+        if(val>.00005)nonzero++;
+      }
+      return {loaded,kind:v.kind,rootChanges:v.parts.length,peak,
+        rms:Math.sqrt(sum/a.length),main,tail,nonzero};
+    }""")
+    assert gliding["loaded"] and gliding["kind"] == "sample-glide", gliding
+    assert gliding["rootChanges"] >= 2, f"Glide did not change sampled notes: {gliding}"
+    assert gliding["rms"] > .006 and gliding["nonzero"] > 15000, f"Glide silent: {gliding}"
+    assert gliding["peak"] < .98, f"Glide clips: {gliding}"
+    assert gliding["main"] > gliding["tail"]*5, f"Glide held after release: {gliding}"
+
     # Audio gate intentionally covers the instrument until explicitly unlocked.
     page.locator("#unlock").click()
     page.wait_for_function("document.querySelector('#audioGate').hidden", timeout=10000)
@@ -112,5 +140,5 @@ with sync_playwright() as p:
     assert page.locator("#play").inner_text().strip().endswith("STOP")
     page.locator("#play").click()
     assert not errors, f"JS errors: {errors}"
-    print("FORM real studio bass + mobile controls PASS", stats, plucked, sampled)
+    print("FORM real studio bass + sampled GLIDE PASS", stats, plucked, sampled, gliding)
     browser.close()
