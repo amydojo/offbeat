@@ -66,9 +66,37 @@ document.addEventListener('keydown',e=>{
 });
 $('mobChange').onclick=()=>open('change');$('mobEdit').onclick=()=>open('edit');$('mobSaved').onclick=()=>open('saved');
 $('mobWhy').onclick=()=>open('about');$('mobHelp').onclick=()=>open('about');
+// Safari needs its AudioContext resume inside the physical tap handler.
+// Never relay Play through a hidden element or defer the first engine call.
+let startingAudio=false;
 $('mobPlay').onclick=()=>{
- if(typeof playing!=='undefined'&&playing)$('stop').click();else $('play').click();
- syncTransport();
+ if(startingAudio)return;
+ if(typeof playing!=='undefined'&&playing){stop();syncTransport();return}
+ startingAudio=true;
+ $('mobPlay').disabled=true;
+ $('mobPlayText').textContent='LOADING';
+ $('mobCue').textContent='Opening your bass audio…';
+ void (async()=>{
+  try{
+   await play(); // Call synchronously from the real gesture before the first await.
+   syncTransport();
+   if(typeof playing!=='undefined'&&playing){
+    $('mobCue').textContent='Groove playing · tap a note to hear it';
+   }else{
+    const feedback=$('status')?.textContent||'Audio could not start.';
+    $('mobCue').textContent=feedback;
+    showSoundHelp(feedback);
+   }
+  }catch(error){
+   const message='Audio could not start: '+(error?.message||'unknown error');
+   $('mobCue').textContent=message;
+   showSoundHelp(message);
+  }finally{
+   startingAudio=false;
+   $('mobPlay').disabled=false;
+   syncTransport();
+  }
+ })();
 };
 $('mobKeep').onclick=()=>{
  const save=$('bmSave'),input=$('bmIdeaName');
@@ -76,6 +104,26 @@ $('mobKeep').onclick=()=>{
  input.value='Memory · '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
  save.click();const msg=$('status')?.textContent||'';notify(msg.startsWith('Saved ')?'Saved to your Idea Vault':'Could not save here. Export a WAV instead.');
 };
+// An independent user-gesture native audio fallback; never masquerade as a working sequencer.
+let soundHelp=null;
+function showSoundHelp(message){
+ if(!soundHelp){
+  soundHelp=document.createElement('div');
+  soundHelp.className='mob-audio-help';
+  soundHelp.innerHTML='<span class="mob-audio-help-copy"></span><button type="button" class="mob-audio-check">HEAR ORIGINAL BASS ▶</button>';
+  const host=document.querySelector('.mob-stage');
+  host?.appendChild(soundHelp);
+  soundHelp.querySelector('button').addEventListener('click',()=>{
+    const element=$('bmSource');
+    if(!element){soundHelp.querySelector('span').textContent='Original audio unavailable.';return}
+    element.currentTime=0;
+    const result=element.play(); // Trusted tap invokes iOS native media.
+    if(result?.catch)result.catch(error=>soundHelp.querySelector('span').textContent='iPhone blocked native playback: '+error.message);
+  });
+ }
+ soundHelp.querySelector('span').textContent=message;
+ soundHelp.hidden=false;
+}
 const kind=$('bmAction');const intentButtons=page('change').querySelectorAll('[data-intent]');
 function syncIntents(){intentButtons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.intent===kind?.value)))}
 intentButtons.forEach(b=>b.onclick=()=>{if(kind){kind.value=b.dataset.intent;kind.dispatchEvent(new Event('change',{bubbles:true}))}syncIntents()});
@@ -85,6 +133,17 @@ function preventLegacyScroll(id,name){
 }
 preventLegacyScroll('bmiCreate','change');preventLegacyScroll('bmiEdit','edit');preventLegacyScroll('mutate','change');
 $('mobMode').onchange=e=>{document.querySelector('.bm-modes [data-vis="'+e.target.value+'"]')?.click()};
+const hiddenStatus=$('status');
+if(hiddenStatus){
+ const observer=new MutationObserver(()=>{
+   const message=hiddenStatus.textContent||'';
+   if(/blocked|unavailable|could not|failed|error|decode/i.test(message)){
+     $('mobCue').textContent=message;
+     showSoundHelp(message);
+   }
+ });
+ observer.observe(hiddenStatus,{childList:true,characterData:true,subtree:true});
+}
 function syncTransport(){
  const on=typeof playing!=='undefined'&&!!playing;
  if(on!==lastPlaying){lastPlaying=on;$('mobPlayText').textContent=on?'STOP':'PLAY';$('mobPlayGlyph').textContent=on?'■':'▶';$('mobPlay').setAttribute('aria-label',on?'Stop loop':'Play loop');$('mobPlay').setAttribute('aria-pressed',String(on))}
