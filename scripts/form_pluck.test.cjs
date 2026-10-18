@@ -62,6 +62,6 @@ test('FORM UI contains discrete strings and retains historical replay support',(
  assert.match(html,/id="kick"/);assert.match(html,/id="snare"/);assert.match(html,/id="hat"/);
  assert.match(html,/e\.type==='pluck'/);
  assert.match(html,/version:4/);
- assert.match(html,/\[1,2,3,4\]\.includes\(saved\.version\)/);
+ assert.match(html,/\[1,2,3,4,5\]\.includes\(saved\.version\)/);
  assert.match(html,/pluckEngine\.play/);
 });
