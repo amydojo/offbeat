@@ -23,8 +23,8 @@ test('eight touch notes choose nearest recorded bass source, with bounded playba
 test('v5 wiring retains earlier FORM recording versions and sampled export',()=>{
  const html=fs.readFileSync(path.join(base,'index.html'),'utf8');
  assert.ok(html.indexOf('studio-bass-samples-v5.js')<html.indexOf('studio-bass-v5.js'));
- assert.match(html,/instrument:'studio-v5'/);
- assert.match(html,/\[1,2,3,4,5\]\.includes\(saved\.version\)/);
+ assert.match(html,/instrument:'studio-v6'/);
+ assert.match(html,/\[1,2,3,4,5,6\]\.includes\(saved\.version\)/);
  assert.match(html,/studioBass\.preload\(c\)/);
  assert.match(html,/studioBass\.play\(ctx/);
  assert.match(html,/id="kick"/);assert.match(html,/id="snare"/);
