@@ -124,7 +124,11 @@ export class FrameAudio{
  }
  async resume(render){
    if(this.running){this.stop();return false}
-   if(this.mix) this.mix.master.gain.value=.82;
+   if(this.mix&&this.ctx){
+     const t=this.ctx.currentTime;
+     this.mix.master.gain.cancelScheduledValues(t);
+     this.mix.master.gain.setValueAtTime(.82,t);
+   }
    await this.start(render);return true;
  }
  async exportWav(render){
