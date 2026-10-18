@@ -102,3 +102,10 @@ body.modal{overflow:hidden}
  #map{height:250px}
 }
 @media(prefers-reduced-motion:reduce){.scrim{backdrop-filter:none}}
+
+/* Once the source is selected, make the sound map primary. */
+body.loaded .intro{padding:13px 0 7px}
+body.loaded .intro .eyebrow,body.loaded .intro p{display:none}
+body.loaded .intro h1{font-size:clamp(25px,6vw,32px);margin:0;letter-spacing:-.055em}
+body.loaded .intro h1 em{color:#d39a78}
+@media(max-width:420px){body.loaded #map{height:clamp(245px,36vh,325px)}}
