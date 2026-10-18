@@ -1,19 +1,22 @@
-import {starter,update,setConstraint,seedVariation,compileFrame,diffRender,FrameHistory,validate} from './core.mjs';
+import {starter,update,setConstraint,seedVariation,compileFrame,diffRender,deformFrame,FrameHistory,validate} from './core.mjs';
 import {FrameAudio,downloadBlob} from './audio.mjs';
 
 const $=id=>document.getElementById(id);
 const history=new FrameHistory(starter());
 let selected='b4',draft=null,drag=null,viewOriginal=false,heard=false,busy=false,revisionCount=0;
 let playing=false,seed=0,progress=0,latestDiff=[],saved=[];
+let lastBeforeFrame=history.original,lastEditedId='b4',hearing='original';
 const LIMIT=8, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const xx=beat=>42+beat*77;
 const yy=height=>233-height*165;
 const ns='http://www.w3.org/2000/svg';
 const audio=new FrameAudio({
- onState:e=>{playing=e.playing;updateTransport()},
+ onState:e=>{playing=e.playing;updateTransport();if(playing){hearing=(audio.current?.sourceRevision||0)===0?'original':'variation';}else{$('nextVersion').hidden=true}updateAudition()},
  onLoop:(render,count)=>{
    $('frameCap').textContent='A LITTLE OFFBEAT  /  LOOP '+String(count+1).padStart(2,'0');
-   if(revisionCount>0)$('status').textContent='Arrangement updated · Every part has its place.';
+   hearing=render.sourceRevision===0?'original':'variation';
+   $('nextVersion').hidden=true;updateAudition();
+   if(revisionCount>0)status('Now hearing the '+(hearing==='original'?'original':'new variation')+'.');
  },
  onProgress:p=>{
    progress=p;
@@ -26,6 +29,30 @@ const program=()=>compileFrame(viewOriginal?history.original:history.current);
 const base=compileFrame(history.original);
 const pointKey=n=>n.id==='b4';
 function status(s){$('status').textContent=s}
+function updateAudition(){
+ const el=$('hearing');if(!el)return;
+ el.textContent=!playing?'READY / LISTEN TO EXPLORE':'HEARING / '+(hearing==='original'?'ORIGINAL':'YOUR VERSION');
+}
+function showChanges(before,after,id){
+ const a=compileFrame(before),b=compileFrame(after),changed=diffRender(a,b);
+ const oldB=a.bass.find(n=>n.sourceId===id),newB=b.bass.find(n=>n.sourceId===id);
+ const oldH=a.harmony.find(n=>n.sourceId===id),newH=b.harmony.find(n=>n.sourceId===id);
+ const neighbors=changed.filter(n=>n.kind==='bass'&&n.sourceId!==id).length;
+ let bass='BASS · ';
+ if(!newB)bass+='SPACE';
+ else if(!oldB)bass+='RETURNED';
+ else if(newB.frequency===oldB.frequency)bass+=neighbors?'NEIGHBORS MOVED':'PITCH HELD';
+ else {
+   const steps=Math.max(1,Math.round(Math.abs(12*Math.log2(newB.frequency/oldB.frequency))));
+   bass+=(newB.frequency>oldB.frequency?'↑ ':'↓ ')+steps+' STEPS';
+   if(neighbors)bass+=' · ELASTIC';
+ }
+ $('bassChange').textContent=bass;
+ $('harmonyChange').textContent='HARMONY · '+(!newH?'REST':!oldH||newH.frequency!==oldH.frequency?'FOLLOWS':'HOLDS');
+ const drums=x=>x.drums.filter(n=>n.derivedFromIds?.includes(id)).map(n=>n.id).join(',');
+ $('drumChange').textContent=drums(a)!==drums(b)?'DRUMS · NEW ACCENT':'DRUMS · PULSE HELD';
+ $('changeStrip').hidden=false;
+}
 function held(){return history.undoStack.length>0||history.current.revision>0}
 function path(points){
  if(!points.length)return '';
