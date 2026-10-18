@@ -109,3 +109,13 @@ body.loaded .intro .eyebrow,body.loaded .intro p{display:none}
 body.loaded .intro h1{font-size:clamp(25px,6vw,32px);margin:0;letter-spacing:-.055em}
 body.loaded .intro h1 em{color:#d39a78}
 @media(max-width:420px){body.loaded #map{height:clamp(245px,36vh,325px)}}
+
+/* Two-factor analysis, intentionally quiet within the existing listening stage */
+.pitch-study{padding:12px 0 10px;border-top:1px solid #443027;border-bottom:1px solid #443027;margin:9px 0 13px}
+.pitch-study[hidden]{display:none!important}
+.pitch-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pitch-heading span{font-size:9px;color:#ae8d77;font-weight:750;letter-spacing:.13em}
+.pitch-heading strong{font-size:9px;letter-spacing:.09em;color:#d8bd9a;font-weight:700}
+#pitchContours{display:block;width:100%;height:84px;margin:5px 0 0;overflow:visible}
+.pitch-study p{margin:0;font-size:10.5px;line-height:1.45;color:#ac9685}
+@media(max-width:420px){#pitchContours{height:68px;margin-top:1px}.pitch-study{padding:8px 0}}
