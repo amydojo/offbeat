@@ -110,8 +110,10 @@ function compare(a,b){
   const moved=b.rhythm.map((_,i)=>b.rhythm[i-shift]||0);
   rhythmic=Math.max(rhythmic,cosine(a.rhythm,moved));
  }
- const dynamics=clamp(cosine(a.texture,b.texture),0,1);
- const similarity=.78*rhythmic+.22*dynamics;
+ // Center the energy contour. Flat loudness should not create a false match.
+ const aa=a.texture.map(v=>v-1),bb=b.texture.map(v=>v-1);
+ const dynamics=clamp((cosine(aa,bb)+1)/2,0,1);
+ const similarity=.64*rhythmic+.36*dynamics;
  return clamp(similarity*(.78+.22*density),0,1);
 }
 function makeWindows(frames,onsets,{span=4.8,spacing=1.75,maxCandidates=520}={}){
@@ -127,24 +129,31 @@ function makeWindows(frames,onsets,{span=4.8,spacing=1.75,maxCandidates=520}={})
  return windows;
 }
 function discover(windows,{minSeparation=25,maxMatches=12,minSimilarity=.59}={}){
- const candidates=[];
+ const candidates=[],scores=[];
  for(let i=0;i<windows.length;i++){
   const a=windows[i];
   for(let j=i+1;j<windows.length;j++){
    const b=windows[j];
    if(b.start-a.start<minSeparation)continue;
    const score=compare(a,b);
+   if(score>0)scores.push(score);
    if(score>=minSimilarity)candidates.push({a:a.start,b:b.start,score,counts:[a.count,b.count],window:Math.min(a.end-a.start,b.end-b.start)});
   }
  }
+ // Compare a candidate with this recording's own background similarity distribution.
+ // A percentile is a relative rank, never a probability of the same musical idea.
+ const floor=Math.max(minSimilarity,percentile(scores,.97));
+ const sorted=scores.sort((a,b)=>a-b);
+ function rank(value){let lo=0,hi=sorted.length;while(lo<hi){const mid=(lo+hi)>>1;if(sorted[mid]<value)lo=mid+1;else hi=mid}return sorted.length?lo/sorted.length:0}
  candidates.sort((x,y)=>y.score-x.score);
  const selected=[];
  for(const candidate of candidates){
   if(selected.length>=maxMatches)break;
+  if(candidate.score<floor)break;
   // Avoid repeated overlapping suggestions dominating the same short time region.
   if(selected.some(p=>Math.abs(p.a-candidate.a)<9||Math.abs(p.b-candidate.b)<9||
     (Math.abs(p.a-candidate.b)<9&&Math.abs(p.b-candidate.a)<9)))continue;
-  selected.push({...candidate,id:'m'+selected.length+'-'+Math.round(candidate.a*10)+'-'+Math.round(candidate.b*10)});
+  selected.push({...candidate,rankPercentile:rank(candidate.score),id:'m'+selected.length+'-'+Math.round(candidate.a*10)+'-'+Math.round(candidate.b*10)});
  }
  return selected;
 }
