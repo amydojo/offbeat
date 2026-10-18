@@ -1,0 +1,53 @@
+/* OFFBEAT MEMORY V5 — luminous graph with musical topology. */
+.bm-v5 .v5-header{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:38px;padding:3px 2px 9px;color:#cba385;font-size:10px;font-weight:750;letter-spacing:.13em}
+.bm-v5 #v5Live{font-size:9px;color:#937b6b;letter-spacing:.07em;white-space:nowrap;font-weight:600}
+.bm-v5 #v5Live.v5-playing{color:#f0bd8d}
+.bm-v5 #v5Live.v5-playing::first-letter{color:#e3a477}
+.bm-v5 .v5-panel{margin:0 0 13px;padding:0 2px;color:#c3a997}
+.bm-v5 .v5-key{display:flex;gap:18px;align-items:center;flex-wrap:wrap;font-size:9px;letter-spacing:.095em;color:#977d6d;padding:12px 0 11px;border-bottom:1px solid #3e2e27}
+.bm-v5 .v5-key span{display:inline-flex;align-items:center;gap:7px}
+.bm-v5 .v5-dot{height:7px;width:7px;border-radius:50%;background:#eaa97d;box-shadow:0 0 8px #e5a5778c}
+.bm-v5 .v5-stroke{display:inline-block;height:1px;width:16px;background:#c88966}
+.bm-v5 .v5-arc{display:inline-block;height:7px;width:15px;border-top:1px dashed #edb48a;border-radius:50% 50% 0 0}
+.bm-v5 .v5-prompt{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0 1px}
+.bm-v5 #v5Hint{font-size:11px;line-height:1.3;color:#b79a85;max-width:70%}
+.bm-v5 .v5-prompt button{min-height:44px;border:0;border-bottom:1px solid #bc8767;background:transparent;padding:8px 2px 7px;font-size:10px;font-weight:800;letter-spacing:.06em;color:#e5af8b;white-space:nowrap}
+.bm-v5 .v5-prompt button[hidden],.bm-v5 .v5-compare[hidden]{display:none!important}
+.bm-v5 .v5-compare{padding-top:11px;display:flex;flex-direction:column;gap:8px}
+.bm-v5 #v5CompareTitle{font-size:10px;color:#e8c3a7;letter-spacing:.02em;line-height:1.35}
+.bm-v5 .v5-compare-buttons{display:grid;grid-template-columns:1.3fr 1.3fr 1fr 44px;gap:5px}
+.bm-v5 .v5-compare-buttons button{min-height:46px;min-width:0;background:#2b2019;border:1px solid #604232;color:#bea38d;border-radius:3px;font-size:10px;font-weight:750;letter-spacing:.025em;padding:5px}
+.bm-v5 .v5-compare-buttons button.v5-current{background:#dca17a;color:#241710;border-color:#dca17a}
+.bm-v5 #v5Keep{background:#463328;border-color:#ae7452;color:#efc19e}
+.bm-v5 #v5Discard{font-size:16px;color:#c49c84}
+.bm-v5 .bm-lab .hero-art{border:0!important;border-radius:0!important;background:#17110e!important;box-shadow:none!important}
+.bm-v5 .bm-lab .hero-art canvas{touch-action:manipulation;cursor:pointer}
+.bm-v5 .bm-lab .art-label,.bm-v5 .bm-lab .art-no,.bm-v5 .bm-lab .bm-signal{display:none!important}
+.bm-v5 .bm-lab .bm-meaning{display:none!important}
+.bm-v5 .bm-bar{display:none!important}
+@media(max-width:780px){
+ .bm-v5 .mob-stage-heading{display:none!important}
+ .bm-v5 .mob-stage{padding-top:9px!important}
+ .bm-v5 .v5-header{padding:2px 2px 8px;min-height:35px}
+ .bm-v4.bm-v5 .mob-stage .hero-art{height:clamp(225px,calc(100dvh - 370px),370px)!important;min-height:225px!important;max-height:none!important;border-top:1px solid #463228!important;border-bottom:1px solid #463228!important}
+ .bm-v5 .mob-stage .bm-inspector{display:none!important}
+ .bm-v5 .mob-stage .bm-lab{margin:0!important}
+ .bm-v5 .v5-key{padding:10px 0 8px;gap:16px}
+ .bm-v5 .v5-prompt{padding:9px 0 1px}
+ .bm-v5 .v5-compare{padding-top:9px}
+ .bm-v5 .mob-cue{font-size:10px;min-height:30px;color:#a18471}
+ .bm-v5 #v5Hint{font-size:11px}
+}
+@media(max-height:710px) and (max-width:780px){
+ .bm-v4.bm-v5 .mob-stage .hero-art{height:clamp(205px,calc(100dvh - 354px),320px)!important;min-height:205px!important}
+ .bm-v5 .v5-key{padding:7px 0}
+ .bm-v5 .mob-cue{min-height:28px}
+}
+@media(max-width:340px){
+ .bm-v5 .v5-key{gap:9px;font-size:8px}
+ .bm-v5 .v5-prompt{gap:7px}
+ .bm-v5 #v5Hint{font-size:10px}
+ .bm-v5 .v5-prompt button{font-size:9px}
+ .bm-v5 .v5-compare-buttons{grid-template-columns:1fr 1fr;gap:6px}
+}
+@media(prefers-reduced-motion:reduce){.bm-v5 .v5-dot{box-shadow:none}}
