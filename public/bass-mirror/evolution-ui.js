@@ -76,8 +76,14 @@ for(let i=0;i<8;i++){
  b.dataset.bar=String(i);b.setAttribute('aria-label','Audition bar '+(i+1));
  b.innerHTML='<span class="evo-node" aria-hidden="true"></span><span class="evo-step">'+String(i+1).padStart(2,'0')+'</span>';
  b.onclick=()=>{
+  if(!enabled){
+   enabled=true;
+   $('evoToggle').setAttribute('aria-pressed','true');
+   $('evoToggle').innerHTML='<span class="evo-toggle-dot">●</span> EVOLVE ON';
+  }
   pickBar(i);
-  // A bar selection while idle just cues playback; no synthetic/hidden playback.
+  // play() executes initialize() during this trusted touch; iOS audio unlock remains direct.
+  if(typeof playing!=='undefined'&&!playing)void play();
  };
  points.appendChild(b);
 }
