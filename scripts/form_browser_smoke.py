@@ -44,14 +44,16 @@ with sync_playwright() as p:
     assert stats["nonzero"] > 8000, f"Too short/silent: {stats}"
     assert stats["peak"] < 1, f"Clipping bass render: {stats}"
 
+    # Audio gate intentionally covers the instrument until explicitly unlocked.
+    page.locator("#unlock").click()
+    page.wait_for_function("document.querySelector('#audioGate').hidden", timeout=10000)
+
     # Confirm RIFF and GLIDE can be switched without scrolling or navigating.
     page.locator("#bassMode").click()
     assert page.locator("#bassMode").inner_text().strip().endswith("GLIDE")
     page.locator("#bassMode").click()
     assert page.locator("#bassMode").inner_text().strip().endswith("RIFF")
     assert page.evaluate("document.scrollingElement.scrollHeight <= innerHeight + 6"), "Page scrolls when instrument should be locked"
-    page.locator("#unlock").click()
-    page.wait_for_function("document.querySelector('#audioGate').hidden", timeout=10000)
     page.locator("#record").click()
     page.touchscreen.tap(100, 300)
     page.touchscreen.tap(300, 330)
