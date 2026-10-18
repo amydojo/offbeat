@@ -454,6 +454,7 @@ export default function App() {
       <p className="eyebrow">SOUND / PLAY / DISCOVER</p>
       <h1>{take&&reference?'Hear what changed.':'Catch what you hear.'}</h1>
       <p>{take&&reference?'Two takes, side by side. Find what feels different.':'Bring in a recording, or hum something new.'}</p>
+      <a href="/performance-memory/" style={{display:"inline-flex",alignItems:"center",gap:"10px",marginTop:"13px",minHeight:"46px",textDecoration:"none",fontSize:"11px",fontWeight:750,letterSpacing:".09em",color:"#f0bd94",borderBottom:"1px solid #a36f51"}}>✧ PERFORMANCE MEMORY <span aria-hidden="true">↗</span></a>
     </section>
     <div className="workspace" id="capture">
       <details className="record-tray" open={!take}>
