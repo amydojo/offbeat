@@ -333,6 +333,14 @@ $('transport').addEventListener('click',async ()=>{
  }catch(error){status(error.message||'Could not start audio.');}
  finally{busy=false;$('transport').disabled=false;updateTransport()}
 });
+$('hearDifference').addEventListener('click',()=>{
+ const left=compileFrame(lastBeforeFrame),right=compileFrame(history.current);
+ const heard=audio.compareChange(left,right,lastEditedId);
+ if(!heard){status('Press Start Listening first to unlock musical comparison.');return}
+ status('BEFORE → AFTER / First the original, then the changed bass and harmony.');
+ const button=$('hearDifference');button.textContent='♫ ORIGINAL → YOURS';
+ setTimeout(()=>{if(button.isConnected)button.textContent='▶ BEFORE / AFTER'},1650);
+});
 $('higher').addEventListener('click',()=>{
  const n=history.current.notes.find(n=>n.id===selected);
  if(!n)return;
