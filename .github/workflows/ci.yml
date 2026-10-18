@@ -19,7 +19,7 @@ jobs:
       - name: Test phrase range and alignment helpers
         run: node --test src/lib/phraseRanges.test.mjs src/lib/browserFeatures.test.mjs src/lib/sessionPortable.test.mjs src/lib/grooveEngine.test.mjs src/lib/grooveAudio.test.mjs
       - name: Test FORM mobile rhythm and plucked bass
-        run: node --test scripts/form_rhythm.test.cjs scripts/form_bass.test.cjs scripts/form_pluck.test.cjs scripts/form_studio_bass.test.cjs scripts/form_glide.test.cjs
+        run: node --test scripts/form_rhythm.test.cjs scripts/form_bass.test.cjs scripts/form_pluck.test.cjs scripts/form_studio_bass.test.cjs scripts/form_glide.test.cjs scripts/form_frame.test.cjs
       - name: Build Vite app
         run: npm run build
 
@@ -72,3 +72,4 @@ jobs:
           python scripts/mobile_browser_smoke.py
           python scripts/mobile_failure_smoke.py
           python scripts/form_browser_smoke.py
+          python scripts/form_frame_browser_smoke.py
