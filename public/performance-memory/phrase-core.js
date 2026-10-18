@@ -173,7 +173,7 @@ function analyze(buffer,options={}){
  const onsets=detectOnsets(frames);
  const windows=makeWindows(frames,onsets,options);
  const matches=discover(windows,options);
- return {duration:frames.duration,onsets:onsets.length,windows:windows.length,matches,overview:overview(frames),span:4.8,method:'rhythm-and-energy-candidates-v1'};
+ return {duration:frames.duration,onsets:onsets.length,attacks:onsets.map(x=>({time:x.time,strength:x.strength})),windows:windows.length,matches,overview:overview(frames),span:4.8,method:'rhythm-and-energy-candidates-v2'};
 }
 return Object.freeze({featureFrames,detectOnsets,fingerprint,cosine,compare,makeWindows,discover,overview,analyze});
 });
