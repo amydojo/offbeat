@@ -17,7 +17,7 @@ let view='memory',proposal=null,original=null,candidate=null,proposalCount=0,mem
 const STORAGE_KEY='offbeat.bassmirror.saved.v3';
 const algo={echo:'ECHO A GESTURE',answer:'WRITE AN ANSWER',space:'MAKE SPACE',shift:'SHIFT THE TIMING'};
 const readableStep=i=>String(i+1).padStart(2,'0');
-const safeGet=()=>{try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');return Array.isArray(x)?x.slice(0,12).filter(y=>y&&y.pattern):[]}catch{return []}};
+const safeGet=()=>{try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');return Array.isArray(x)?x.slice(0,12).filter(y=>y&&y.snapshot&&y.snapshot.pattern):[]}catch{return []}};
 const safePut=x=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(x.slice(0,12)));return true}catch{return false}};
 memo=safeGet();
 if(modes){
