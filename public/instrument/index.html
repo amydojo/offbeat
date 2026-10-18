@@ -135,7 +135,7 @@ function voice(c,dest,at,p,b,kind,variant){
   else {gain.gain.setTargetAtTime(volume*.77,at+.11,.13)}
   o.connect(mix);upper.connect(hi);mix.connect(filt);hi.connect(filt);filt.connect(gain);gain.connect(dest);
   o.start(at);upper.start(at);
-  var v={o:o,u:upper,f:filt,g:gain,on:at,stopped:false};
+  var v={o:o,u:upper,f:filt,g:gain,on:at,mode:mode,stopped:false};
   if(isHit){o.stop(at+.36);upper.stop(at+.36)}
   return v;
 }
@@ -143,7 +143,7 @@ function moveVoice(v,t,p,b){
   if(!v||v.stopped)return;
   var f=freq(p), when=Math.max(v.on,t);
   v.o.frequency.setTargetAtTime(f,when,.014);v.u.frequency.setTargetAtTime(f,when,.014);
-  v.f.frequency.setTargetAtTime(340+b*(sound==='edge'?2400:1550),when,.02)
+  v.f.frequency.setTargetAtTime(340+b*(v.mode==='edge'?2400:1550),when,.02)
 }
 function endVoice(v,at){
   if(!v||v.stopped)return;
@@ -162,7 +162,7 @@ function noteStart(){
 }
 function noteEnd(){if(active){endVoice(active,nowTime());active=null}}
 function tapBeat(){
-  if(!beginAudio())return;
+  if(restPressed||!beginAudio())return;
   var v=voice(ctx,graph,nowTime()+.001,pitch,brightness,'hit');nodes.push(v);
   strike.classList.add('flash');setTimeout(function(){strike.classList.remove('flash')},100);
   log('hit',pitch,brightness);
@@ -220,8 +220,9 @@ function startCapture(){
 }
 function finish(){
   if(!rec)return;
-  if(pressed!==null)log('up',pitch,brightness);
-  rec=false;clearInterval(timer);timer=null;
+  rec=false;
+  if(pressed!==null)events.push({t:Math.min(MAX,(performance.now()-recAt)/1000),type:'up',p:pitch,b:brightness});
+  clearInterval(timer);timer=null;
   $('record').textContent='● CAPTURE';$('record').classList.remove('active');
   var length=clamp((performance.now()-recAt)/1000,.1,MAX);
   var hasNotes=events.some(function(x){return x.type==='down'||x.type==='hit'});
@@ -254,7 +255,7 @@ function schedule(seq,c,dest,at){
 }
 function stopPlayback(){
   if(!playing)return;
-  playing=false;nodes.forEach(function(v){endVoice(v,nowTime())});nodes=[];
+  playing=false;nodes.forEach(function(v){try{var t=nowTime()+.006;v.g.gain.cancelScheduledValues(t);v.g.gain.setValueAtTime(0,t);v.o.stop(t);v.u.stop(t)}catch(e){}});nodes=[];
   $('play').textContent='▶ REPLAY';status('Playback stopped')
 }
 $('play').addEventListener('click',function(){
