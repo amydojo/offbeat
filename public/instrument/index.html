@@ -179,7 +179,7 @@ function playSoundCheck(){
   Promise.resolve(c.resume()).then(function(){
     if(c.state==='running'){
       $('audioGate').hidden=true;$('soundTest').hidden=false;
-      hint('SLIDE FOR MELODY · TAP STRIKE FOR RHYTHM');
+      hint('DRAW A BASSLINE · TAP KICK / SNARE / HAT');
       status('Sound is on · You should hear a clear test note')
     }else{
       status('Audio is '+c.state+' · Try Safari outside the app')
