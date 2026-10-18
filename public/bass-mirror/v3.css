@@ -1,0 +1,110 @@
+/* OFFBEAT / BASS MIRROR 003 — precise, readable musical memory */
+.bm-v3{--memory-ink:#f3e6da;--memory-accent:#dd9870;--memory-muted:#ac9381;--memory-line:#4c3930}
+.bm-v3 .hero{margin-bottom:12px}
+.bm-v3 .hero h1{letter-spacing:-.085em}
+.bm-v3 .hero .sub{line-height:1.55}
+.bm-v3 .bm-lab{margin-top:12px;margin-bottom:14px}
+.bm-v3 .bm-bar{margin-bottom:9px}
+.bm-v3 .bm-bar>span{font-size:10px;color:#bb9b83;letter-spacing:.17em;font-weight:650}
+.bm-v3 .bm-modes{border:1px solid #54392e;padding:3px;border-radius:5px;background:#1d1714;gap:2px}
+.bm-v3 .bm-modes button{border:none;background:transparent;color:#a79587;padding:10px 13px;min-height:42px;letter-spacing:.08em;font-size:10px;border-radius:3px}
+.bm-v3 .bm-modes button[aria-pressed=true]{background:#bc7b59;color:#1e1511;border-color:transparent;box-shadow:none}
+.bm-v3 .bm-lab .hero-art{height:clamp(300px,38vw,365px);background:#17120f;border:1px solid #594034;box-shadow:none;border-radius:4px}
+.bm-v3 .bm-lab canvas{display:block;touch-action:pan-y;cursor:crosshair}
+.bm-v3 .bm-lab .art-label{letter-spacing:.11em;color:#d2ad90;font-size:9px;opacity:.92}
+.bm-v3 .bm-signal{left:auto;right:15px;top:15px;font-size:9px;color:#bd977b}
+.bm-v3 .bm-lab .art-no{right:14px;font-size:11px;opacity:.72}
+.bm-v3 .bm-below{margin-top:9px;font-size:10px;color:#a88e79;letter-spacing:.05em;line-height:1.45}
+.bm-v3 .bm-below strong{font-size:10px;color:#e0ad87;letter-spacing:.05em}
+.bm-v3 .bm-meaning{font-size:11.5px;line-height:1.6;color:#a99687;max-width:660px;margin:13px 0 0}
+.bm-v3 .bm-inspector{margin:16px 0 25px;padding:24px;border:1px solid #4c3b32;background:#211a16;border-radius:5px}
+.bm-v3 .bmi-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+.bm-v3 .bmi-eyebrow{font-size:9px;letter-spacing:.19em;color:#ca9675;font-weight:750}
+.bm-v3 .bmi-head h2{font-size:25px;font-weight:500;letter-spacing:-.045em;line-height:1.12;margin:8px 0 0;color:#efe5dc}
+.bm-v3 .bmi-chip{white-space:nowrap;font-size:9px;letter-spacing:.1em;color:#bba08b;border:1px solid #60483b;border-radius:2px;padding:8px 9px;line-height:1.4}
+.bm-v3 .bmi-report{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:26px;align-items:stretch}
+.bm-v3 .bmi-finding{border-top:1px solid #634738;padding-top:18px}
+.bm-v3 .bmi-overline{font-size:9px;letter-spacing:.16em;color:#b99c87;font-weight:700}
+.bm-v3 .bmi-finding strong{display:block;font-size:clamp(18px,2.5vw,26px);font-weight:500;letter-spacing:-.035em;color:#f1c19d;line-height:1.15;margin:8px 0}
+.bm-v3 .bmi-finding p{margin:0;color:#bdad9e;font-size:12px;line-height:1.6;max-width:460px}
+.bm-v3 .bmi-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid #4f3c32;border-radius:3px;align-self:start}
+.bm-v3 .bmi-stats>div{padding:14px 11px;border-right:1px solid #4f3c32;min-width:0}
+.bm-v3 .bmi-stats>div:last-child{border-right:0}
+.bm-v3 .bmi-stats small{display:block;font-size:9px;line-height:1.45;color:#a98e7a;letter-spacing:.09em;min-height:28px}
+.bm-v3 .bmi-stats strong{display:block;color:#efe4d7;font-size:20px;letter-spacing:-.04em;font-weight:500;margin-top:6px}
+.bm-v3 .bmi-proof{font-size:10.5px;line-height:1.6;color:#8f8277;margin:18px 0 0}
+.bm-v3 .controls{gap:8px}
+.bm-v3 .controls .btn{min-height:49px}
+.bm-v3 #mutate{border-color:#bc7958;color:#eec0a2}
+.bm-v3 .bm-decision-pane{background:#221a16;border-color:#594036}
+.bm-v3 .bm-decision-pane .presets{display:flex;gap:6px}
+.bm-v3 .bm-decision-pane .presets .btn{flex:1;min-width:0;padding:10px 7px;min-height:45px;font-size:10px;letter-spacing:.06em}
+.bm-v3 .bm-decision-pane #presetDesc{color:#b4a293;font-size:12px;line-height:1.55}
+.bm-v3 .bm-engine{background:#1c1714;border:1px solid #5a4034;padding:16px;margin:22px 0}
+.bm-v3 .bm-engine-header{margin-bottom:13px}
+.bm-v3 .bm-engine-header span{display:block;font-size:9px;letter-spacing:.16em;color:#c29374;font-weight:700}
+.bm-v3 .bm-engine-header strong{display:block;font-size:21px;line-height:1.2;font-weight:480;letter-spacing:-.045em;color:#eee1d5;margin:7px 0}
+.bm-v3 .bm-engine-selectors{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
+.bm-v3 .bm-engine-selectors label{display:flex;flex-direction:column;gap:7px;font-size:9px;letter-spacing:.1em;color:#b59b8a;font-weight:700}
+.bm-v3 .bm-engine-selectors select{display:block;width:100%;min-width:0;min-height:46px;background:#29211c;color:#f2e3d4;border:1px solid #6c4c3d;padding:8px 11px;font-size:14px;letter-spacing:0;border-radius:3px;-webkit-appearance:none;appearance:none}
+.bm-v3 .bm-action-button{display:flex;justify-content:space-between;align-items:center;gap:15px;width:100%;min-height:51px;border:none;border-radius:2px;background:#cb8b66;color:#21150f;padding:12px 15px;text-align:left;font-weight:750;letter-spacing:.08em;font-size:11px}
+.bm-v3 .bm-action-button span{font-size:20px;font-weight:400}
+.bm-v3 .bm-proposal{margin-top:14px;border-top:1px solid #644738;padding-top:15px}
+.bm-v3 .bm-proposal[hidden]{display:none}
+.bm-v3 .bm-proposal-kicker{display:flex;justify-content:space-between;color:#ae8e7a;font-size:9px;letter-spacing:.15em}
+.bm-v3 .bm-proposal>strong{display:block;color:#f1c8a8;font-size:18px;font-weight:520;letter-spacing:-.035em;margin:9px 0 4px}
+.bm-v3 .bm-proposal p{color:#c3aa99;font-size:12px;line-height:1.55;margin:0 0 15px}
+.bm-v3 .bm-ab,.bm-v3 .bm-commit{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.bm-v3 .bm-ab button,.bm-v3 .bm-commit button{min-height:45px;padding:10px 7px;font-size:10px;font-weight:750;letter-spacing:.07em;border:1px solid #79523e;background:#2a211b;color:#dec2ab;border-radius:3px}
+.bm-v3 .bm-ab button.is-active{background:#ddad89;color:#241713;border-color:#ddad89}
+.bm-v3 .bm-commit{margin-top:8px}
+.bm-v3 #bmKeep{background:#503a2c;border-color:#bb8362;color:#eed0b4}
+.bm-v3 .bm-vault{border-top:1px solid #5b4236;padding-top:18px;margin-bottom:19px}
+.bm-v3 .bm-vault-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.bm-v3 .bm-vault-title strong{font-size:10px;letter-spacing:.16em;font-weight:750;color:#efc7a6}
+.bm-v3 .bm-vault-title span{font-size:9px;letter-spacing:.13em;color:#9e8a7a}
+.bm-v3 .bm-vault-save{display:flex;gap:6px}
+.bm-v3 .bm-vault-save input{flex:1;min-width:0;min-height:46px;background:#29221d;border:1px solid #665043;border-radius:3px;color:#e6d7ca;padding:12px;font-size:16px}
+.bm-v3 .bm-vault-save button{font-weight:720;letter-spacing:.05em;font-size:10px;padding:7px 12px;min-height:46px;max-width:140px;background:#473427;border:1px solid #8b644e;color:#edcfb8}
+.bm-v3 .bm-vault>p,.bm-v3 .bm-empty{color:#948578;font-size:10px;line-height:1.55;margin:12px 0 0}
+.bm-v3 .bm-saved{margin-top:9px}
+.bm-v3 .bm-vault-item{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:7px;border-bottom:1px solid #46362d;padding:7px 0}
+.bm-v3 .bm-vault-item span{color:#dec7b4;font-size:12px;overflow-wrap:anywhere}
+.bm-v3 .bm-vault-item button{min-width:44px;min-height:44px;border:1px solid #564034;background:transparent;color:#bca08e;padding:6px;font-size:10px}
+.bm-v3 .bm-vault-item button:last-child{font-size:19px;color:#9c8878}
+.bm-v3 .gridbox{border:1px solid #4b3931;background:#201a17;padding:12px;border-radius:3px}
+.bm-v3 .gridbox .legend{font-size:10px;color:#ad9685}
+.bm-v3 .section-label{margin-top:19px}
+.bm-v3 .lower{gap:12px}
+@media(max-width:780px){
+ .bm-v3 .shell{padding-left:15px;padding-right:15px}
+ .bm-v3 .hero{padding-top:30px;padding-bottom:17px}
+ .bm-v3 .hero h1{font-size:clamp(43px,13vw,65px);line-height:.98}
+ .bm-v3 .hero .sub{font-size:13px;line-height:1.5}
+ .bm-v3 .bm-bar{flex-direction:column;align-items:stretch;gap:8px}
+ .bm-v3 .bm-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+ .bm-v3 .bm-modes button{min-height:46px;padding:9px 5px}
+ .bm-v3 .bm-lab .hero-art{height:342px}
+ .bm-v3 .bm-meaning{font-size:11px;line-height:1.5}
+ .bm-v3 .bm-inspector{padding:18px 15px;margin:12px 0 20px}
+ .bm-v3 .bmi-head{flex-direction:column;gap:10px}
+ .bm-v3 .bmi-head h2{font-size:22px}
+ .bm-v3 .bmi-chip{padding:6px 8px}
+ .bm-v3 .bmi-report{grid-template-columns:1fr;gap:17px}
+ .bm-v3 .bmi-finding{padding-top:14px}
+ .bm-v3 .bmi-finding strong{font-size:21px}
+ .bm-v3 .bmi-stats strong{font-size:18px}
+ .bm-v3 .bmi-stats>div{padding:12px 10px}
+ .bm-v3 .bmi-proof{font-size:10px}
+ .bm-v3 .bm-decision-pane{padding:15px}
+ .bm-v3 .bm-engine{padding:13px;margin:19px 0}
+ .bm-v3 .bm-engine-selectors{grid-template-columns:1fr}
+ .bm-v3 .bm-engine-selectors select{min-height:48px;font-size:16px}
+ .bm-v3 .bm-boost{white-space:normal}
+ .bm-v3 .bm-vault-save{flex-direction:column}
+ .bm-v3 .bm-vault-save button{width:100%;max-width:none}
+ .bm-v3 .gridbox{padding:12px 10px}
+ .bm-v3 .controls{gap:7px}
+ .bm-v3 .controls .btn{min-height:48px}
+}
+@media(prefers-reduced-motion:reduce){.bm-v3 .bm-lab canvas{scroll-behavior:auto}}
