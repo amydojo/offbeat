@@ -43,7 +43,8 @@ function select(index,{autoPlay=false}={}){
  const pair=activePair();
  $('compare').hidden=false;
  $('pairPosition').textContent='POSSIBLE RETURN '+String(state.index+1).padStart(2,'0');
- $('score').textContent=Math.round(pair.score*100)+'% TIMING SIMILARITY';
+ const top=Math.max(1,Math.ceil((1-(pair.rankPercentile??.98))*100));
+ $('score').textContent='TOP '+top+'% RHYTHM CANDIDATE';
  $('timeA').firstChild.textContent=clock(pair.a)+' ';
  $('timeB').firstChild.textContent=clock(pair.b)+' ';
  $('browseCount').textContent=(state.index+1)+' / '+state.pairs.length;
