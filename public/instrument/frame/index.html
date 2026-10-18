@@ -93,6 +93,9 @@ a.sample-credit{color:#997b68}
 .change-part{border:1px solid #75543e;background:#39281e;color:#e8b697;border-radius:4px;padding:7px 9px;font-size:10px;letter-spacing:.035em;min-height:30px;display:inline-flex;align-items:center}
 .change-part.harmony{border-color:#786c5f;background:#322a24;color:#e0c7b4}
 .change-part.drums{border-color:#56594b;background:#292b24;color:#c5caaf}
+.change-audition{margin-left:auto;min-height:36px;border:1px solid #bc8a68;border-radius:5px;padding:0 12px;color:#f3d1b7;background:#493122;font-weight:690;font-size:10px;letter-spacing:.04em}
+.change-audition:active{background:#68452f}
+@media(max-width:720px){.change-audition{margin-left:0;flex:1}}
 .audition-marker{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:4px;min-width:92px}
 .audition-marker span{font-size:9px;letter-spacing:.065em;color:#d8b393;white-space:nowrap}
 .audition-marker span[id="nextVersion"]{color:#edc497}
@@ -160,6 +163,7 @@ a.sample-credit{color:#997b68}
    <span id="bassChange" class="change-part">BASS · —</span>
    <span id="harmonyChange" class="change-part harmony">HARMONY · —</span>
    <span id="drumChange" class="change-part drums">DRUMS · —</span>
+   <button id="hearDifference" class="change-audition" type="button" aria-label="Hear original note and changed note side by side">▶ BEFORE / AFTER</button>
  </div>
 </section>
 <div class="ui">
