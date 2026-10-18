@@ -37,7 +37,9 @@ function paint(){
  const c=canvas.getContext('2d'),d=Math.min(devicePixelRatio||1,2);
  const W=Math.max(220,Math.round((canvas.clientWidth||320)*d)),H=Math.max(220,Math.round((canvas.clientHeight||320)*d));
  if(W!==canvas.width||H!==canvas.height){canvas.width=W;canvas.height=H}
- const state=engine.read(),geo=geometry(W,H,d),nodes=nodesFor(state.pattern,geo),bass=nodes.filter(n=>n.bass),drum=nodes.filter(n=>!n.bass);
+ const state=engine.read(),currentEvolution=window.OFFBEAT_EVOLUTION?.visualState();
+ if(currentEvolution&&!state.proposal){state.pattern=currentEvolution.pattern;state.repeated=currentEvolution.repeated}
+ const geo=geometry(W,H,d),nodes=nodesFor(state.pattern,geo),bass=nodes.filter(n=>n.bass),drum=nodes.filter(n=>!n.bass);
  const returned=state.repeated.hasRepeat?state.repeated.pairs:[];
  const highlighted=new Set();
  for(const pair of returned){
@@ -139,7 +141,8 @@ function sync(){
   $('v5Hint').textContent=rpt.hasRepeat?String(rpt.pairs.length)+' matching notes return in the second phrase.':'Find the next musical connection.';
  }
  const active=typeof playing!=='undefined'&&playing;
- $('v5Live').textContent=active?'● GROOVE PLAYING':'● YOUR PLAYING';
+ const evolution=window.OFFBEAT_EVOLUTION?.visualState();
+ $('v5Live').textContent=active&&evolution?'● BAR '+String(evolution.index+1).padStart(2,'0')+' / '+evolution.name:active?'● GROOVE PLAYING':'● YOUR PLAYING';
  $('v5Live').classList.toggle('v5-playing',active);
 }
 function audition(n){
