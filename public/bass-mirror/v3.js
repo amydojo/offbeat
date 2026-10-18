@@ -233,6 +233,23 @@ el('bmSave').onclick=()=>{
  if(safePut(memo)){el('bmIdeaName').value='';showVault();setStatus('Saved '+text+' to this browser.')}else setStatus('Storage unavailable. Use Export 8-bar WAV to keep the audio.');
 };
 showVault();
+// Stable adapter for the visual renderer. It cannot mutate engine state directly.
+const memoryBridge={
+ read(){
+  const a=scan(pattern);
+  return {pattern:copy(pattern),labels:copy(labels),bassIds:[...bassIds],rows:[...ids],
+   repeated:{start:a.best.start,pairs:a.best.common.map(x=>({id:x.split(':')[0],offset:Number(x.split(':')[1])})),similarity:a.best.sim,hasRepeat:a.hasRepeat},
+   proposal:proposal?{heading:proposal.heading,explanation:proposal.explanation,kind:proposal.kind,
+     diffs:copy(proposal.diffs),before:copy(original.pattern),after:copy(candidate.pattern),
+     current:patternSignature(pattern)===patternSignature(candidate.pattern)?'after':'before'}:null};
+ },
+ propose(){makeProposal();return !!proposal},
+ before(){setVariant('before')},
+ after(){setVariant('after')},
+ keep(){el('bmKeep').click()},
+ discard(){el('bmCancel').click()}
+};
+Object.defineProperty(window,'OFFBEAT_MEMORY_ENGINE',{configurable:true,value:Object.freeze(memoryBridge)});
 const oldRender=render;
 render=function(){oldRender();showScan()};
 const oldReset=reset;
@@ -309,7 +326,7 @@ function drawMemory(){
  memoryScene={left,top,colW,rowH,dpr};
 }
 canvas.addEventListener('click',async ev=>{
- if(view!=='memory'||!memoryScene)return;
+ if(document.body.classList.contains('bm-v5')||view!=='memory'||!memoryScene)return;
  const rect=canvas.getBoundingClientRect();
  const X=(ev.clientX-rect.left)*(canvas.width/rect.width),Y=(ev.clientY-rect.top)*(canvas.height/rect.height);
  const row=Math.floor((Y-memoryScene.top)/memoryScene.rowH),step=Math.floor((X-memoryScene.left)/memoryScene.colW);
