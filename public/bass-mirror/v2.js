@@ -66,6 +66,9 @@ initialize=async function(){
     return Object.keys(decoded).length;
   });
  }
+ // Retry/resume must happen in the fresh physical tap BEFORE awaiting decoding.
+ // Otherwise a suspended iOS AudioContext can stay locked after first failure.
+ if(audio&&audio.state!=='running')audio.resume().catch(()=>{});
  await decodeTask;
  if(audio.state!=='running')await audio.resume();
  if(audio.state!=='running')throw Error('iPhone audio blocked. Test the direct player below, then tap PLAY.');
