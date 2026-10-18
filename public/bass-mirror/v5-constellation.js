@@ -20,7 +20,7 @@ const kinds=['low','pulse','rise','spark','other','shift','knock','tick','scrape
 const yRole={low:.57,pulse:.33,rise:.44,spark:.17,other:.7,shift:.79,knock:.91,tick:.87,scrape:.95};
 const bassKind=id=>kinds.indexOf(id)<6;
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
-let hitAreas=[],selected='',scene=null,lastPaint=0;
+let hitAreas=[],ghostAreas=[],selected='',scene=null,lastPaint=0;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const activeMode=()=>document.querySelector('.bm-modes [data-vis][aria-pressed="true"]')?.dataset.vis||'memory';
 function geometry(w,h,d){
@@ -92,7 +92,14 @@ function paint(){
   c.font='600 '+(10*d)+'px system-ui';c.textAlign='center';c.fillStyle='#f5d3b5';
   c.fillText(named.id.toUpperCase()+' · '+String(named.step+1).padStart(2,'0'),clamp(named.x,48*d,W-48*d),Math.max(geo.top-4*d,named.y-17*d));
  }
+ // Add only a few stable labels: clear identity without turning stars into a labeled grid.
+ for(const id of ['low','pulse','rise','spark']){
+  const first=bass.find(n=>n.id===id);if(!first||selected===id+':'+first.step||first.step===live)continue;
+  c.font='500 '+(9*d)+'px system-ui';c.textAlign='center';c.fillStyle='rgba(229,194,167,.78)';
+  c.fillText(id.toUpperCase(),clamp(first.x,31*d,W-31*d),Math.min(H-geo.bottom-8*d,first.y+19*d));
+ }
  // Proposed variation appears as a distinct dotted branch until the user keeps/discards it.
+ ghostAreas=[];
  if(state.proposal){
   const p=state.proposal,other=p.current==='before'?p.after:p.before;
   for(const diff of p.diffs){
@@ -100,6 +107,7 @@ function paint(){
    c.save();c.strokeStyle='#f5ce98';c.lineWidth=1.7*d;c.setLineDash([2.8*d,3.2*d]);
    c.beginPath();c.arc(x,y,9.5*d,0,Math.PI*2);c.stroke();c.setLineDash([]);
    if(!present){
+    ghostAreas.push({id:diff.id,step:diff.i,x,y,variant:state.proposal.current==='before'?'after':'before'});
     const near=bass.reduce((a,b)=>!a||Math.abs(b.x-x)<Math.abs(a.x-x)?b:a,null);
     if(near){c.beginPath();c.moveTo(near.x,near.y);c.quadraticCurveTo((near.x+x)/2,Math.min(near.y,y)-31*d,x,y);
      c.setLineDash([3*d,4*d]);c.strokeStyle='rgba(248,204,145,.75)';c.lineWidth=1.4*d;c.stroke()}
@@ -146,8 +154,14 @@ function audition(n){
 canvas.addEventListener('click',e=>{
  if(activeMode()!=='memory'||!scene)return;
  const bounds=canvas.getBoundingClientRect(),x=(e.clientX-bounds.left)*scene.W/bounds.width,y=(e.clientY-bounds.top)*scene.H/bounds.height;
+ const ghost=ghostAreas.find(n=>Math.hypot(x-n.x,y-n.y)<=18*scene.d);
+ if(ghost){
+  if(ghost.variant==='before')engine.before();else engine.after();
+  selected=ghost.id+':'+ghost.step;
+  sync();return;
+ }
  let best=null,dist=Infinity;
- for(const n of hitAreas){const d=Math.hypot(x-n.x,y-n.y);if(d<dist){best=n;dist=d}}
+ for(const n of hitAreas){const distance=Math.hypot(x-n.x,y-n.y);if(distance<dist){best=n;dist=distance}}
  if(best&&dist<23*scene.d)audition(best);
 });
 canvas.addEventListener('keydown',e=>{
