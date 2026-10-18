@@ -19,13 +19,21 @@ function wave(c){
   }
   w.curve=curve;w.oversample='2x';return w;
 }
-function ampAttack(node,time,mode,pluck){
+function ampAttack(node,harmNode,time,mode,pluck,brightness){
   var g=node.gain,at=Math.max(0,time),volume=mode==='edge'?.47:.51;
   g.cancelScheduledValues(at);
   g.setValueAtTime(.0001,at);
   g.linearRampToValueAtTime(volume*(pluck?1:.85),at+(pluck?.008:.014));
   g.exponentialRampToValueAtTime(volume*.43,at+(pluck?.18:.25));
   g.exponentialRampToValueAtTime(volume*.25,at+(pluck?.70:.85));
+  // Front-load the upper partial: attack first, warm low-frequency body afterward.
+  // This is what makes each note a pluck instead of a sustained nasal buzz.
+  var h=harmNode.gain,top=(mode==='edge'?.32:.24)*(0.78+clamp(brightness,0,1)*.4);
+  h.cancelScheduledValues(at);
+  h.setValueAtTime(.055,at);
+  h.linearRampToValueAtTime(top,at+.006);
+  h.exponentialRampToValueAtTime(top*.45,at+.14);
+  h.exponentialRampToValueAtTime(top*.27,at+.43);
 }
 function create(c,out,when,p,b,kind,character,gesture){
   var at=Math.max(0,when),isHit=kind==='hit',mode=character==='edge'?'edge':'warm';
@@ -36,17 +44,17 @@ function create(c,out,when,p,b,kind,character,gesture){
   sub.type='sine';harm.type=mode==='edge'?'sawtooth':'triangle';
   sub.frequency.setValueAtTime(f,at);
   harm.frequency.setValueAtTime(f*2,at);
-  subGain.gain.value=.95;harmGain.gain.value=mode==='edge'?.19:.145;
+  subGain.gain.value=.95;harmGain.gain.value=.055;
   filter.type='lowpass';filter.Q.value=.45;
   filter.frequency.setValueAtTime(330+clamp(b,0,1)*(mode==='edge'?1550:820),at);
   sub.connect(subGain);harm.connect(harmGain);
   subGain.connect(filter);harmGain.connect(filter);
   if(drive){filter.connect(drive);drive.connect(env)}else filter.connect(env);
   env.connect(out);
-  ampAttack(env,at,mode,true);
+  ampAttack(env,harmGain,at,mode,true,b);
   if(isHit){env.gain.cancelScheduledValues(at+.26);env.gain.setTargetAtTime(.0001,at+.26,.047)}
   sub.start(at);harm.start(at);
-  var v={o:sub,u:harm,g:env,f:filter,mode:mode,gesture:motion,index:index,lastNoteAt:at,on:at,stopped:false,at:at,drive:drive};
+  var v={o:sub,u:harm,g:env,h:harmGain,f:filter,mode:mode,gesture:motion,index:index,lastNoteAt:at,on:at,stopped:false,at:at,drive:drive};
   if(isHit){
     // Historical FORM 001 held notes are replayed as short, bassy hits.
     sub.stop(at+.62);harm.stop(at+.62);v.stopped=true;
@@ -63,7 +71,7 @@ function move(v,when,p,b){
       var border=(proposed>v.index?v.index+.5:v.index-.5);
       if(proposed>v.index?norm>border+.13:norm<border-.13){
         v.index=proposed;v.lastNoteAt=t;
-        ampAttack(v.g,t,v.mode,true);
+        ampAttack(v.g,v.h,t,v.mode,true,b);
       }
     }
     f=NOTES[v.index];
