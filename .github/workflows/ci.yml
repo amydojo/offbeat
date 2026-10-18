@@ -18,8 +18,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Test phrase range and alignment helpers
         run: node --test src/lib/phraseRanges.test.mjs src/lib/browserFeatures.test.mjs src/lib/sessionPortable.test.mjs src/lib/grooveEngine.test.mjs src/lib/grooveAudio.test.mjs
-      - name: Test FORM mobile rhythm assistance
-        run: node --test scripts/form_rhythm.test.cjs
+      - name: Test FORM mobile rhythm and plucked bass
+        run: node --test scripts/form_rhythm.test.cjs scripts/form_bass.test.cjs
       - name: Build Vite app
         run: npm run build
 
