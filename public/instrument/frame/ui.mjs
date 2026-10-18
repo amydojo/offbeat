@@ -1,4 +1,4 @@
-import {starter,update,setConstraint,seedVariation,compileFrame,diffRender,FrameHistory,heightToIndex} from './core.mjs';
+import {starter,update,setConstraint,seedVariation,compileFrame,diffRender,FrameHistory,validate} from './core.mjs';
 import {FrameAudio,downloadBlob} from './audio.mjs';
 
 const $=id=>document.getElementById(id);
@@ -285,17 +285,25 @@ $('compareYours').addEventListener('click',()=>showOriginal(false));
 for(const k of ['pulse','harmony','feel']){
  $('lock'+k[0].toUpperCase()+k.slice(1)).addEventListener('click',()=>toggle(k));
 }
+function renderSavedVersions(){
+ const host=$('saved');host.replaceChildren();
+ history.variants.forEach(variation=>{
+   const button=document.createElement('button');
+   button.type='button';button.textContent='VERSION '+variation.id;
+   button.title='Revisit version '+variation.id;
+   button.addEventListener('click',()=>{
+     const copied=structuredClone(variation.frame);
+     const next={...copied,revision:history.current.revision+1,parentRevision:history.current.revision};
+     adjust(next,'You returned to an idea you kept.');
+     status('Version '+variation.id+' loaded · Keep changing it.');
+   });
+   host.appendChild(button);
+ });
+}
 $('keep').addEventListener('click',()=>{
  const v=history.save();saved=history.variants;
  try{localStorage.setItem('offbeat.form.frame.variants.v1',JSON.stringify(saved))}catch{}
- const container=$('saved');
- const b=document.createElement('button');
- b.textContent='VERSION '+v.id;
- b.type='button';b.title='Revisit version '+v.id;
- b.addEventListener('click',()=>{
-   adjust(v.frame,'You returned to an idea you kept.');
- });
- container.appendChild(b);
+ renderSavedVersions();
  status('Kept variation '+v.id+' on this device.');
 });
 $('export').addEventListener('click',async ()=>{
@@ -311,4 +319,14 @@ window.addEventListener('pagehide',()=>audio.dispose());
 window.addEventListener('visibilitychange',()=>{
  if(document.hidden&&playing){audio.stop();status('Paused while you were away.')}
 });
+try{
+ const found=JSON.parse(localStorage.getItem('offbeat.form.frame.variants.v1')||'[]');
+ if(Array.isArray(found)){
+   history.variants=found.filter(v=>v&&typeof v.id==='string'&&v.id.length<6&&validate(v.frame)).slice(-4);
+   history.variantCounter=Math.max(0,...history.variants.map(v=>{
+     return /^[A-Z]$/.test(v.id)?v.id.charCodeAt(0)-64:Number(String(v.id).replace(/^V/,'')||0);
+   }));
+   saved=history.variants.slice();renderSavedVersions();
+ }
+}catch{history.variants=[]}
 updateUI();updateTransport();
