@@ -215,7 +215,7 @@ async function importFile(file){
  if(!file)return;
  if(state.decoding){setError('Audio is already being analyzed.');return}
  if(file.size>100*1024*1024){setError('This recording is unusually large. Please try a file under 100 MB.');return}
- pause();clearError();state.decoding=true;state.file=file;
+ pause();clearError();state.decoding=true;state.file=file;document.body.classList.add('loaded');
  state.pairs=[];state.analysis=null;$('compare').hidden=true;$('work').hidden=false;
  $('importPanel').hidden=true;$('sessionName').textContent=file.name;
  $('mapTip').textContent='Finding returning ideas in your performance…';
@@ -256,6 +256,6 @@ async function importFile(file){
   $('mapCount').textContent='—';
  }finally{state.decoding=false;context=null}
 }
-$('audioFile').onchange=e=>importFile(e.target.files?.[0]);
+$('audioFile').onchange=e=>{void importFile(e.target.files?.[0]);e.target.value='';};
 new ResizeObserver(()=>draw()).observe(canvas);
 })();
