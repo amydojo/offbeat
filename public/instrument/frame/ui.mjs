@@ -82,6 +82,8 @@ function draw(){
  const compiled=compileFrame(frame);
  const svg=$('shape'),active=arr.find(n=>n.id===selected)||arr[0];
  const original=history.original.notes.slice().sort((a,b)=>a.beat-b.beat);
+ const baseline=(drag?.initial||lastBeforeFrame||history.original).notes.slice().sort((a,b)=>a.beat-b.beat);
+ const prevById=new Map(baseline.map(n=>[n.id,n]));
  let h='<defs><linearGradient id="warm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eab999" stop-opacity=".9"/><stop offset="1" stop-color="#b87d5b" stop-opacity=".93"/></linearGradient></defs>';
  for(let i=0;i<=8;i++){
    const x=xx(i);
@@ -92,11 +94,24 @@ function draw(){
  }
  h+='<text x="39" y="34" font-size="10" letter-spacing="2" fill="#a78876">BASS / YOUR GESTURE</text>';
  h+='<text x="672" y="34" font-size="10" text-anchor="end" fill="#887365">↑ MORE TENSION</text>';
- // The original remains a faint architectural reference, never overwritten.
- if(held()&&!viewOriginal){
-   h+='<path d="'+path(original.map(n=>[xx(n.beat),yy(n.height)]))+'" stroke="#c18d6d" stroke-opacity=".22" fill="none" stroke-width="1.7" stroke-dasharray="3 8"/>';
+ // A deformation field lives between the previous and current contours.
+ // The user's change has visible material presence, not just a moved dot.
+ if((held()||draft)&&!viewOriginal){
+   const from=arr.map(n=>[xx(n.beat),yy((prevById.get(n.id)||n).height)]);
+   const to=arr.map(n=>[xx(n.beat),yy(n.height)]);
+   const reverse=to.slice().reverse().map(pt=>'L '+pt[0].toFixed(2)+' '+pt[1].toFixed(2)).join(' ');
+   h+='<path d="'+path(from)+' '+reverse+' Z" class="elastic-fill"/>';
+   h+='<path d="'+path(from)+'" class="elastic-ghost"/>';
  }
  h+=contour(arr,'bass-line');
+ for(const n of arr){
+   const previous=prevById.get(n.id);
+   if(!previous||Math.abs(n.height-previous.height)<.018||n.rest)continue;
+   const x=xx(n.beat),a=yy(previous.height),b=yy(n.height);
+   h+='<path d="M '+x+' '+a+' L '+x+' '+b+'" class="sculpt-link"/>';
+   h+='<circle cx="'+x+'" cy="'+a+'" r="4" fill="none" stroke="#dfad8c" stroke-opacity=".7" stroke-width="1.2"/>';
+   h+='<circle cx="'+x+'" cy="'+b+'" r="3" class="delta-node"/>';
+ }
  // Causal relationship rails: visible when selected or editing, subtle otherwise.
  const bassMap=new Map(compiled.bass.map(x=>[x.sourceId,x]));
  const harmonyMap=new Map(compiled.harmony.map(x=>[x.sourceId,x]));
@@ -110,7 +125,10 @@ function draw(){
  h+='<path d="'+path(compiled.harmony.map(e=>[xx(arr.find(n=>n.id===e.sourceId)?.beat||0),relationY(e)]))+'" stroke="#c7b7a4" stroke-opacity=".7" stroke-width="1.9" fill="none"/>';
  for(const e of compiled.harmony){
    const x=xx(arr.find(n=>n.id===e.sourceId)?.beat||0),y=relationY(e);
-   h+='<circle cx="'+x+'" cy="'+y+'" r="'+(e.sourceId===selected?3.7:2.5)+'" fill="#d7c2ae" fill-opacity="'+(e.sourceId===selected?.92:.5)+'"/>';
+   const before=prevById.get(e.sourceId);
+   const current=arr.find(n=>n.id===e.sourceId);
+   const changed=before&&current&&Math.abs(before.height-current.height)>.018;
+   h+='<circle cx="'+x+'" cy="'+y+'" r="'+(e.sourceId===selected?5:2.8)+'" fill="'+(changed?'#f0cfb3':'#d7c2ae')+'" fill-opacity="'+(changed?1:.55)+'"/>';
  }
  h+='<text x="39" y="333" font-size="9.8" fill="#a78c79" letter-spacing="1.8">PULSE / RESPONSIVE ACCENTS</text>';
  const drums=compiled.drums.filter(e=>e.kind==='kick'||e.kind==='snare'||(e.kind==='hat'&&e.reason!=='pulse'));
