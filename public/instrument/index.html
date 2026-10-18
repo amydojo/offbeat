@@ -29,6 +29,22 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
 .actions button,.utility button,.sound button{touch-action:manipulation;-webkit-touch-callout:none}
 .pitch{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;border:1px solid #76513d;border-radius:12px;background:radial-gradient(ellipse at 58% 30%,#423026 0%,#271c17 43%,#1b1512 100%);position:relative;overflow:hidden;min-height:0;cursor:crosshair}
 .pitch.is-down{border-color:var(--light)}
+/* FORM 004: playing surface, not a coordinate slider. */
+.pitch{background:#211813;border-color:#554035}
+.pitch .cap.right{color:#a58c79}
+.pitch .instruction{font-size:11px;line-height:1.8;letter-spacing:.055em;color:#ad9585}
+.pitch .cap.top,.pitch .cap.bottom{color:#d1af93}
+.bass-mode{top:8px;right:9px;min-height:40px}
+.intro h1{font-size:clamp(31px,8vw,47px)}
+.intro p{font-size:12px;letter-spacing:0;color:#c9ac98}
+.header{border-bottom-color:#3f2d25}
+.rhythm-toolbar{border-top:0}
+.drum-pad{border-radius:7px}
+.drum-pad strong{font-size:12px}
+.actions button{border-radius:7px}
+.utility{min-height:41px}
+@media(max-height:680px){.intro{padding-top:8px;padding-bottom:8px}.header{height:48px;flex-basis:48px}.utility{height:41px;flex-basis:41px}}
+
 .bass-mode{position:absolute;top:9px;right:10px;z-index:3;min-height:42px;min-width:82px;padding:0 10px;border:1px solid #9f6549;border-radius:6px;background:#513023;color:#f2c39f;font-size:11px;font-weight:780;letter-spacing:.08em;touch-action:manipulation!important;-webkit-user-select:none;user-select:none}
 .bass-mode[data-mode="glide"]{background:#29211c;color:#c8b1a0;border-color:#826453}
 .bass-mode:active{background:#a76847}
@@ -81,13 +97,13 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
   <header class="header">
     <a class="back" href="/bass-mirror/" aria-label="Back to Bass Mirror">← BASS MIRROR</a>
     <div class="brand">OFFBEAT <em>/ FORM</em></div>
-    <span class="version">INSTRUMENT 003</span>
+    <span class="version">INSTRUMENT 004</span>
   </header>
   <section class="intro">
-    <div><h1>Play what you feel.</h1><p>Slide for melody. Tap for rhythm. Keep the accident.</p></div>
+    <div><h1>Play a riff.</h1><p>Touch a string. Drag between strings. Feel the groove.</p></div>
     <div class="sound" aria-label="Sound character">
-      <button id="warm" aria-pressed="true">WARM</button>
-      <button id="edge" aria-pressed="false">EDGE</button>
+      <button id="warm" aria-pressed="true">ROUND</button>
+      <button id="edge" aria-pressed="false">BITE</button>
     </div>
   </section>
   <section class="rhythm-toolbar" aria-label="Rhythm partner controls">
@@ -96,15 +112,15 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
     <button id="pocket" type="button" aria-label="Replay timing correction: raw" title="Gently pockets melodic gestures and drum hits on replay only. Original capture stays untouched">POCKET / RAW</button>
   </section>
   <section class="instrument" aria-label="Playable surface">
-    <div class="pitch" id="pitch" role="application" aria-label="Touch and drag here to shape pitch vertically and tone horizontally.">
-      <span class="cap top">↑ HIGH</span><button id="bassMode" class="bass-mode" data-mode="riff" aria-label="Melody style: Riff, musical bass notes">● RIFF</button><canvas id="field"></canvas>
-      <div class="instruction">TOUCH + SLIDE<br>to pluck a bassline</div>
+    <div class="pitch" id="pitch" role="application" aria-label="Eight bass strings. Tap a row to pluck that note, drag to other rows to compose a riff.">
+      <span class="cap top">HIGH NOTES</span><button id="bassMode" class="bass-mode" data-mode="pluck" aria-label="Melody style: Pluck strings">● PLUCK</button><canvas id="field"></canvas>
+      <div class="instruction">TAP A STRING<br>DRAG FOR A RIFF</div>
       <div class="audio-gate" id="audioGate">
         <button id="unlock" type="button">♫ ENABLE SOUND</button>
         <p>Tap once to unlock iPhone audio.<br>You'll hear a short test note.</p>
         <small>No microphone permission needed.</small>
       </div>
-      <span class="cap bottom">↓ LOW</span><span class="cap right">ROUND ← → GRIT</span>
+      <span class="cap bottom">LOW NOTES</span><span class="cap right">8 PLAYABLE STRINGS</span>
     </div>
     <div class="pads">
       <button class="drum-pad kick" id="kick" aria-label="Play kick drum. Tap higher for a stronger hit"><strong>KICK</strong><small>LOW</small></button>
@@ -113,7 +129,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
       <button class="rest" id="rest" aria-label="Cut off the current melody sound">■ CUT</button>
     </div>
   </section>
-  <div class="readout"><span id="hint">TOUCH MELODY · TAP KICK / SNARE / HAT</span><span id="clock">00.0s</span></div>
+  <div class="readout"><span id="hint">TAP OR DRAW ACROSS STRINGS</span><span id="clock">00.0s</span></div>
   <nav class="actions" aria-label="Record and replay controls">
     <button class="record" id="record">● CAPTURE</button>
     <button class="play" id="play" disabled>▶ REPLAY</button>
@@ -128,6 +144,8 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
 </main>
 <script src="/instrument/rhythm-v2.js"></script>
 <script src="/instrument/bass-v3.js"></script>
+<script src="/instrument/bass-samples-v4.js"></script>
+<script src="/instrument/pluck-v4.js"></script>
 <script>
 (function(){
 'use strict';
@@ -136,7 +154,8 @@ var field=$('field'), canvas=$('field'), pad=$('pitch');
 var ctx=null, graph=null, active=null, nodes=[], pressed=null, restPressed=false, restPointer=null, rec=false, recAt=0, events=[], phrase=null, timer=null, playing=false, ghostOn=false, sound='warm', pitch=0.46, brightness=0.48, drawing=[], touched=false;
 var playingTouchIds=new Set(), drawPending=false;
 var MAX=20, STORE='offbeat.form.instrument.v1', dpr=1, WIDTH=1, HEIGHT=1, frame=0;
-var rhythm=window.OffbeatRhythm, bassEngine=window.OffbeatBass, bassGesture='riff', drumMode='off', pocketMode='raw', bpm=100, tapTimes=[], recentDrums=[], drumTimer=null, drumNext=0, drumStep=0, recAudioAt=0, playbackBus=null;
+var lastPluckIndex=-1,lastPluckX=0,lastPluckAt=-1,pluckHistory=[];
+var rhythm=window.OffbeatRhythm, bassEngine=window.OffbeatBass, pluckEngine=window.OffbeatPluck, bassGesture='pluck', drumMode='off', pocketMode='raw', bpm=100, tapTimes=[], recentDrums=[], drumTimer=null, drumNext=0, drumStep=0, recAudioAt=0, playbackBus=null;
 function clamp(x,a,b){return Math.min(b,Math.max(a,x))}
 function status(s){$('status').textContent=s}
 function hint(s){$('hint').textContent=s}
@@ -179,7 +198,8 @@ function playSoundCheck(){
   Promise.resolve(c.resume()).then(function(){
     if(c.state==='running'){
       $('audioGate').hidden=true;$('soundTest').hidden=false;
-      hint('DRAW A BASSLINE · TAP KICK / SNARE / HAT');
+      if(pluckEngine)pluckEngine.preload(ctx).then(function(ok){if(ok)status('Your recorded bass attacks are loaded · Play a string')});
+      hint('TAP A STRING · DRAG FOR A RIFF');
       status('Sound is on · You should hear a clear test note')
     }else{
       status('Audio is '+c.state+' · Try Safari outside the app')
@@ -206,9 +226,24 @@ function endVoice(v,at){return bassEngine.stop(v,at)}
 function nowTime(){return ctx?ctx.currentTime:0}
 function noteStart(){
   if(!$('audioGate').hidden||!beginAudio()||restPressed)return;
+  if(bassGesture==='pluck'){strikeString(pitch,brightness,.8);return}
   if(active)endVoice(active,nowTime());
   active=voice(ctx,graph,nowTime()+.002,pitch,brightness,'hold',sound,bassGesture);
   nodes.push(active)
+}
+function strikeString(p,b,velocity){
+  if(!pluckEngine||!ctx||ctx.state!=='running'||restPressed)return;
+  var t=nowTime()+.003;
+  var v=pluckEngine.play(ctx,graph,t,p,b,sound);
+  nodes.push(v);
+  if(nodes.length>40)nodes=nodes.slice(-40);
+  var idx=pluckEngine.index(p);
+  lastPluckIndex=idx;lastPluckAt=performance.now();lastPluckX=b;
+  pluckHistory.push({p:p,b:b,at:lastPluckAt});
+  if(pluckHistory.length>24)pluckHistory.shift();
+  log('pluck',p,b,{kind:'bass',velocity:velocity||.8});
+  hint('PLUCK / NOTE '+String(idx+1).padStart(2,'0'));
+  requestDraw();
 }
 function noteEnd(){if(active){endVoice(active,nowTime());active=null}}
 function drumHit(kind,element,e){
@@ -300,7 +335,9 @@ function log(type,p,b,extra){
 }
 function geometry(e){
   var box=pad.getBoundingClientRect();
-  return {p:clamp(1-(e.clientY-box.top)/box.height,0,1),b:clamp((e.clientX-box.left)/box.width,0,1)}
+  var y=clamp((e.clientY-box.top)/Math.max(1,box.height),0,.99999);
+  var b=clamp((e.clientX-box.left)/Math.max(1,box.width),0,1);
+  return {p:bassGesture==='pluck'?(7-Math.floor(y*8))/7:1-y,b:b}
 }
 function requestDraw(){
   if(drawPending)return;
@@ -315,20 +352,33 @@ function onPitchDown(e){
   try{pad.setPointerCapture(e.pointerId)}catch(ignore){/* Touch continues via implicit capture where available. */}
   if(e.pointerType==='touch')document.body.classList.add('is-playing');
   var v=geometry(e);pitch=v.p;brightness=v.b;touched=true;drawing=[];
-  pad.classList.add('is-down');noteStart();log('down',pitch,brightness);addPoint(pitch,brightness);
-  hint('SHAPE / YOU ARE PLAYING');status(rec?'Capturing your movements…':'Move up for higher, right for brighter');
+  pad.classList.add('is-down');noteStart();
+  if(bassGesture!=='pluck')log('down',pitch,brightness);
+  addPoint(pitch,brightness);
+  status(rec?'Capturing your riff…':bassGesture==='pluck'?'Tap or drag across the strings':'Draw your melody with bends');
 }
 function onPitchMove(e){
   if(e.pointerId!==pressed)return;
   e.preventDefault();var v=geometry(e);pitch=v.p;brightness=v.b;
-  if(!restPressed&&active)moveVoice(active,nowTime(),pitch,brightness);
-  log('move',pitch,brightness);addPoint(pitch,brightness)
+  if(bassGesture==='pluck'){
+    var idx=pluckEngine.index(pitch),now=performance.now();
+    // Crossing strings triggers a NEW plucked note. Horizontal swipe on the
+    // same string is a deliberate rhythmic re-pluck, never a pitch slider.
+    var changed=idx!==lastPluckIndex;
+    var stroke=!changed&&Math.abs(brightness-lastPluckX)>.27&&now-lastPluckAt>105;
+    if(!restPressed&&(changed||stroke))strikeString(pitch,brightness,stroke?.69:.84);
+  }else{
+    if(!restPressed&&active)moveVoice(active,nowTime(),pitch,brightness);
+    log('move',pitch,brightness);
+  }
+  addPoint(pitch,brightness)
 }
 function onPitchUp(e){
   if(e.pointerId!==pressed)return;
   e.preventDefault();pressed=null;pad.classList.remove('is-down');
   document.body.classList.remove('is-playing');
-  noteEnd();log('up',pitch,brightness);hint('TRY ANOTHER SHAPE');requestDraw()
+  noteEnd();if(bassGesture!=='pluck')log('up',pitch,brightness);
+  hint(bassGesture==='pluck'?'TAP ANOTHER STRING':'DRAW ANOTHER SHAPE');requestDraw()
 }
 // Safari can still scroll/zoom if a gesture begins with two fingers on different pads.
  // Cancel ONLY touch gestures that originate on performance controls; preserve page
@@ -388,19 +438,19 @@ function startCapture(){
   events=[];rec=true;recAt=performance.now();recAudioAt=nowTime();drawing=[];draw();
   $('record').textContent='■ FINISH';$('record').classList.add('active');$('play').disabled=true;$('wav').disabled=true;$('keep').disabled=true;
   hint('RECORDING / PLAY YOUR RIFF');status('Recording up to 20 seconds — all timing stays yours');
-  if(pressed!==null)log('down',pitch,brightness);
+  if(pressed!==null&&bassGesture!=='pluck')log('down',pitch,brightness);
   clearInterval(timer);timer=setInterval(function(){clock((performance.now()-recAt)/1000);if((performance.now()-recAt)/1000>=MAX)finish()},60)
 }
 function finish(){
   if(!rec)return;
   rec=false;
-  if(pressed!==null)events.push({t:Math.min(MAX,(performance.now()-recAt)/1000),type:'up',p:pitch,b:brightness});
+  if(pressed!==null&&bassGesture!=='pluck')events.push({t:Math.min(MAX,(performance.now()-recAt)/1000),type:'up',p:pitch,b:brightness});
   clearInterval(timer);timer=null;
   $('record').textContent='● CAPTURE';$('record').classList.remove('active');
   var length=clamp((performance.now()-recAt)/1000,.1,MAX);
-  var hasNotes=events.some(function(x){return x.type==='down'||(x.type==='drum'&&!x.generated)||x.type==='hit'});
+  var hasNotes=events.some(function(x){return x.type==='down'||x.type==='pluck'||(x.type==='drum'&&!x.generated)||x.type==='hit'});
   if(!hasNotes){status('Nothing captured — play a note and try again');updateControls();return}
-  phrase={version:3,duration:+length.toFixed(3),events:events.slice().sort(function(a,b){return a.t-b.t}),sound:sound,gesture:bassGesture,bpm:bpm,anchor:events.find(function(e){return e.type==='down'||e.type==='drum'&&!e.generated})?.t||0,drummer:drumMode};
+  phrase={version:4,duration:+length.toFixed(3),events:events.slice().sort(function(a,b){return a.t-b.t}),sound:sound,gesture:bassGesture,bpm:bpm,anchor:events.find(function(e){return e.type==='down'||e.type==='drum'&&!e.generated})?.t||0,drummer:drumMode};
   drawing=[];ghostOn=true;draw();updateControls();clock(phrase.duration);
   hint('CAPTURED / YOUR MUSICAL SHAPE');status('Captured original timing · POCKET can gently assist replay')
 }
@@ -424,6 +474,7 @@ function schedule(seq,c,dest,at){
     else if(e.type==='up'||e.type==='rest'){if(running){endVoice(running,t);running=null}}
     else if(e.type==='hit'){list.push(voice(c,dest,t,e.p,e.b,'hit',seq.sound,seq.gesture||'glide'))}
     else if(e.type==='drum'){rhythm.drum(c,dest,e.kind,t,e.velocity)}
+    else if(e.type==='pluck'){list.push(pluckEngine.play(c,dest,t,e.p,e.b,seq.sound))}
   });
   if(running)endVoice(running,at+seq.duration);
   return list;
@@ -432,7 +483,7 @@ function stopPlayback(){
   if(!playing)return;
   playing=false;
   if(playbackBus){var t0=nowTime();playbackBus.gain.cancelScheduledValues(t0);playbackBus.gain.setValueAtTime(0,t0);playbackBus=null}
-  nodes.forEach(function(v){bassEngine.kill(v,nowTime()+.006)});nodes=[];
+  nodes.forEach(function(v){if(v&&v.sources)pluckEngine.kill(v,nowTime()+.006);else bassEngine.kill(v,nowTime()+.006)});nodes=[];
   $('play').textContent='▶ REPLAY';status('Playback stopped')
 }
 $('play').addEventListener('click',function(){
@@ -463,18 +514,18 @@ $('bassMode').addEventListener('pointercancel',function(e){e.stopPropagation()})
 $('bassMode').addEventListener('click',function(e){
   e.preventDefault();e.stopPropagation();
   if(pressed!==null){status('Lift your melody finger to switch styles');return}
-  bassGesture=bassGesture==='riff'?'glide':'riff';
+  bassGesture=bassGesture==='pluck'?'glide':'pluck';
   var b=$('bassMode');
   b.dataset.mode=bassGesture;
-  b.textContent=bassGesture==='riff'?'● RIFF':'↝ GLIDE';
-  b.setAttribute('aria-label','Melody style: '+(bassGesture==='riff'?'Riff musical bass notes':'Glide free pitch'));
-  status(bassGesture==='riff'?'RIFF · Bass notes land and pluck as you move':'GLIDE · Bend freely between bass pitches');
-  hint(bassGesture==='riff'?'RIFF / DRAW MUSICAL BASS NOTES':'GLIDE / DRAW CONTINUOUS BASS BENDS');
+  b.textContent=bassGesture==='pluck'?'● PLUCK':'↝ GLIDE';
+  b.setAttribute('aria-label','Melody style: '+(bassGesture==='pluck'?'Pluck separate string notes':'Glide free pitch'));
+  status(bassGesture==='pluck'?'PLUCK · Tap strings; drag to play riffs':'GLIDE · Bend freely between pitches');
+  hint(bassGesture==='pluck'?'TAP A STRING · DRAG FOR A RIFF':'GLIDE / DRAW CONTINUOUS BASS BENDS');
   requestDraw();
 });
 function setSound(s){
   sound=s;$('warm').setAttribute('aria-pressed',String(s==='warm'));$('edge').setAttribute('aria-pressed',String(s==='edge'));
-  status(s==='warm'?'Warm · Rounded plucked bass':'Edge · Gritty bass with more attack')
+  status(s==='warm'?'Round bass · More body':'Bite bass · A sharper attack')
 }
 $('warm').addEventListener('click',function(){setSound('warm')});
 $('edge').addEventListener('click',function(){setSound('edge')});
@@ -500,6 +551,7 @@ $('wav').addEventListener('click',async function(){
     var O=window.OfflineAudioContext||window.webkitOfflineAudioContext;
     if(!O)throw new Error('Offline rendering unavailable');
     var seq=phrase,sr=44100,c=new O(1,Math.ceil((seq.duration+.45)*sr),sr);
+    if(seq.events.some(function(e){return e.type==='pluck'}))await pluckEngine.preload(c);
     schedule(seq,c,buildGraph(c,c.destination),.015);
     var buf=await c.startRendering(), blob=makeWav(buf), url=URL.createObjectURL(blob), a=document.createElement('a');
     a.href=url;a.download='OFFBEAT-FORM-'+new Date().toISOString().slice(0,10)+'.wav';document.body.appendChild(a);a.click();a.remove();
@@ -523,6 +575,32 @@ function draw(){
     g.strokeStyle=col;g.lineWidth=width;g.setLineDash(dash||[]);g.lineJoin='round';g.lineCap='round';g.beginPath();
     points.forEach(function(v,i){var x=clamp(v.b,0,1)*WIDTH, y=(1-clamp(v.p,0,1))*HEIGHT;
       if(i===0)g.moveTo(x,y);else g.lineTo(x,y)});g.stroke();g.setLineDash([])
+  }
+  if(bassGesture==='pluck'){
+    for(var row=0;row<8;row++){
+      var top=row*HEIGHT/8,idx=7-row;
+      var isActive=pressed!==null&&pluckEngine.index(pitch)===idx;
+      g.fillStyle=isActive?'rgba(192,116,78,.22)':row%2===0?'rgba(210,143,99,.032)':'rgba(250,188,137,.012)';
+      g.fillRect(0,top,WIDTH,HEIGHT/8);
+      g.strokeStyle=isActive?'rgba(241,164,115,.64)':'rgba(217,170,130,.28)';
+      g.lineWidth=isActive?2:1;
+      g.beginPath();g.moveTo(17,top+HEIGHT/16);g.lineTo(WIDTH-17,top+HEIGHT/16);g.stroke();
+      g.fillStyle=isActive?'#f4bf99':'rgba(207,162,129,.62)';
+      g.beginPath();g.arc(22,top+HEIGHT/16,isActive?4:2,0,Math.PI*2);g.fill();
+    }
+    if(ghostOn&&phrase){
+      phrase.events.filter(function(e){return e.type==='pluck'}).slice(-30).forEach(function(e){
+        g.fillStyle='rgba(235,151,102,.33)';
+        g.beginPath();g.arc(e.b*WIDTH,(1-e.p)*HEIGHT,5,0,Math.PI*2);g.fill()
+      })
+    }
+    pluckHistory.forEach(function(n){
+      var alpha=Math.max(0,1-(performance.now()-n.at)/3200);
+      if(alpha<=0)return;
+      g.fillStyle='rgba(245,183,129,'+(alpha*.9).toFixed(2)+')';
+      g.beginPath();g.arc(n.b*WIDTH,(1-n.p)*HEIGHT,3+alpha*8,0,Math.PI*2);g.fill()
+    });
+    return;
   }
   if(phrase&&ghostOn){
     var groups=[],current=[];
@@ -552,7 +630,7 @@ window.addEventListener('blur',function(){stopDrummer();drumMode='off';updateDru
 document.addEventListener('visibilitychange',function(){if(document.hidden){stopDrummer();drumMode='off';updateDrummerUI();noteEnd();if(rec)finish();if(playing)stopPlayback()}});
 try{
   var saved=JSON.parse(localStorage.getItem(STORE)||'null');
-  if(saved&&[1,2,3].includes(saved.version)&&saved.duration>0&&saved.duration<=MAX&&Array.isArray(saved.events)&&saved.events.length<2500&&saved.events.every(function(e){return typeof e.t==='number'&&e.t>=0&&e.t<=MAX&&['down','move','up','rest','hit','drum'].includes(e.type)&&(e.type!=='drum'||(['kick','snare','hat'].includes(e.kind)&&Number.isFinite(e.velocity)&&e.velocity>=0&&e.velocity<=1))&&e.p>=0&&e.p<=1&&e.b>=0&&e.b<=1})){
+  if(saved&&[1,2,3,4].includes(saved.version)&&saved.duration>0&&saved.duration<=MAX&&Array.isArray(saved.events)&&saved.events.length<2500&&saved.events.every(function(e){return typeof e.t==='number'&&e.t>=0&&e.t<=MAX&&['down','move','up','rest','hit','drum','pluck'].includes(e.type)&&(e.type!=='drum'||(['kick','snare','hat'].includes(e.kind)&&Number.isFinite(e.velocity)&&e.velocity>=0&&e.velocity<=1))&&e.p>=0&&e.p<=1&&e.b>=0&&e.b<=1})){
     phrase=saved;ghostOn=true;updateControls();hint('YOUR KEPT PHRASE / READY TO REPLAY');status('Your saved riff is here — tap REPLAY');clock(saved.duration)
   }
 }catch(e){}
