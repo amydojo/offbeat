@@ -1,6 +1,6 @@
 # FORM 007 — GROOVE FRAME
 Product + interaction + engineering specification · October 18, 2026
-Status: Specified, not implemented. Planned URL: /instrument/frame/. Preserve existing FORM 006 at /instrument/.
+Status: Playable experimental MVP implemented and deployed at /instrument/frame/ on October 18, 2026. FORM 006 at /instrument/ remains untouched. Automated tests pass; physical iPhone listening remains to be verified.
 
 ## Vision
 Figma Auto Layout for sound: let someone change a musical shape while the system maintains the musical relationships they choose. Replace performance-first music making with listening, manipulating, discovery and expression.
@@ -84,3 +84,11 @@ Run a usability session with people who lack music-theory knowledge: no instruct
 No blank canvas. No grading. No fake intelligence. No hidden overwrite. No DAW creep. No endless controls. No unearned claims of musical perfection.
 
 **The core product experiment:** What if creative music tools handled *musical relationships* so users could concentrate on curiosity, emotion and exploration instead of performing correctly?
+
+
+## Implemented MVP checkpoint (October 18, 2026)
+The standalone experiment lives at `public/instrument/frame/` with `index.html`, `core.mjs`, `audio.mjs`, and `ui.mjs`. It starts with one curated 96-BPM two-bar loop rather than a blank canvas. The editable bass contour drives causally related harmonic tones and a small number of drum accents. Users can drag points to change pitch, manipulate the selected note's duration handle, insert a rest, compare original vs variation, undo/redo, toggle three genuine musical constraints, hear alternative versions, keep selected variations in browser storage and export an actual WAV. The original FORM instrument was not refactored.
+
+The composition engine is deterministic musical logic and locally rendered Web Audio; it is not a learned AI model. Real bass samples are from the already bundled, credited electric-bass library, drums use local synthesis, and harmony is a deliberately subtle supporting voice. Pulse locking keeps core kick/snare timing stable while related accents respond. The feel lock retains human microtiming in the authored source.
+
+New tests: `scripts/form_frame.test.cjs` plus `scripts/form_frame_browser_smoke.py`, added to GitHub Actions CI, including actual decoded sample playback, 320/390px mobile interactions, original comparison, dependent harmonic change, constraints, persistence and PCM WAV export. Remaining work: audition on a physical iPhone and tune sound/UX with a novice; this prototype is not yet proof of musical satisfaction.
