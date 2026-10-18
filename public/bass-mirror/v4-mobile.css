@@ -100,3 +100,9 @@
 @media(max-height:720px){.bm-v4 .mob-stage{padding-top:9px}.bm-v4 .mob-stage .hero-art{height:clamp(220px,calc(100dvh - 360px),310px)!important;min-height:220px}.bm-v4 .mob-head{height:51px;flex-basis:51px}.bm-v4 .mob-dock{height:calc(70px + env(safe-area-inset-bottom));flex-basis:calc(70px + env(safe-area-inset-bottom))}.bm-v4 .mob-stage-heading{margin-bottom:6px}}
 @media(max-width:350px){.bm-v4 .mob-dock{padding-left:7px;padding-right:7px;gap:2px}.bm-v4 .mob-head{padding-left:10px;padding-right:10px}.bm-v4 .mob-stage{padding-left:11px;padding-right:11px}.bm-v4 .mob-intents{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.bm-v4 .mob-dock button:active{transform:none}.bm-v4 .mob-scrim{backdrop-filter:none;-webkit-backdrop-filter:none}}
+/* V004.1 — actionable sound failure, never a silent broken Play button */
+.bm-v4 .mob-audio-help[hidden]{display:none!important}
+.bm-v4 .mob-audio-help{display:flex;align-items:stretch;gap:11px;flex-direction:column;margin:10px 0 18px;padding:14px;background:#39241c;border:1px solid #a66d51;border-radius:7px}
+.bm-v4 .mob-audio-help-copy{font-size:12px;line-height:1.5;color:#f3d2bc;overflow-wrap:anywhere}
+.bm-v4 .mob-audio-check{background:#d18b64;color:#23150f;font-size:11px;font-weight:750;letter-spacing:.08em;border:0;border-radius:4px;min-height:46px;padding:10px}
+.bm-v4 .mob-dock button:disabled{opacity:.7;cursor:progress}
