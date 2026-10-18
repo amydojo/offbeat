@@ -10,7 +10,7 @@ const baseSnapshot=()=>mem.read().pattern;
 let enabled=true,cached=null,signature='',selectedBar=0,selectedStart=0,lastUIBar=-1,showingComparison=false;
 function refresh(base=baseSnapshot()){
  const key=core.signature(core.normalize(base));
- if(!cached||signature!==key){cached=core.compose(base);signature=key}
+ if(!cached||signature!==key){cached=core.compose(base);signature=key;lastUIBar=-1}
  return cached;
 }
 function comparing(){return !!mem.read().proposal}
@@ -56,7 +56,7 @@ function pickBar(index){
  }
  paintStrip(true);
 }
-function consumeStartStep(){const n=selectedStart;selectedStart=0;return enabled?n:0}
+function consumeStartStep(){return enabled?selectedStart:0}
 const api=Object.freeze({
  get enabled(){return enabled},eventsAt,readPlan:()=>refresh(),visualState,
  get activeBar(){return barNow()},selectBar:pickBar,consumeStartStep,
@@ -110,6 +110,8 @@ function paintStrip(force=false){
   el.classList.toggle('changed',plan.bars[i].difference>0);
   el.setAttribute('aria-pressed',String(i===bar));
   el.setAttribute('aria-label','Bar '+String(i+1)+' '+plan.bars[i].name+', '+plan.bars[i].change+'. Tap to select.');
+  const novelty=plan.bars[i].difference;const maxNovelty=Math.max(3,...plan.bars.map(b=>b.difference));
+  el.style.setProperty('--node-y',(30-novelty/maxNovelty*20)+'px');
  }
  const b=plan.bars[bar];
  $('evoBarLabel').textContent=enabled?String(bar+1).padStart(2,'0')+' / '+b.name:'LOOP / ORIGINAL';
