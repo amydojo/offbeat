@@ -108,3 +108,11 @@
  .bm-v3 .controls .btn{min-height:48px}
 }
 @media(prefers-reduced-motion:reduce){.bm-v3 .bm-lab canvas{scroll-behavior:auto}}
+
+/* Direct pathway from recognition to musical action */
+.bm-v3 .bmi-actions{display:grid;grid-template-columns:1.5fr 1fr;gap:8px;margin-top:17px}
+.bm-v3 .bmi-actions button{min-height:48px;padding:12px 13px;text-align:left;border-radius:3px;font-size:10px;letter-spacing:.075em;font-weight:750}
+.bm-v3 #bmiCreate{background:#c98964;border:1px solid #c98964;color:#201510;display:flex;align-items:center;justify-content:space-between}
+.bm-v3 #bmiCreate span{font-size:19px;font-weight:400}
+.bm-v3 #bmiEdit{background:#2b211b;color:#dec2ae;border:1px solid #644634}
+@media(max-width:780px){.bm-v3 .bmi-actions{grid-template-columns:1fr}.bm-v3 .bmi-actions button{min-height:49px}}
