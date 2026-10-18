@@ -54,6 +54,9 @@ with sync_playwright() as p:
     assert "HARMONY" in page.locator("#harmonyChange").inner_text()
     assert page.locator("#nextVersion").is_visible(),"New version should say it is queued"
     assert "ORIGINAL" in page.locator("#hearing").inner_text(),"The UI must not claim a change is already playing"
+    page.locator("#hearDifference").click()
+    assert "ORIGINAL" in page.locator("#hearDifference").inner_text()
+    assert page.evaluate("document.querySelector('#changeStrip').hidden===false")
     altered=page.locator("#shape .bass-line").first.get_attribute("d")
     assert initial!=altered,"Moving a note did not alter the contour"
     assert page.locator("#compareOriginal").is_enabled()
