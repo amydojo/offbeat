@@ -71,3 +71,4 @@ jobs:
           python scripts/browser_smoke.py
           python scripts/mobile_browser_smoke.py
           python scripts/mobile_failure_smoke.py
+          python scripts/form_browser_smoke.py
