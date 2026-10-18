@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17120f">
 <title>FORM — Play by instinct · OFFBEAT</title>
 <style>
 :root{--bg:#17120f;--panel:#211a16;--rule:#4b382e;--ink:#f1e6dc;--muted:#bda99a;--hot:#de9874;--light:#f3bc92}
-*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;-webkit-text-size-adjust:100%}
+*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{position:fixed;inset:0;width:100%;touch-action:pan-x pan-y}
 button,a{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:disabled{opacity:.33;cursor:default}
 button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(--light);outline-offset:3px}
-.shell{max-width:850px;height:100%;height:100dvh;margin:auto;padding:0 15px max(8px,env(safe-area-inset-bottom));display:flex;flex-direction:column;min-height:0}
+.shell{max-width:850px;height:100%;height:100svh;margin:auto;padding:max(0px,env(safe-area-inset-top)) 15px max(8px,env(safe-area-inset-bottom));display:flex;flex-direction:column;min-height:0;overflow:hidden;overscroll-behavior:none}
 .header{display:flex;align-items:center;justify-content:space-between;height:58px;flex:0 0 58px;border-bottom:1px solid var(--rule);gap:8px}
 .brand{font-size:12px;font-weight:750;letter-spacing:.17em}.brand em{font-style:normal;color:var(--hot)}.back{color:var(--muted);text-decoration:none;font-size:12px;min-height:44px;display:flex;align-items:center}.version{font-size:9px;letter-spacing:.15em;color:#af8e79}
 .intro{padding:14px 0 13px;display:flex;align-items:end;justify-content:space-between;gap:12px;flex:0 0 auto}
@@ -19,8 +20,10 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
 .sound{display:flex;align-items:center;gap:5px;background:#241b17;border:1px solid var(--rule);padding:4px;border-radius:22px;white-space:nowrap}
 .sound button{min-width:48px;min-height:34px;border:0;border-radius:19px;font-size:10px;letter-spacing:.06em;color:var(--muted);background:transparent}
 .sound button[aria-pressed=true]{background:#bd7d60;color:#160f0b;font-weight:760}
-.instrument{display:grid;grid-template-columns:minmax(0,1fr) minmax(102px,31%);gap:10px;flex:1;min-height:215px;margin-bottom:10px}
-.pitch{touch-action:none;user-select:none;-webkit-user-select:none;border:1px solid #76513d;border-radius:12px;background:radial-gradient(ellipse at 58% 30%,#423026 0%,#271c17 43%,#1b1512 100%);position:relative;overflow:hidden;min-height:0;cursor:crosshair}
+.instrument{display:grid;grid-template-columns:minmax(0,1fr) minmax(102px,31%);gap:10px;flex:1;min-height:0;margin-bottom:10px;touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.instrument *, .instrument *::before, .instrument *::after{touch-action:none!important;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.actions button,.utility button,.sound button{touch-action:manipulation;-webkit-touch-callout:none}
+.pitch{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;border:1px solid #76513d;border-radius:12px;background:radial-gradient(ellipse at 58% 30%,#423026 0%,#271c17 43%,#1b1512 100%);position:relative;overflow:hidden;min-height:0;cursor:crosshair}
 .pitch.is-down{border-color:var(--light)}
 .audio-gate{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;background:linear-gradient(150deg,#251a16ee,#17120ff5);padding:18px;text-align:center}
 .audio-gate[hidden]{display:none}
@@ -110,7 +113,8 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
 'use strict';
 var $=function(id){return document.getElementById(id)};
 var field=$('field'), canvas=$('field'), pad=$('pitch'), strike=$('strike');
-var ctx=null, graph=null, active=null, nodes=[], pressed=null, restPressed=false, rec=false, recAt=0, events=[], phrase=null, timer=null, playing=false, ghostOn=false, sound='warm', pitch=0.46, brightness=0.48, drawing=[], touched=false;
+var ctx=null, graph=null, active=null, nodes=[], pressed=null, restPressed=false, restPointer=null, rec=false, recAt=0, events=[], phrase=null, timer=null, playing=false, ghostOn=false, sound='warm', pitch=0.46, brightness=0.48, drawing=[], touched=false;
+var playingTouchIds=new Set(), drawPending=false;
 var MAX=20, STORE='offbeat.form.instrument.v1', dpr=1, WIDTH=1, HEIGHT=1, frame=0;
 function clamp(x,a,b){return Math.min(b,Math.max(a,x))}
 function freq(p){return 98*Math.pow(2,1.66*p)}
@@ -234,10 +238,17 @@ function geometry(e){
   var box=pad.getBoundingClientRect();
   return {p:clamp(1-(e.clientY-box.top)/box.height,0,1),b:clamp((e.clientX-box.left)/box.width,0,1)}
 }
-function addPoint(p,b){drawing.push({p:p,b:b});if(drawing.length>550)drawing.shift();draw()}
+function requestDraw(){
+  if(drawPending)return;
+  drawPending=true;
+  requestAnimationFrame(function(){drawPending=false;draw()});
+}
+function addPoint(p,b){drawing.push({p:p,b:b});if(drawing.length>550)drawing.shift();requestDraw()}
 function onPitchDown(e){
   if(pressed!==null)return;
-  e.preventDefault();pressed=e.pointerId;pad.setPointerCapture(e.pointerId);
+  e.preventDefault();pressed=e.pointerId;
+  try{pad.setPointerCapture(e.pointerId)}catch(ignore){/* Touch continues via implicit capture where available. */}
+  if(e.pointerType==='touch')document.body.classList.add('is-playing');
   var v=geometry(e);pitch=v.p;brightness=v.b;touched=true;drawing=[];
   pad.classList.add('is-down');noteStart();log('down',pitch,brightness);addPoint(pitch,brightness);
   hint('SHAPE / YOU ARE PLAYING');status(rec?'Capturing your movements…':'Move up for higher, right for brighter');
@@ -251,19 +262,59 @@ function onPitchMove(e){
 function onPitchUp(e){
   if(e.pointerId!==pressed)return;
   e.preventDefault();pressed=null;pad.classList.remove('is-down');
-  noteEnd();log('up',pitch,brightness);hint('TRY ANOTHER SHAPE');draw()
+  document.body.classList.remove('is-playing');
+  noteEnd();log('up',pitch,brightness);hint('TRY ANOTHER SHAPE');requestDraw()
 }
-pad.addEventListener('pointerdown',onPitchDown);
+// Safari can still scroll/zoom if a gesture begins with two fingers on different pads.
+ // Cancel ONLY touch gestures that originate on performance controls; preserve page
+ // accessibility outside the instrument, plus normal clicks on the audio unlock gate.
+ function isPlayControl(target){
+   return !!(target&&target.closest&&target.closest('#pitch, #strike, #rest')&&!target.closest('#audioGate'));
+ }
+ document.addEventListener('touchstart',function(e){
+   if(!isPlayControl(e.target))return;
+   for(var i=0;i<e.changedTouches.length;i++)playingTouchIds.add(e.changedTouches[i].identifier);
+ },{passive:true});
+ document.addEventListener('touchmove',function(e){
+   if(!e.cancelable)return;
+   for(var i=0;i<e.changedTouches.length;i++){
+     if(playingTouchIds.has(e.changedTouches[i].identifier)){e.preventDefault();return}
+   }
+   // Two thumbs moving at once may report a change from the other contact.
+   if(playingTouchIds.size&&isPlayControl(e.target))e.preventDefault();
+ },{passive:false});
+ function clearPlayingTouches(e){
+   for(var i=0;i<e.changedTouches.length;i++)playingTouchIds.delete(e.changedTouches[i].identifier);
+ }
+ document.addEventListener('touchend',clearPlayingTouches,{passive:true});
+ document.addEventListener('touchcancel',clearPlayingTouches,{passive:true});
+ document.addEventListener('gesturestart',function(e){
+   if(playingTouchIds.size||isPlayControl(e.target))e.preventDefault();
+ },{passive:false});
+ document.addEventListener('gesturechange',function(e){
+   if(playingTouchIds.size||isPlayControl(e.target))e.preventDefault();
+ },{passive:false});
+ document.addEventListener('dblclick',function(e){if(isPlayControl(e.target))e.preventDefault()});
+ pad.addEventListener('pointerdown',onPitchDown);
 pad.addEventListener('pointermove',onPitchMove);
 pad.addEventListener('pointerup',onPitchUp);
 pad.addEventListener('pointercancel',onPitchUp);
 pad.addEventListener('lostpointercapture',onPitchUp);
 strike.addEventListener('pointerdown',function(e){e.preventDefault();tapBeat()});
 $('rest').addEventListener('pointerdown',function(e){
-  e.preventDefault();restPressed=true;noteEnd();log('rest',pitch,brightness);hint('SILENCE IS PART OF YOUR RIFF');status('Space is a musical decision');
+  if(restPointer!==null)return;
+  e.preventDefault();restPointer=e.pointerId;restPressed=true;
+  try{e.currentTarget.setPointerCapture(e.pointerId)}catch(ignore){}
+  noteEnd();log('rest',pitch,brightness);hint('SILENCE IS PART OF YOUR RIFF');status('Space is a musical decision');
 });
-$('rest').addEventListener('pointerup',function(){restPressed=false;if(pressed!==null){noteStart();log('down',pitch,brightness)}});
-$('rest').addEventListener('pointercancel',function(){restPressed=false});
+function releaseRest(e){
+  if(restPointer!==e.pointerId)return;
+  restPointer=null;restPressed=false;
+  if(pressed!==null){noteStart();log('down',pitch,brightness)}
+}
+$('rest').addEventListener('pointerup',releaseRest);
+$('rest').addEventListener('pointercancel',releaseRest);
+$('rest').addEventListener('lostpointercapture',releaseRest);
 function startCapture(){
   if(playing)stopPlayback();
   events=[];rec=true;recAt=performance.now();drawing=[];draw();
@@ -402,7 +453,7 @@ function draw(){
 }
 if(typeof ResizeObserver!=='undefined'){new ResizeObserver(resize).observe(canvas)}
 else window.addEventListener('resize',resize);
-window.addEventListener('blur',function(){noteEnd();restPressed=false;pressed=null;pad.classList.remove('is-down');if(rec)finish();if(playing)stopPlayback()});
+window.addEventListener('blur',function(){noteEnd();restPressed=false;restPointer=null;pressed=null;playingTouchIds.clear();document.body.classList.remove('is-playing');pad.classList.remove('is-down');if(rec)finish();if(playing)stopPlayback()});
 document.addEventListener('visibilitychange',function(){if(document.hidden){noteEnd();if(rec)finish();if(playing)stopPlayback()}});
 try{
   var saved=JSON.parse(localStorage.getItem(STORE)||'null');
