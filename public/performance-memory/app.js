@@ -243,7 +243,7 @@ async function importFile(file){
   $('endTime').textContent=clock(result.duration);
   $('scanStatus').textContent=clock(result.duration)+' OF AUDIO · '+result.onsets+' ATTACK CANDIDATES';
   $('mapTip').textContent='Connections are suggestions. Listen to both moments and decide.';
-  updateCounters();$('browse').hidden=!state.pairs.length;
+  updateCounters();document.querySelector('.browse').hidden=!state.pairs.length;
   if(state.pairs.length){select(0)}
   else{
    $('compare').hidden=true;
