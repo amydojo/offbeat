@@ -158,10 +158,39 @@ export class FrameAudio{
    }
    if(harmony)pad(this.ctx,bus,{...harmony,velocity:.34,duration:.46},t+.055);
    if(accent)window.OffbeatRhythm.drum(this.ctx,bus,accent.kind,t+.35,.27);
-   const gate=this.ctx.createGain();
-   // bus envelope on completion; no persistent preview routing.
+   // Bus self-fades; no persistent preview routing.
    bus.gain.setValueAtTime(.73,t);
    bus.gain.setTargetAtTime(.0001,t+.63,.05);
+   return true;
+ }
+ // Listen to the exact affected phrase in isolation, original then changed.
+ // The existing full groove ducks temporarily; its transport never restarts.
+ compareChange(before,after,id){
+   if(!this.audioReady||!this.ctx||this.ctx.state!=='running')return false;
+   this.releaseSculpt();
+   const ctx=this.ctx,t=ctx.currentTime+.035,output=ctx.createGain();
+   output.gain.setValueAtTime(.88,t);
+   output.gain.setTargetAtTime(.0001,t+1.55,.045);
+   output.connect(this.mix.master);
+   const sources=[before,after];
+   sources.forEach((render,index)=>{
+     const time=t+index*.76;
+     const bass=render.bass.find(e=>e.sourceId===id);
+     const harmony=render.harmony.find(e=>e.sourceId===id);
+     if(bass){
+       const note=window.OffbeatStudioBass.play(ctx,output,time,bass.sampleP,.51,'warm');
+       window.OffbeatStudioBass.kill(note,time+.54);
+     }
+     if(harmony)pad(ctx,output,{...harmony,velocity:.39,duration:.49},time+.075);
+   });
+   if(this.running){
+     for(const [part,level] of [['bass',.7],['drums',.63],['harmony',.55]]){
+       const param=this.mix[part].gain;
+       param.cancelScheduledValues(t);
+       param.setTargetAtTime(part==='drums'?.16:.23,t,.028);
+       param.setTargetAtTime(level,t+1.57,.09);
+     }
+   }
    return true;
  }
  preview(e){
