@@ -45,6 +45,7 @@
    </div>
    <div class="times"><button type="button" id="timeA">01:34 <small>FIRST MOMENT</small></button><span class="between">↔</span><button type="button" id="timeB">03:16 <small>LATER MOMENT</small></button></div>
    <div class="compareCopy" id="compareCopy">Same rhythm, or just a coincidence?</div>
+   <div class="pitch-study" id="pitchStudy" hidden><div class="pitch-heading"><span>MELODIC SHAPE</span><strong id="pitchVerdict">CHECKING PITCH</strong></div><svg id="pitchContours" viewBox="0 0 320 90" aria-label="Pitch movement in the two compared bass phrases" role="img"></svg><p id="pitchDetail"></p></div>
    <div class="player"><button type="button" id="hearA" class="hear">▶ <span>HEAR A</span></button><button type="button" id="hearB" class="hear">▶ <span>HEAR B</span></button></div>
    <div class="feedback"><button id="same" type="button">✧ SAME IDEA</button><button id="different" type="button">NOT THE SAME</button></div>
   </div>
@@ -69,6 +70,7 @@
 </div>
 <audio id="player" preload="metadata" playsinline></audio>
 <script src="/performance-memory/phrase-core.js"></script>
+<script src="/performance-memory/pitch-core.js"></script>
 <script src="/performance-memory/app.js"></script>
 </body>
 </html>
