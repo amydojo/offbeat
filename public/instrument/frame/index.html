@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#191310">
+<title>FORM 007 — Music, through interaction.</title>
+<meta name="description" content="A new way to make music. Change one shape and hear a whole groove respond.">
+<style>
+:root{--bg:#191310;--panel:#251b16;--panel2:#2c211b;--ink:#f2e8df;--muted:#aa9181;--faint:#786456;--stroke:#4c382e;--accent:#d69b77;--accent2:#edbf9e;--harmony:#c5b5a4;--green:#979c8b}
+*{box-sizing:border-box}
+html{background:var(--bg);height:100%;color-scheme:dark}
+body{margin:0;min-height:100svh;background:var(--bg);color:var(--ink);font-family:"Helvetica Neue",Helvetica,-apple-system,BlinkMacSystemFont,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,a{font:inherit}
+button{cursor:pointer;touch-action:manipulation}
+button:focus-visible,a:focus-visible,.form-canvas:focus-visible{outline:2px solid var(--accent2);outline-offset:3px}
+[hidden]{display:none!important}
+.page{max-width:1160px;margin:auto;padding:0 clamp(20px,3.4vw,54px) 40px}
+.top{height:84px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--stroke);gap:10px}
+.brand{color:var(--ink);text-decoration:none;font-weight:640;letter-spacing:-.06em;font-size:29px}
+.brand i{font-style:normal;color:var(--accent);margin-left:5px}
+.top-right{display:flex;align-items:center;gap:13px}
+.top-right span{font-size:10px;letter-spacing:.17em;color:var(--faint);font-weight:600}
+.back{min-height:42px;display:flex;align-items:center;text-decoration:none;color:var(--muted);font-size:11px;letter-spacing:.06em}
+.intro{display:grid;grid-template-columns:1fr auto;align-items:end;gap:24px;padding:55px 0 37px}
+.kicker{font-size:10px;color:var(--accent);letter-spacing:.2em;font-weight:700}
+h1{font-weight:390;font-size:clamp(39px,6vw,74px);letter-spacing:-.075em;line-height:1.02;margin:12px 0 10px}
+.intro p{font-size:14px;color:var(--muted);letter-spacing:.003em;line-height:1.6;margin:0}
+.starter-label{text-align:right;min-width:120px;color:var(--muted);font-size:11px;line-height:1.75}
+.starter-label strong{display:block;color:var(--ink);font-size:13px;font-weight:480}
+.frame{position:relative;border:1px solid #5b4336;border-radius:12px;background:linear-gradient(150deg,#2c2019 0%,#211914 50%,#1b1512 100%);overflow:hidden;isolation:isolate}
+.frame:before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 42% 27%,rgba(213,143,99,.065),transparent 61%)}
+.frame-head{padding:24px 27px 5px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1;gap:10px}
+.frame-tag{font-size:10px;letter-spacing:.17em;font-weight:680;color:#e4ae8d}
+.frame-cap{font-size:10px;letter-spacing:.08em;color:#ad9383}
+.art{position:relative;padding:0 13px 0 13px}
+.form-canvas{width:100%;display:block;overflow:visible;touch-action:none;user-select:none;cursor:crosshair;outline:none}
+.frame-foot{border-top:1px solid #473328;margin:0 27px;padding:17px 0 21px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.dotted{font-size:10px;letter-spacing:.15em;color:#a78b78}
+.frame-note{color:var(--muted);font-size:12px;line-height:1.45}
+.flowline{stroke:#ddaa89}
+.ui{display:grid;grid-template-columns:1fr auto;gap:30px;align-items:start;padding-top:27px}
+.left-action{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
+.primary{border-radius:7px;background:#e1ae8a;color:#27160e;border:1px solid #eac29f;font-size:12px;font-weight:710;letter-spacing:.025em;padding:0 21px;min-height:52px;display:inline-flex;align-items:center;justify-content:center;gap:11px}
+.primary:disabled{opacity:.55;cursor:progress}
+.secondary{border:1px solid #5f4739;background:#2a1e18;color:#e0bd9f;min-height:46px;padding:0 15px;border-radius:7px;font-size:11px;letter-spacing:.025em;font-weight:650}
+.secondary:disabled{opacity:.35;cursor:default}
+.tertiary{border:1px solid transparent;background:transparent;color:#be9983;padding:0 11px;min-height:44px;font-size:11px}
+.chip{color:#9f8473;font-size:11px;display:flex;align-items:center;gap:9px}
+.chip:before{content:'';width:7px;height:7px;border:1px solid #ab826b;border-radius:50%}
+.chip.playing:before{background:var(--accent);box-shadow:0 0 13px #bd805d}
+.right-action{display:flex;gap:9px;align-items:center}
+.compare{border:1px solid #5b4438;border-radius:7px;background:#241a15;padding:4px;display:flex;align-items:center;gap:2px}
+.compare button{padding:0 13px;min-height:38px;border:none;background:transparent;color:#a88d7b;font-size:11px;border-radius:4px;white-space:nowrap;letter-spacing:.02em}
+.compare button[aria-pressed=true]{background:#664636;color:#f1d4c0}
+.discovery{margin-top:40px;padding:25px 0;border-top:1px solid #463429;display:flex;align-items:start;justify-content:space-between;gap:22px}
+.discovery .headline{color:var(--ink);font-size:16px;letter-spacing:-.028em}
+.discovery .desc{font-size:12px;color:var(--muted);line-height:1.6;margin-top:7px;max-width:510px}
+.discovery-buttons{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.discovery-buttons button{min-height:43px}
+.rail{display:flex;align-items:center;justify-content:space-between;margin-top:27px;padding:15px 0;border-top:1px solid var(--stroke);border-bottom:1px solid var(--stroke);gap:12px}
+.rail-left{font-size:10px;letter-spacing:.15em;color:#b49a88}
+.rail-right{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.rail-right button{background:none;border:1px solid #49372e;color:#ad9382;border-radius:4px;font-size:10px;padding:8px 10px;min-height:35px}
+.rail-right button[aria-pressed=true]{border-color:#9d795f;color:#edc5a6;background:#3b2a21}
+.bottom{display:flex;align-items:flex-start;justify-content:space-between;gap:30px;margin-top:28px;padding-bottom:34px}
+.bottom p{margin:0;max-width:450px;color:var(--muted);font-size:12px;line-height:1.7}
+.bottom small{font-size:10px;color:#78695e;letter-spacing:.04em}
+.controls-menu{border-top:1px solid var(--stroke);padding:15px 0;margin-top:14px}
+.controls-menu summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.12em;color:#c4aa98;min-height:44px}
+.controls-menu summary::-webkit-details-marker{display:none}
+.controls-menu summary:after{content:'+';font-size:19px;font-weight:300}
+.controls-menu[open] summary:after{content:'−'}
+.advanced{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:11px 0 14px}
+.advanced label{display:flex;gap:7px;align-items:center;font-size:11px;color:#bea592}
+.advanced input{accent-color:#d49c78;min-width:18px;min-height:18px}
+.saved{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.saved button{border:1px solid #6b4d3d;background:#37261e;color:#e5b897;border-radius:5px;padding:8px 13px;min-height:38px;font-size:11px}
+.live-status{font-size:11px;color:#b99981;min-height:18px;margin-top:16px;line-height:1.5}
+a.sample-credit{color:#997b68}
+@media(max-width:720px){
+ .page{padding-left:17px;padding-right:17px}
+ .top{height:62px}.brand{font-size:23px}.top-right span{font-size:9px}
+ .intro{padding:32px 0 24px;grid-template-columns:1fr}.starter-label{display:none}
+ .intro p{font-size:12px}.frame-head{padding:18px 16px 4px}.frame-tag,.frame-cap{font-size:9px}
+ .art{padding:2px 2px 0}
+ .frame-foot{margin:0 16px;padding:13px 0 17px}
+ .frame-note{font-size:11px}.dotted{font-size:9px}
+ .ui{grid-template-columns:1fr;gap:13px;padding-top:18px}
+ .left-action{gap:8px}.primary{min-height:50px;flex:1}
+ .right-action{justify-content:space-between}
+ .discovery{margin-top:26px;display:block;padding-top:21px}
+ .discovery-buttons{justify-content:flex-start;margin-top:16px}
+ .discovery-buttons button{flex:1}
+ .rail{margin-top:20px;align-items:flex-start}
+ .rail-left{line-height:1.7}.rail-right button{font-size:9px;padding:7px}
+ .bottom{margin-top:21px}
+ .bottom p{font-size:11px}
+}
+@media(max-width:370px){
+ .page{padding-left:12px;padding-right:12px}
+ .intro{padding-top:25px}
+ h1{font-size:42px}
+ .frame-foot{gap:5px}.frame-note{max-width:195px}
+ .rail-right{justify-content:flex-end}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="page">
+<header class="top">
+ <a href="/instrument/" class="brand" aria-label="FORM original instrument">FORM<i>·</i></a>
+ <div class="top-right"><span>STUDY 007</span><a href="/instrument/" class="back">← INSTRUMENT</a></div>
+</header>
+<section class="intro">
+ <div><div class="kicker">MUSIC, THROUGH INTERACTION</div>
+   <h1>Start with something good.</h1>
+   <p id="introHelp">Hear a groove. Change one thing. See where it goes.</p></div>
+ <div class="starter-label">THE FIRST FRAME<strong>A little offbeat.</strong>WARM / BOUNCY / 96 BPM</div>
+</section>
+<section class="frame" aria-label="Editable musical relationships">
+ <div class="frame-head"><span class="frame-tag">01 / YOUR FORM</span><span class="frame-cap" id="frameCap">A LITTLE OFFBEAT — 2 BARS</span></div>
+ <div class="art">
+  <svg id="shape" class="form-canvas" viewBox="0 0 700 382" tabindex="0" role="application" aria-label="Interactive melodic contour. Tap a point to select it. Drag vertically to change its pitch. Use arrow up and down to alter the selected point.">
+  </svg>
+ </div>
+ <div class="frame-foot">
+   <span class="dotted" id="gestureLabel">BASS → HARMONY → DRUMS</span>
+   <span class="frame-note" id="instruction">One small change can move the whole groove.</span>
+ </div>
+</section>
+<div class="ui">
+ <div class="left-action">
+  <button class="primary" id="transport" type="button">▶ &nbsp; START LISTENING</button>
+  <button class="secondary" id="original" type="button" disabled>↶ ORIGINAL</button>
+  <span id="playingLabel" class="chip">READY TO EXPLORE</span>
+ </div>
+ <div class="right-action">
+  <div class="compare" role="group" aria-label="Compare your variation with original">
+   <button id="compareOriginal" type="button" aria-pressed="false" disabled>Original</button>
+   <button id="compareYours" type="button" aria-pressed="true" disabled>Your version</button>
+  </div>
+  <button class="tertiary" id="undo" type="button" disabled aria-label="Undo previous edit">↶ Undo</button>
+ </div>
+</div>
+<section class="discovery">
+ <div>
+  <div class="kicker">02 / DISCOVER</div>
+  <div class="headline" id="prompt">What if this went higher?</div>
+  <div class="desc" id="promptDetail">The highlighted point is yours to move. You don't need to know why it works.</div>
+ </div>
+ <div class="discovery-buttons">
+  <button class="secondary" type="button" id="higher">↑ HIGHER</button>
+  <button class="secondary" type="button" id="space">○ LEAVE A SPACE</button>
+  <button class="secondary" type="button" id="another">↝ TRY ANOTHER</button>
+ </div>
+</section>
+<div class="rail">
+ <span class="rail-left">RELATIONSHIPS</span>
+ <div class="rail-right">
+  <button id="lockPulse" type="button" aria-pressed="true" title="Keep the rhythmic pulse">↔ PULSE · ON</button>
+  <button id="lockHarmony" type="button" aria-pressed="true" title="Keep notes harmonically compatible">◇ HARMONY · ON</button>
+  <button id="lockFeel" type="button" aria-pressed="true" title="Keep the original human timing">∿ FEEL · ON</button>
+ </div>
+</div>
+<details class="controls-menu" id="more">
+ <summary>MORE / KEEP YOUR EXPLORATIONS</summary>
+ <div class="advanced">
+  <button class="secondary" type="button" id="keep">＋ KEEP VERSION</button>
+  <button class="secondary" type="button" id="export">↓ EXPORT WAV</button>
+  <button class="secondary" type="button" id="redo" disabled>↷ REDO</button>
+  <span class="frame-note">Stretch a selected note using its small end handle.</span>
+ </div>
+ <div id="saved" class="saved" aria-label="Saved variations"></div>
+</details>
+<div id="status" class="live-status" aria-live="polite">Ready when you are.</div>
+<footer class="bottom">
+ <p>A shape is an invitation. Pull a point, leave a space, change the relation. The sound responds—and the original remains.</p>
+ <small>FORM 007 · ON-DEVICE AUDIO · <a class="sample-credit" href="https://github.com/nbrosowsky/tonejs-instruments" target="_blank" rel="noopener noreferrer">BASS SAMPLE CREDITS / CC BY</a></small>
+</footer>
+</main>
+<script src="/instrument/studio-bass-samples-v5.js"></script>
+<script src="/instrument/studio-bass-v5.js"></script>
+<script src="/instrument/studio-glide-v6.js"></script>
+<script src="/instrument/rhythm-v2.js"></script>
+<script type="module" src="/instrument/frame/ui.mjs"></script>
+</body>
+</html>
