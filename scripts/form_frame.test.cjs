@@ -54,6 +54,21 @@ test('pulse and feel constraint toggles audibly alter the compiled performance',
  const smooth=c.compileFrame(c.setConstraint(f,'feel',false));
  assert.notDeepEqual(locked.bass.map(x=>x.time),smooth.bass.map(x=>x.time));
 });
+test('elastic sculpting moves a local neighborhood while preserving distant notes and original input',async()=>{
+ const c=await imported,original=c.starter();
+ const before=c.compileFrame(original);
+ const target=original.notes.find(n=>n.id==='b4');
+ const result=c.deformFrame(original,'b4',.98),render=c.compileFrame(result);
+ assert.equal(original.notes.find(n=>n.id==='b4').height,target.height);
+ assert.equal(result.notes.find(n=>n.id==='b4').height,.98);
+ const neighbor=result.notes.find(n=>n.id==='b5');
+ assert.ok(Math.abs(neighbor.height-original.notes.find(n=>n.id==='b5').height)>.03);
+ assert.equal(result.notes.find(n=>n.id==='b0').height,original.notes.find(n=>n.id==='b0').height);
+ assert.equal(result.notes.find(n=>n.id==='b4').beat,target.beat);
+ assert.ok(c.diffRender(before,render).some(x=>x.kind==='harmony'&&x.sourceId==='b4'));
+ assert.deepEqual(c.deformFrame(original,'b4',.98),c.deformFrame(original,'b4',.98));
+ assert.ok(c.validate(result));
+});
 test('history supports undo, redo, original and deterministic variant suggestions',async()=>{
  const c=await imported,h=new c.FrameHistory();
  assert.ok(h.commit(c.update(h.current,'b4',{height:.99})));
