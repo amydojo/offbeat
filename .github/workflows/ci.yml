@@ -20,6 +20,11 @@ jobs:
         run: node --test src/lib/phraseRanges.test.mjs src/lib/browserFeatures.test.mjs src/lib/sessionPortable.test.mjs src/lib/grooveEngine.test.mjs src/lib/grooveAudio.test.mjs
       - name: Test FORM mobile rhythm and plucked bass
         run: node --test scripts/form_rhythm.test.cjs scripts/form_bass.test.cjs scripts/form_pluck.test.cjs scripts/form_studio_bass.test.cjs scripts/form_glide.test.cjs scripts/form_frame.test.cjs
+      - name: Parse FORM Groove Frame browser modules
+        run: |
+          node --check public/instrument/frame/core.mjs
+          node --check public/instrument/frame/audio.mjs
+          node --check public/instrument/frame/ui.mjs
       - name: Build Vite app
         run: npm run build
 
