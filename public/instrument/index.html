@@ -22,6 +22,13 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
 .instrument{display:grid;grid-template-columns:minmax(0,1fr) minmax(102px,31%);gap:10px;flex:1;min-height:215px;margin-bottom:10px}
 .pitch{touch-action:none;user-select:none;-webkit-user-select:none;border:1px solid #76513d;border-radius:12px;background:radial-gradient(ellipse at 58% 30%,#423026 0%,#271c17 43%,#1b1512 100%);position:relative;overflow:hidden;min-height:0;cursor:crosshair}
 .pitch.is-down{border-color:var(--light)}
+.audio-gate{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;background:linear-gradient(150deg,#251a16ee,#17120ff5);padding:18px;text-align:center}
+.audio-gate[hidden]{display:none}
+.audio-gate button{width:min(100%,240px);min-height:67px;padding:12px 18px;border:1px solid #efb18b;border-radius:8px;background:#df9b73;color:#20120e;font-weight:800;font-size:14px;letter-spacing:.035em}
+.audio-gate p{color:#d8b7a1;margin:0;font-size:12px;line-height:1.5;max-width:235px}
+.audio-gate small{color:#b39684;font-size:10px}
+.sound-test{color:#f3ba96!important}
+
 .pitch canvas{display:block;width:100%;height:100%;pointer-events:none}
 .cap{position:absolute;z-index:1;font-size:9px;letter-spacing:.13em;pointer-events:none;font-weight:650;color:#d4b4a0}
 .cap.top{top:15px;left:14px}.cap.bottom{bottom:15px;left:14px}.cap.right{right:14px;bottom:15px;color:#a98977}
@@ -71,6 +78,11 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
     <div class="pitch" id="pitch" role="application" aria-label="Touch and drag here to shape pitch vertically and tone horizontally.">
       <span class="cap top">↑ HIGH / BRIGHT</span><canvas id="field"></canvas>
       <div class="instruction">TOUCH + SLIDE<br>to sing a melody</div>
+      <div class="audio-gate" id="audioGate">
+        <button id="unlock" type="button">♫ ENABLE SOUND</button>
+        <p>Tap once to unlock iPhone audio.<br>You'll hear a short test note.</p>
+        <small>No microphone permission needed.</small>
+      </div>
       <span class="cap bottom">↓ LOW</span><span class="cap right">SOFT ← → EDGE</span>
     </div>
     <div class="pads">
@@ -87,7 +99,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(
     <button id="wav" disabled>↓ WAV</button>
   </nav>
   <div class="utility">
-    <button id="ghost" disabled aria-pressed="false">◇ GHOST OFF</button>
+    <button id="ghost" disabled aria-pressed="false">◇ GHOST OFF</button><button id="soundTest" class="sound-test" type="button" hidden>♫ TEST</button>
     <span class="status" id="status" role="status" aria-live="polite">Touch the surface to unlock sound</span>
     <button id="keep" disabled>KEEP</button>
   </div>
@@ -101,35 +113,77 @@ var field=$('field'), canvas=$('field'), pad=$('pitch'), strike=$('strike');
 var ctx=null, graph=null, active=null, nodes=[], pressed=null, restPressed=false, rec=false, recAt=0, events=[], phrase=null, timer=null, playing=false, ghostOn=false, sound='warm', pitch=0.46, brightness=0.48, drawing=[], touched=false;
 var MAX=20, STORE='offbeat.form.instrument.v1', dpr=1, WIDTH=1, HEIGHT=1, frame=0;
 function clamp(x,a,b){return Math.min(b,Math.max(a,x))}
-function freq(p){return 73.416*Math.pow(2,2.12*p)}
+function freq(p){return 98*Math.pow(2,1.66*p)}
 function status(s){$('status').textContent=s}
 function hint(s){$('hint').textContent=s}
 function clock(t){$('clock').textContent=(Math.max(0,t)||0).toFixed(1)+'s'}
 function beginAudio(){
-  if(ctx){if(ctx.state==='suspended')ctx.resume().catch(function(){status('Tap again to enable audio')});return true}
   try{
-    var C=window.AudioContext||window.webkitAudioContext;
-    if(!C)throw new Error('Web Audio unsupported');
-    ctx=new C();
-    graph=buildGraph(ctx,ctx.destination);
-    ctx.resume().catch(function(){status('Audio blocked. Try tapping again.')});
+    if(!ctx){
+      var C=window.AudioContext||window.webkitAudioContext;
+      if(!C)throw new Error('Web Audio unsupported');
+      // Playback route prevents silent hardware routing on supporting iOS browsers.
+      try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(ignore){}
+      ctx=new C();
+      graph=buildGraph(ctx,ctx.destination);
+      ctx.addEventListener('statechange',function(){
+        if(ctx.state==='suspended'&&!document.hidden){
+          $('audioGate').hidden=false;$('soundTest').hidden=true;
+          status('Audio paused by browser · Tap ENABLE SOUND')
+        }
+      });
+    }
+    if(ctx.state!=='running'){
+      ctx.resume().catch(function(){status('Audio remains locked · Open in Safari and tap ENABLE SOUND')});
+    }
     return true;
-  }catch(e){status('Audio unavailable in this browser');return false}
+  }catch(e){status('Audio setup failed: '+(e.message||'unknown error'));return false}
 }
+function playSoundCheck(){
+  if(!beginAudio())return;
+  var c=ctx,at=c.currentTime+.018;
+  // Direct speaker-friendly 440 Hz sound check, not bass-only.
+  var o=c.createOscillator(),gain=c.createGain();
+  o.type='sine';o.frequency.setValueAtTime(440,at);
+  gain.gain.setValueAtTime(0,at);
+  gain.gain.linearRampToValueAtTime(.18,at+.028);
+  gain.gain.setValueAtTime(.18,at+.32);
+  gain.gain.exponentialRampToValueAtTime(.0001,at+.55);
+  o.connect(gain);gain.connect(graph);
+  o.start(at);o.stop(at+.57);
+  status('Checking audio…');
+  Promise.resolve(c.resume()).then(function(){
+    if(c.state==='running'){
+      $('audioGate').hidden=true;$('soundTest').hidden=false;
+      hint('SLIDE FOR MELODY · TAP STRIKE FOR RHYTHM');
+      status('Sound is on · You should hear a clear test note')
+    }else{
+      status('Audio is '+c.state+' · Try Safari outside the app')
+    }
+  }).catch(function(e){
+    status('Audio blocked: '+(e.message||'tap again in Safari'))
+  });
+}
+$('unlock').addEventListener('click',function(e){e.stopPropagation();playSoundCheck()});
+$('soundTest').addEventListener('click',function(e){e.stopPropagation();playSoundCheck()});
+$('audioGate').addEventListener('pointerdown',function(e){e.stopPropagation()});
+$('audioGate').addEventListener('pointerup',function(e){e.stopPropagation()});
+$('audioGate').addEventListener('pointercancel',function(e){e.stopPropagation()});
 function buildGraph(c,out){
   var master=c.createGain(), comp=c.createDynamicsCompressor();
-  master.gain.value=.55;comp.threshold.value=-16;comp.knee.value=8;comp.ratio.value=5;comp.attack.value=.004;comp.release.value=.16;
+  master.gain.value=.78;comp.threshold.value=-15;comp.knee.value=8;comp.ratio.value=4;comp.attack.value=.006;comp.release.value=.18;
   master.connect(comp);comp.connect(out);return master;
 }
 function voice(c,dest,at,p,b,kind,variant){
   var o=c.createOscillator(), upper=c.createOscillator(), mix=c.createGain(), hi=c.createGain(), filt=c.createBiquadFilter(), gain=c.createGain();
   var mode=variant||sound, isHit=kind==='hit', f=freq(p);
-  o.type='triangle';upper.type=mode==='edge'?'sawtooth':'square';
-  o.frequency.setValueAtTime(f,at);upper.frequency.setValueAtTime(f,at);
-  mix.gain.value=.78;hi.gain.value=mode==='edge'?.14:.09;
-  filt.type='lowpass';filt.Q.value=.6;filt.frequency.value=340+b*(mode==='edge'?2400:1550);
+  o.type='triangle';upper.type=mode==='edge'?'sawtooth':'triangle';
+  o.frequency.setValueAtTime(f,at);upper.frequency.setValueAtTime(f*2,at);
+  mix.gain.value=.7;hi.gain.value=mode==='edge'?.33:.39;
+  // The octave harmonic stays audible on phone speakers with weak low-bass response.
+  filt.type='lowpass';filt.Q.value=.6;filt.frequency.value=640+b*(mode==='edge'?3200:2000);
   gain.gain.setValueAtTime(0,at);
-  var volume=isHit?.39:.33;
+  var volume=isHit?.53:.48;
   gain.gain.linearRampToValueAtTime(volume,at+(isHit?.006:.016));
   if(isHit){gain.gain.exponentialRampToValueAtTime(.0001,at+.32)}
   else {gain.gain.setTargetAtTime(volume*.77,at+.11,.13)}
@@ -142,8 +196,8 @@ function voice(c,dest,at,p,b,kind,variant){
 function moveVoice(v,t,p,b){
   if(!v||v.stopped)return;
   var f=freq(p), when=Math.max(v.on,t);
-  v.o.frequency.setTargetAtTime(f,when,.014);v.u.frequency.setTargetAtTime(f,when,.014);
-  v.f.frequency.setTargetAtTime(340+b*(v.mode==='edge'?2400:1550),when,.02)
+  v.o.frequency.setTargetAtTime(f,when,.014);v.u.frequency.setTargetAtTime(f*2,when,.014);
+  v.f.frequency.setTargetAtTime(640+b*(v.mode==='edge'?3200:2000),when,.02)
 }
 function endVoice(v,at){
   if(!v||v.stopped)return;
@@ -155,14 +209,14 @@ function endVoice(v,at){
 }
 function nowTime(){return ctx?ctx.currentTime:0}
 function noteStart(){
-  if(!beginAudio()||restPressed)return;
+  if(!$('audioGate').hidden||!beginAudio()||restPressed)return;
   if(active)endVoice(active,nowTime());
   active=voice(ctx,graph,nowTime()+.002,pitch,brightness,'hold');
   nodes.push(active)
 }
 function noteEnd(){if(active){endVoice(active,nowTime());active=null}}
 function tapBeat(){
-  if(restPressed||!beginAudio())return;
+  if(!$('audioGate').hidden||restPressed||!beginAudio())return;
   var v=voice(ctx,graph,nowTime()+.001,pitch,brightness,'hit');nodes.push(v);
   strike.classList.add('flash');setTimeout(function(){strike.classList.remove('flash')},100);
   log('hit',pitch,brightness);
@@ -260,7 +314,9 @@ function stopPlayback(){
 }
 $('play').addEventListener('click',function(){
   if(playing){stopPlayback();return}
-  if(!phrase||!beginAudio())return;
+  if(!phrase)return;
+  if(!$('audioGate').hidden){status('Tap ENABLE SOUND before replay');return}
+  if(!beginAudio())return;
   noteEnd();playing=true;var seq=phrase, start=nowTime()+.075;
   nodes=schedule(seq,ctx,graph,start);
   $('play').textContent='■ STOP';status('Playing your captured riff · Unquantized');
