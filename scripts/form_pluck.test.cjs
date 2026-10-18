@@ -7,7 +7,7 @@ const sandbox={window:{},WeakMap,Uint8Array,Float32Array,Math,Number};
 vm.runInNewContext(bank+'\n'+code,sandbox);
 const pluck=sandbox.window.OffbeatPluck;
 class Param{constructor(){this.events=[]}setValueAtTime(v,t){this.events.push(['set',v,t])}linearRampToValueAtTime(v,t){this.events.push(['linear',v,t])}exponentialRampToValueAtTime(v,t){this.events.push(['exp',v,t])}cancelScheduledValues(){}}
-class Node{constructor(){this.frequency=new Param();this.gain=new Param();this.playbackRate=new Param();this.started=[];this.stopped=[]}connect(t){return t}start(t){this.started.push(t)}stop(t){this.stopped.push(t)}}
+class Node{constructor(){this.frequency=new Param();this.gain=new Param();this.playbackRate=new Param();this.Q={value:0};this.started=[];this.stopped=[]}connect(t){return t}start(t){this.started.push(t)}stop(t){this.stopped.push(t)}}
 function context(){
  let bufferCreated=0,oscCreated=0,nodes=[];
  const c={currentTime:0,sampleRate:44100,
