@@ -128,7 +128,7 @@ export function diffRender(a,b){
  }).map(e=>({id:e.id,kind:e.kind,sourceId:e.sourceId||e.derivedFromIds?.[0]||null}));
 }
 export class FrameHistory{
- constructor(initial=starter()){this.original=structuredClone(initial);this.current=structuredClone(initial);this.undoStack=[];this.redoStack=[];this.variants=[]}
+ constructor(initial=starter()){this.original=structuredClone(initial);this.current=structuredClone(initial);this.undoStack=[];this.redoStack=[];this.variants=[];this.variantCounter=0}
  commit(next){
    if(!validate(next))throw new Error('Refusing invalid edit');
    if(JSON.stringify(next)===JSON.stringify(this.current))return false;
@@ -139,6 +139,10 @@ export class FrameHistory{
  undo(){if(!this.undoStack.length)return false;this.redoStack.push(this.current);this.current=this.undoStack.pop();return true}
  redo(){if(!this.redoStack.length)return false;this.undoStack.push(this.current);this.current=this.redoStack.pop();return true}
  revert(){return this.commit(this.original)}
- save(){const label=String.fromCharCode(65+this.variants.length);const v={id:label,frame:structuredClone(this.current)};
-   this.variants=[...this.variants.slice(-3),v];return v}
+ save(){
+   const index=this.variantCounter++;
+   const label=index<26?String.fromCharCode(65+index):'V'+String(index+1);
+   const v={id:label,frame:structuredClone(this.current)};
+   this.variants=[...this.variants.slice(-3),v];return v;
+ }
 }
