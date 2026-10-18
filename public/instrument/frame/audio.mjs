@@ -33,7 +33,7 @@ export class FrameAudio{
  constructor({onLoop,onState,onProgress}={}){
    this.ctx=null;this.mix=null;this.running=false;this.audioReady=false;
    this.current=null;this.pending=null;this.loopStart=0;this.eventIndex=0;this.loopCount=0;
-   this.timer=null;this.raf=0;this.onLoop=onLoop||(()=>{});this.onState=onState||(()=>{});
+   this.timer=null;this.raf=0;this.sculptVoice=null;this.sculptBus=null;this.sculptLast=null;this.onLoop=onLoop||(()=>{});this.onState=onState||(()=>{});
    this.onProgress=onProgress||(()=>{});
  }
  async ensureAudio(){
@@ -111,11 +111,65 @@ export class FrameAudio{
      this.scheduleEvent(e,Math.max(this.ctx.currentTime+.002,when));
    }
  }
+ // The user's continuous movement bends a *real recorded string*. A local
+ // preview bus remains separate from the loop, so the original is never edited.
+ sculpt(height){
+   if(!this.audioReady||!this.ctx||this.ctx.state!=='running')return false;
+   const t=this.ctx.currentTime+.006,p=clamp(height,0,1);
+   if(!this.sculptBus){
+     this.sculptBus=this.ctx.createGain();this.sculptBus.gain.value=.64;
+     this.sculptBus.connect(this.mix.master);
+   }
+   if(!this.sculptVoice){
+     this.sculptVoice=window.OffbeatStudioGlide.create(this.ctx,this.sculptBus,t,p,.45,'warm');
+     if(this.running){
+       this.mix.bass.gain.setTargetAtTime(.24,t,.035);
+       this.mix.drums.gain.setTargetAtTime(.42,t,.04);
+       this.mix.harmony.gain.setTargetAtTime(.31,t,.04);
+     }
+   }else window.OffbeatStudioGlide.move(this.sculptVoice,t,p,.5);
+   this.sculptLast=p;
+   return true;
+ }
+ releaseSculpt(){
+   if(!this.ctx||!this.sculptVoice)return;
+   const t=this.ctx.currentTime+.006;
+   window.OffbeatStudioGlide.stop(this.sculptVoice,t);
+   this.sculptVoice=null;this.sculptLast=null;
+   if(this.mix){
+     this.mix.bass.gain.setTargetAtTime(.7,t,.065);
+     this.mix.drums.gain.setTargetAtTime(.63,t,.065);
+     this.mix.harmony.gain.setTargetAtTime(.55,t,.065);
+   }
+ }
+ // A miniature "cause -> effect" audition: bass first, supporting harmony
+ // enters a few milliseconds later. Both are deliberately foregrounded and
+ // only temporary; rhythmic layout is updated at the next loop boundary.
+ previewChange(render,id){
+   if(!this.audioReady||!this.ctx||this.ctx.state!=='running'||!render)return false;
+   const bass=render.bass.find(e=>e.sourceId===id);
+   const harmony=render.harmony.find(e=>e.sourceId===id);
+   const accent=render.drums.find(e=>e.derivedFromIds?.includes(id)&&e.reason?.includes('response'));
+   const t=this.ctx.currentTime+.012;
+   const bus=this.ctx.createGain();bus.gain.value=.73;bus.connect(this.mix.master);
+   if(bass){
+     const played=window.OffbeatStudioBass.play(this.ctx,bus,t,bass.sampleP,.46,'warm');
+     window.OffbeatStudioBass.kill(played,t+.58);
+   }
+   if(harmony)pad(this.ctx,bus,{...harmony,velocity:.34,duration:.46},t+.055);
+   if(accent)window.OffbeatRhythm.drum(this.ctx,bus,accent.kind,t+.35,.27);
+   const gate=this.ctx.createGain();
+   // bus envelope on completion; no persistent preview routing.
+   bus.gain.setValueAtTime(.73,t);
+   bus.gain.setTargetAtTime(.0001,t+.63,.05);
+   return true;
+ }
  preview(e){
    if(!this.audioReady||!this.ctx||this.ctx.state!=='running'||!e)return;
    window.OffbeatStudioBass.play(this.ctx,this.mix.bass,this.ctx.currentTime+.008,e.sampleP,.28,'warm');
  }
  stop(){
+   this.releaseSculpt();
    this.running=false;clearInterval(this.timer);this.timer=null;
    cancelAnimationFrame(this.raf);this.raf=0;
    if(this.mix&&this.ctx){
