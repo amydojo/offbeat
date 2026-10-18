@@ -21,13 +21,17 @@ function estimateTempo(taps,previous){
       var e=Infinity,w=0;
       divisions.forEach(function(m){
         var d=Math.abs(g-beat*m)/(beat*m);
-        if(d<e){e=d;w=m===1?1:(m===.5?.94:.75)}
+        // Favor a straightforward beat or eighth-note relationship.
+        // A 1.5-beat interval should not masquerade as a faster regular pulse.
+        var penalty=m===1?0:m===.5?.012:m===1.5?.045:.055;
+        var score=d+penalty;
+        if(score<e){e=score;w=1}
       });
-      errs.push(Math.min(.7,e)*w);weights.push(w)
+      errs.push(Math.min(.7,e));weights.push(w)
     });
     var fit=median(errs);
     // Mild prior bias resolves half-time/double-time ambiguity without forcing it.
-    var score=fit+.042*Math.abs(Math.log(bpm/prev));
+    var score=fit+.012*Math.abs(Math.log(bpm/prev));
     if(score<best.score)best={score:score,bpm:bpm,error:fit}
   }
   if(best.error>.155)return {bpm:prev,confidence:'low',samples:gaps.length};
