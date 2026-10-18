@@ -45,7 +45,7 @@ test('pocket does not overwrite the original and nudges only manually played dru
  assert.notEqual(adjusted[0].t,.034);
  assert.equal(adjusted[2].t,.523);
  assert.notEqual(adjusted[3].t,.42);
- assert.equal(adjusted[4].t,.68); // move belongs to no open note in this fixture
+ assert.ok(Math.abs((adjusted[4].t-adjusted[3].t)-.260)<.002); // entire gesture shifts together
  assert.ok(Math.abs(adjusted[1].t-original[1].t)<=.07);
 });
 test('bass gesture timing can be improved while internal pitch bends stay intact',()=>{
