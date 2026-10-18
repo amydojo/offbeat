@@ -1,0 +1,36 @@
+/* OFFBEAT EVOLVE — no extra cards: a compact miniature phrase map */
+.bm-v5 .evo-scene{position:relative;margin:0 0 11px;padding:8px 2px 7px;border-bottom:1px solid #50392e;color:#e0c1a7}
+.bm-v5 .evo-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.bm-v5 .evo-eyebrow{color:#aa8d78;font-size:9px;letter-spacing:.15em;font-weight:750}
+.bm-v5 #evoToggle{min-height:40px;display:inline-flex;align-items:center;gap:7px;background:transparent;border:0;color:#eeb58b;font-size:10px;letter-spacing:.10em;font-weight:750;padding:4px 1px}
+.bm-v5 #evoToggle .evo-toggle-dot{font-size:10px;text-shadow:0 0 10px #f2a676}
+.bm-v5 .evo-off #evoToggle{color:#a7907e}
+.bm-v5 .evo-off #evoToggle .evo-toggle-dot{text-shadow:none}
+.bm-v5 .evo-path{position:relative;height:53px;margin:2px 0 1px}
+.bm-v5 #evoSpark{width:100%;height:49px;display:block;overflow:visible;filter:drop-shadow(0 0 2px rgba(212,128,87,.16))}
+.bm-v5 .evo-points{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,minmax(0,1fr))}
+.bm-v5 .evo-point{position:relative;display:block;width:100%;height:53px;padding:0;margin:0;background:transparent;border:0;color:#b9a08c;touch-action:manipulation;cursor:pointer}
+.bm-v5 .evo-node{position:absolute;left:50%;top:var(--node-y,29px);height:12px;width:12px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(244,176,128,.20);background:rgba(226,150,105,.06);transition:border-color .14s,box-shadow .14s,background .14s}
+.bm-v5 .evo-point.active .evo-node{background:#f6bb8f;border:1px solid #ffe1bd;box-shadow:0 0 0 4px rgba(229,130,82,.15),0 0 16px rgba(255,176,120,.62)}
+.bm-v5 .evo-point:focus-visible{outline:1px solid #e8b58c;outline-offset:-3px;border-radius:4px}
+.bm-v5 .evo-step{position:absolute;left:50%;bottom:-1px;transform:translateX(-50%);font-size:9px;letter-spacing:.04em;font-weight:650;color:#907b6c}
+.bm-v5 .evo-point.active .evo-step{color:#f2c09e}
+.bm-v5 .evo-caption{display:flex;align-items:baseline;justify-content:space-between;gap:15px;padding:2px 0 1px;font-size:11px}
+.bm-v5 #evoBarLabel{color:#eac1a5;font-size:11px;font-weight:750;letter-spacing:.08em;white-space:nowrap}
+.bm-v5 #evoActionLabel{color:#ae9581;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.bm-v5 .evo-off .evo-path{opacity:.48}
+@media(max-width:780px){
+ .bm-v5 .evo-scene{margin-bottom:6px;padding-top:4px;padding-bottom:6px}
+ .bm-v5 .evo-top{min-height:35px}
+ .bm-v5 #evoToggle{min-height:42px}
+ .bm-v5 .evo-path{height:53px;margin:0}
+ .bm-v5 .evo-caption{font-size:10px}
+ .bm-v5 #evoBarLabel{font-size:10px}
+ .bm-v5 #evoActionLabel{font-size:10px;max-width:60%}
+ .bm-v4.bm-v5 .mob-stage .hero-art{height:clamp(185px,calc(100dvh - 470px),330px)!important;min-height:185px!important}
+}
+@media(max-height:710px) and (max-width:780px){
+ .bm-v4.bm-v5 .mob-stage .hero-art{height:clamp(168px,calc(100dvh - 465px),285px)!important;min-height:168px!important}
+ .bm-v5 .v5-key{padding:5px 0 6px}
+ .bm-v5 .evo-scene{margin-bottom:4px}
+}
