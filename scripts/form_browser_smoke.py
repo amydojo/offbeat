@@ -24,6 +24,8 @@ with sync_playwright() as p:
     assert page.evaluate("typeof window.OffbeatRhythm==='object'")
     assert page.evaluate("typeof window.OffbeatPluck==='object'")
     assert page.evaluate("Object.keys(window.OffbeatBassSamples).length>=4")
+    assert page.evaluate("typeof window.OffbeatStudioBass==='object'")
+    assert page.evaluate("Object.keys(window.OffbeatStudioBassSamples).length===5")
 
     # Render the actual bass synthesizer offline: no speakers or hardware needed.
     stats = page.evaluate("""async () => {
@@ -66,6 +68,30 @@ with sync_playwright() as p:
     assert plucked["peak"] < 1, f"Pluck voice clips: {plucked}"
     assert plucked["nonzero"] > 6500, f"Pluck voice silent/short: {plucked}"
     assert plucked["early"] > plucked["late"] * 2, f"No pluck decay: {plucked}"
+    # The actual production bass instrument must decode the bundled recordings
+    # and render a real multisampled string, not only the old modeled fallback.
+    sampled = page.evaluate("""async () => {
+      const c = new OfflineAudioContext(1, 44100, 44100);
+      const ok=await window.OffbeatStudioBass.preload(c);
+      const m=c.createGain();m.gain.value=.7;m.connect(c.destination);
+      const voice=window.OffbeatStudioBass.play(c,m,.012,4/7,.45,'warm');
+      const wav=await c.startRendering(),a=wav.getChannelData(0);
+      let peak=0,energy=0,early=0,late=0,n=0;
+      for(let i=0;i<a.length;i++){
+        const v=Math.abs(a[i]);peak=Math.max(peak,v);energy+=v*v;
+        if(i>4410&&i<8820)early+=v*v;
+        if(i>28665&&i<33075)late+=v*v;
+        if(v>.00005)n++;
+      }
+      return {ready:ok,recorded:voice.recorded===true,note:voice.note,
+        peak,rms:Math.sqrt(energy/a.length),early,late,nonzero:n};
+    }""")
+    assert sampled["ready"] and sampled["recorded"], f"Could not load recorded bass: {sampled}"
+    assert sampled["rms"] > .008, f"Recorded bass is silent: {sampled}"
+    assert sampled["peak"] < .98, f"Recorded bass overload: {sampled}"
+    assert sampled["nonzero"] > 9000, f"Recorded note too short: {sampled}"
+    assert sampled["early"] > sampled["late"] * 1.5, f"Recorded note did not decay: {sampled}"
+
     # Audio gate intentionally covers the instrument until explicitly unlocked.
     page.locator("#unlock").click()
     page.wait_for_function("document.querySelector('#audioGate').hidden", timeout=10000)
@@ -86,5 +112,5 @@ with sync_playwright() as p:
     assert page.locator("#play").inner_text().strip().endswith("STOP")
     page.locator("#play").click()
     assert not errors, f"JS errors: {errors}"
-    print("FORM plucked-string audio + mobile controls PASS", stats, plucked)
+    print("FORM real studio bass + mobile controls PASS", stats, plucked, sampled)
     browser.close()
