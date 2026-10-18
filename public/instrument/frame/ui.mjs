@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id);
 const history=new FrameHistory(starter());
 let selected='b4',draft=null,drag=null,viewOriginal=false,heard=false,busy=false,revisionCount=0;
 let playing=false,seed=0,progress=0,latestDiff=[],saved=[];
-let lastBeforeFrame=history.original,lastEditedId='b4',hearing='original';
+let lastBeforeFrame=history.original,lastEditedId='b4',hearing='original',lastSculptMove=0;
 const LIMIT=8, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const xx=beat=>42+beat*77;
 const yy=height=>233-height*165;
@@ -41,7 +41,10 @@ function showChanges(before,after,id){
  let bass='BASS · ';
  if(!newB)bass+='SPACE';
  else if(!oldB)bass+='RETURNED';
- else if(newB.frequency===oldB.frequency)bass+=neighbors?'NEIGHBORS MOVED':'PITCH HELD';
+ else if(newB.frequency===oldB.frequency){
+   bass+=Math.abs(newB.duration-oldB.duration)>.02?(newB.duration>oldB.duration?'LONGER':'SHORTER'):
+     neighbors?'NEIGHBORS MOVED':'PITCH HELD';
+ }
  else {
    const steps=Math.max(1,Math.round(Math.abs(12*Math.log2(newB.frequency/oldB.frequency))));
    bass+=(newB.frequency>oldB.frequency?'↑ ':'↓ ')+steps+' STEPS';
@@ -161,23 +164,30 @@ function draw(){
  svg.innerHTML=h;
 }
 function queue(){
- const next=program();
- audio.queue(next);
- $('instruction').textContent=playing?'The groove updates on the next loop.':'Hit play to hear what changed.';
- if(playing)status('New relationship queued · It will land on the next loop.');
- else status('A new possibility. Press play to hear the whole change.');
+ const next=program();audio.queue(next);
+ $('instruction').textContent=playing?'You can hear the change. Full groove joins next loop.':'Hit play to hear what changed.';
+ if(playing){
+   $('nextVersion').hidden=false;
+   $('nextVersion').textContent='NEXT LOOP / '+(viewOriginal?'ORIGINAL':'YOUR VERSION');
+   status('The next loop will play '+(viewOriginal?'the original':'your new arrangement')+'.');
+ }else{
+   $('nextVersion').hidden=true;
+   status('A new possibility. Press play to hear the whole change.');
+ }
 }
 function adjust(next,label,sourceId){
  if(viewOriginal)viewOriginal=false;
- const previous=compileFrame(history.current);
+ const before=history.current,previous=compileFrame(before);
  const committed=history.commit(next);if(!committed)return;
- latestDiff=diffRender(previous,compileFrame(history.current));
+ const newRender=compileFrame(history.current);
+ lastBeforeFrame=before;lastEditedId=sourceId||selected;
+ latestDiff=diffRender(previous,newRender);
  revisionCount++;draft=null;
- updateUI();queue();
- const n=compileFrame(history.current).bass.find(e=>e.sourceId===(sourceId||selected));
- if(n)audio.preview(n);
+ updateUI();showChanges(before,history.current,lastEditedId);
+ queue();
+ audio.previewChange(newRender,lastEditedId);
  $('prompt').textContent=label||'What else could move?';
- $('promptDetail').textContent='Compare it with the original, or change another relationship.';
+ $('promptDetail').textContent='Hear the bass and harmony now. The complete groove arrives on the next loop.';
 }
 function updateTransport(){
  $('transport').innerHTML=playing?'Ⅱ &nbsp; PAUSE GROOVE':heard?'▶ &nbsp; HEAR GROOVE':'▶ &nbsp; START LISTENING';
@@ -206,11 +216,13 @@ function updateUI(){
 }
 function showOriginal(original){
  if(original===viewOriginal)return;
- viewOriginal=original;draft=null;audio.queue(program());
- updateUI();
- status(original?'You can always return to this.':'Back to your variation.');
+ audio.releaseSculpt();
+ viewOriginal=original;draft=null;updateUI();queue();
+ $('changeStrip').hidden=original;
+ if(!original)showChanges(lastBeforeFrame,history.current,lastEditedId);
  $('prompt').textContent=original?'The starting point.':'Your version.';
- $('promptDetail').textContent=original?'The original stays here while you explore.':'Change it again. Nothing is final.';
+ $('promptDetail').textContent=original?'At the next loop you will hear the original, aligned to the same beat.':
+   'At the next loop you will hear the variation, aligned to the same beat.';
 }
 function toggle(name){
  const frame=history.current,val=!frame.constraints[name];
