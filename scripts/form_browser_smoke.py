@@ -1,7 +1,7 @@
 """FORM mobile instrument regression: actual Chromium Web Audio rendering and touch UX."""
 from playwright.sync_api import sync_playwright
 
-BASE = "http://127.0.0.1:5173/instrument/"
+BASE = "http://127.0.0.1:5173/instrument/index.html"  # Vite dev serves public static files by exact filename
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True, args=["--autoplay-policy=no-user-gesture-required"])
