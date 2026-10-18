@@ -74,7 +74,7 @@ $('mobKeep').onclick=()=>{
  const save=$('bmSave'),input=$('bmIdeaName');
  if(!save||!input){open('saved');return}
  input.value='Memory · '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
- save.click();notify('Saved to your Idea Vault');
+ save.click();const msg=$('status')?.textContent||'';notify(msg.startsWith('Saved ')?'Saved to your Idea Vault':'Could not save here. Export a WAV instead.');
 };
 const kind=$('bmAction');const intentButtons=page('change').querySelectorAll('[data-intent]');
 function syncIntents(){intentButtons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.intent===kind?.value)))}
