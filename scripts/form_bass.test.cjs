@@ -99,7 +99,9 @@ test('FORM loads bass before inline instrument, saves v3 and preserves v1/v2 com
  assert.match(html,/id="bassMode"/);
  assert.match(html,/gesture:bassGesture/);
  assert.match(html,/seq\.gesture\|\|'glide'/);
- assert.match(html,/\[1,2,3\]\.includes\(saved\.version\)/);
+ assert.match(html,/\[1,2,3,4\]\.includes\(saved\.version\)/);
+ assert.match(html,/id="bassMode"/);
+ assert.match(html,/\/instrument\/pluck-v4\.js/);
  assert.match(html,/bassEngine\.kill/);
  assert.ok(!html.includes('function freq(p){return 98*Math.pow'));
 });
