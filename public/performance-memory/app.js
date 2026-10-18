@@ -6,6 +6,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const core=window.OffbeatPhraseCore;
+const pitchCore=window.OffbeatPitchCore;
 if(!core){$('error').textContent='Analysis engine unavailable. Refresh the page.';$('error').hidden=false;return}
 const state={file:null,url:null,analysis:null,key:null,pairs:[],index:0,playing:null,clipEnd:0,decoding:false,
  waveform:[],selected:null,previousFocus:null};
@@ -37,6 +38,35 @@ function updateCounters(){
  $('savedCount').textContent=selected;
  $('mapCount').textContent=state.pairs.length+' POSSIBLE RETURNS';
 }
+function renderPitch(pair){
+ const wrapper=$('pitchStudy'),svg=$('pitchContours');
+ if(!wrapper||!svg)return;
+ const m=pair?.pitch;
+ wrapper.hidden=!m?.available;
+ if(!m?.available){svg.replaceChildren();return}
+ $('pitchVerdict').textContent=m.confidence<.72||m.octaveRisk>.25?'LOW CONFIDENCE':m.score>=.76?'SIMILAR SHAPE':m.score>=.48?'RELATED MOVEMENT':'DIFFERENT SHAPE';
+ $('pitchDetail').textContent=m.reason==='octave_ambiguity'
+  ?'Some estimates may be an octave off. Compare with your ears.'
+  :m.score>=.76?'Similar pitch movement, even when played higher or lower.'
+  :m.score>=.48?'Some note movements align; others change.'
+  :'The melodic movement differs despite the rhythmic resemblance.';
+ const a=m.contourA?.map(n=>n.relative)||[],b=m.contourB?.map(n=>n.relative)||[];
+ if(a.length<3||b.length<3){wrapper.hidden=true;return}
+ const aa=pitchCore.interpolate(a,20),bb=pitchCore.interpolate(b,20);
+ const lo=Math.min(-1,...aa,...bb),hi=Math.max(1,...aa,...bb),scale=Math.max(3,hi-lo);
+ const path=values=>values.map((v,i)=>(i?'L':'M')+(17+i*(286/19)).toFixed(1)+' '+(76-(v-lo)/scale*56).toFixed(1)).join(' ');
+ const ns='http://www.w3.org/2000/svg';
+ svg.replaceChildren();
+ const guide=document.createElementNS(ns,'line');
+ for(const [k,v] of Object.entries({x1:'15',x2:'305',y1:'76',y2:'76',stroke:'#594135','stroke-width':'1'}))guide.setAttribute(k,v);
+ svg.appendChild(guide);
+ for(const [values,color] of [[aa,'#E7B68C'],[bb,'#B6C7A4']]){
+  const curve=document.createElementNS(ns,'path');
+  curve.setAttribute('d',path(values));curve.setAttribute('fill','none');curve.setAttribute('stroke',color);
+  curve.setAttribute('stroke-width','2.3');curve.setAttribute('stroke-linejoin','round');
+  curve.setAttribute('stroke-linecap','round');svg.appendChild(curve);
+ }
+}
 function select(index,{autoPlay=false}={}){
  if(!state.pairs.length)return;
  pause();state.index=(index+state.pairs.length)%state.pairs.length;
@@ -45,6 +75,7 @@ function select(index,{autoPlay=false}={}){
  $('pairPosition').textContent='POSSIBLE RETURN '+String(state.index+1).padStart(2,'0');
  const top=Math.max(1,Math.ceil((1-(pair.rankPercentile??.98))*100));
  $('score').textContent='TOP '+top+'% RHYTHM CANDIDATE';
+ renderPitch(pair);
  $('timeA').firstChild.textContent=clock(pair.a)+' ';
  $('timeB').firstChild.textContent=clock(pair.b)+' ';
  $('browseCount').textContent=(state.index+1)+' / '+state.pairs.length;
@@ -191,7 +222,7 @@ document.addEventListener('keydown',e=>{if(!sheet.hidden&&e.key==='Escape'){clos
 $('infoBtn').onclick=()=>{
  const block=document.createElement('div');block.className='explain';
  block.innerHTML='<p><strong>Find what comes back.</strong> The analyzer measures changes in volume, note-attack timing, and short-term energy across this recording. It suggests pairs that may share a rhythm.</p>'+
- '<p><strong>What it cannot know:</strong> whether you meant to repeat a riff, whether the notes are identical, or whether two phrases feel musically related to you. You confirm those connections.</p>'+
+ '<p><strong>Melody + rhythm:</strong> the app checks candidate rhythm matches against low-frequency pitch contours when enough reliable bass notes are detected. On-device YIN estimation is not neural torchcrepe or exact MIDI transcription.</p>'+ '<p><strong>What it cannot know:</strong> whether you intended to repeat the musical idea. Your own listening decisions remain essential.</p>'+
  '<p><strong>Privacy:</strong> audio decoding and analysis happen locally in this browser. Your file is never sent to OFFBEAT or GitHub. Confirmations are saved as timestamps on this device, not the audio itself.</p>'+
  '<p><strong>Tip:</strong> a phone may need a few moments to decode a long recording. For best compatibility, use M4A or WAV.</p>';
  openSheet('How Memory works',block);
@@ -239,10 +270,25 @@ async function importFile(file){
   status('Finding phrase attacks and recurring rhythmic shapes…');
   await new Promise(resolve=>requestAnimationFrame(resolve));
   const result=core.analyze(audio);
+  // Two-stage local ranking: rhythm finds candidates, pitch checks musical contours.
+  // YIN-style browser pitch is lightweight, not torchcrepe neural inference.
+  if(pitchCore&&result.matches.length&&result.attacks?.length){
+   const candidates=result.matches.slice(0,12);
+   for(let i=0;i<candidates.length;i++){
+    status('CHECKING MELODIC CONTOUR · '+(i+1)+' / '+candidates.length);
+    await new Promise(resolve=>setTimeout(resolve,0));
+    const pair=candidates[i];
+    pair.pitch=pitchCore.comparePair(audio,result.attacks,pair);
+    pair.combinedScore=pair.pitch.available
+      ?.56*pair.score+.44*pair.pitch.score*Math.max(.75,pair.pitch.confidence)
+      :pair.score*.84;
+   }
+   result.matches.sort((a,b)=>(b.combinedScore??b.score*.84)-(a.combinedScore??a.score*.84));
+  }
   state.analysis=result;state.pairs=result.matches;state.waveform=result.overview;
   state.index=0;restoreVerdicts();
   $('endTime').textContent=clock(result.duration);
-  $('scanStatus').textContent=clock(result.duration)+' OF AUDIO · '+result.onsets+' ATTACK CANDIDATES';
+  $('scanStatus').textContent=clock(result.duration)+' OF AUDIO · '+result.onsets+' ATTACKS · PITCH-CHECKED CANDIDATES';
   $('mapTip').textContent='Connections are suggestions. Listen to both moments and decide.';
   updateCounters();document.querySelector('.browse').hidden=!state.pairs.length;
   if(state.pairs.length){select(0)}
