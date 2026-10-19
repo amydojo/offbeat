@@ -448,6 +448,8 @@ function drawFrame(){
  const centerY=center.reduce((a,p)=>a+p.y,0)/center.length;
  // Soft ambient field, separated into quiet layers.
  for(let k=0;k<9;k++){
+   // During touch prioritize immediate visual response over decorative strands.
+   if(hold&&k%2===1)continue;
    const offset=(k-4)*18*scale;
    const field=center.map((p,i)=>({x:p.x,y:p.y+offset+
      Math.sin(i*.071+k*.82+frameCount*.006)*(5+k)*scale}));
@@ -474,7 +476,7 @@ function drawFrame(){
  brush.beginPath();brush.moveTo(above[0].x,above[0].y);
  above.forEach((p,i)=>{if(i)brush.lineTo(p.x,p.y)});
  below.slice().reverse().forEach(p=>brush.lineTo(p.x,p.y));
- brush.closePath();brush.fillStyle=bodyGrad;brush.shadowBlur=28+wrap*45;
+ brush.closePath();brush.fillStyle=bodyGrad;brush.shadowBlur=hold?15:28+wrap*45;
  brush.shadowColor='rgba(214,130,85,.23)';brush.fill();brush.shadowBlur=0;
  // Depth lines have varying brightness; quiet, gallery-like surface, not HUD.
  strokeCurved(highlight,'#f4caa9',1.65*scale,.51+wrap*.2);
