@@ -419,7 +419,7 @@ function phraseAt(t,notes){
 function pointOnRibbon(t,frame,ct=0){
  // Length edits physically reshape a local section of the ribbon even
  // after release, instead of silently updating an invisible MIDI duration.
- const x=W*(.085+.83*t)+W*.042*noteDurationShift(t,frame),section=frame.notes;
+ const x=W*(.085+.83*t)+W*.075*noteDurationShift(t,frame),section=frame.notes;
  const phrase=phraseAt(t,section);
  const movement=spring;
  const pivot=gesture?ribbonT(gesture.originX):ribbonT(memory.at(-1)?.gesture?.originX||.50);
