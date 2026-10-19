@@ -12,6 +12,19 @@ test('pulls map signed vertical, horizontal, tension, speed and starting positio
  const lower=v.sampleGesture({originX:1.5,dx:-100,dy:85,elapsed:100});
  assert.ok(lower.ny<0&&lower.nx<0);assert.equal(lower.originX,1);
 });
+test('a small one-thumb pull already changes the bass, and contact maps to the visible ribbon',async()=>{
+ const c=await core(),v=await load(),frame=c.starter();
+ assert.equal(v.chooseAnchor(frame,.085),'b0');
+ assert.equal(v.chooseAnchor(frame,.915),'b7');
+ const gesture=v.sampleGesture({originX:.53,dx:0,dy:-25,elapsed:250,travel:.15});
+ assert.ok(gesture.ny>.2,'Small finger movement must register');
+ const id=v.chooseAnchor(frame,.53);
+ const before=v.compilePhysical(frame).bass.find(x=>x.sourceId===id);
+ const afterFrame=v.applyGesture(frame,gesture,id);
+ const after=v.compilePhysical(afterFrame).bass.find(x=>x.sourceId===id);
+ assert.notEqual(after.frequency,before.frequency,'25px pull must change an audible scale degree');
+ assert.deepEqual(frame,c.starter(),'Preview must leave input untouched');
+});
 test('a release reshapes neighboring notes, shifts duration, alters energy and keeps original intact',async()=>{
  const c=await core(),v=await load(),old=c.starter();
  const anchor=v.chooseAnchor(old,.52),oldCenter=old.notes.find(x=>x.id===anchor);
