@@ -87,6 +87,10 @@ with sync_playwright() as p:
  }""")
  assert exported["header"]=="RIFF" and exported["bytes"]>40000,exported
 
+ page.locator("#reset").click()
+ assert page.locator("#undo").is_disabled(),"Reset must clear the revision stack"
+ assert page.locator("#reset").is_disabled(),"Reset must restore the pristine form"
+ assert page.locator("#gestureList button").count()==0
  page.set_viewport_size({"width":320,"height":700})
  page.wait_for_timeout(100)
  assert page.evaluate("document.scrollingElement.scrollWidth<=innerWidth+3"),"Horizontal scroll on 320px phone"
