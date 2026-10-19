@@ -30,7 +30,7 @@ export function applyGesture(frame,gesture,anchor=chooseAnchor(frame,gesture.ori
   const pitchDelta=g.ny*.67; // small upward pull should lift one scale degree
   const height=clamp(n.height+pitchDelta,.02,.98);
   let next=deformFrame(frame,anchor,height);
-  const newDuration=clamp(n.duration+g.nx*.48,.18,1.46);
+  const newDuration=clamp(n.duration+g.nx*.83,.18,1.46);
   const velocity=clamp(n.velocity+(g.tension-.30)*.25+g.speed*.14,.25,1);
   next={...next,
     notes:next.notes.map(x=>x.id===anchor?{...x,duration:round(newDuration),velocity:round(velocity)}:x),
