@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#151210">
+<meta name="description" content="FORM 009 — Music, through interaction. Press, pull, release. The whole groove responds.">
+<title>FORM 009 — Music, through interaction.</title>
+<style>
+:root{--ground:#151210;--panel:#211914;--panel2:#2b201a;--line:#49372d;--text:#f0e7de;--muted:#ae9888;--quiet:#79665b;--copper:#d79b76;--bright:#f0c09b;--harmony:#c7bcad;--olive:#a6aa91}
+*{box-sizing:border-box}
+html{background:var(--ground);color-scheme:dark}
+body{margin:0;background:var(--ground);color:var(--text);font-family:"Helvetica Neue",Helvetica,Arial,-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;min-height:100svh}
+button,a{font:inherit}button{cursor:pointer;touch-action:manipulation}
+button:focus-visible,a:focus-visible,canvas:focus-visible{outline:2px solid var(--bright);outline-offset:3px}
+[hidden]{display:none!important}
+.page{max-width:1150px;padding:0 clamp(17px,4.4vw,66px) 45px;margin:auto}
+.top{height:75px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.logo{color:var(--text);font-size:30px;line-height:1;letter-spacing:-.065em;font-weight:630;text-decoration:none}.logo span{color:var(--copper)}
+.top-side{display:flex;gap:24px;align-items:center;font-size:10px;letter-spacing:.11em;color:var(--muted)}
+.top-side a{text-decoration:none;color:var(--muted)}.top-side a:hover{color:var(--bright)}
+.hero{padding:48px 0 25px;display:flex;align-items:flex-end;justify-content:space-between;gap:22px}
+.kicker{font-size:10px;font-weight:700;letter-spacing:.19em;color:var(--copper)}
+h1{margin:12px 0 11px;font-size:clamp(41px,6.9vw,78px);font-weight:390;line-height:.97;letter-spacing:-.076em;max-width:750px}
+.hero p{margin:0;font-size:13px;color:var(--muted);line-height:1.65}
+.hero-aside{text-align:right;font-size:11px;line-height:1.85;color:#9c8575;letter-spacing:.04em;min-width:145px}
+.hero-aside b{display:block;font-size:13px;font-weight:500;color:#ecd6c6}
+.stage{position:relative;isolation:isolate;border:1px solid #584233;border-radius:12px;overflow:hidden;background:radial-gradient(ellipse 74% 68% at 49% 45%,#3b2920 0%,#251a16 44%,#191311 100%);transition:border-color .14s}
+.stage.is-held{border-color:#bc8665}
+.stage:before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.17;background:radial-gradient(ellipse 80% 70% at 48% 50%,transparent 20%,#000 100%)}
+.stage-head{position:absolute;left:22px;right:22px;top:20px;z-index:3;display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:none}
+.stage-label{font-size:10px;font-weight:720;color:#e2ad89;letter-spacing:.17em}
+.stage-number{font-size:10px;color:#ab8e7c;letter-spacing:.08em}
+#sculpture{width:100%;height:clamp(330px,50vw,540px);display:block;touch-action:none;user-select:none;cursor:grab;outline:none}
+#sculpture.is-held{cursor:grabbing}
+.stage-footer{position:absolute;left:22px;right:22px;bottom:18px;display:flex;justify-content:space-between;align-items:end;pointer-events:none;gap:8px}
+.gesture-readout{display:flex;flex-direction:column;gap:5px}
+.gesture-readout small{font-size:9px;letter-spacing:.19em;color:#b7977d}
+.gesture-readout span{font-size:12px;color:#f0d1b7}
+.tension{display:flex;gap:8px;align-items:end}
+.tension em{font-size:9px;font-style:normal;letter-spacing:.12em;color:#ab8e7c;padding-bottom:4px}
+.tension output{font-variant-numeric:tabular-nums;letter-spacing:-.08em;font-weight:350;font-size:35px;color:#e7b18e;line-height:.8;min-width:2ch}
+.track{position:absolute;left:0;right:0;bottom:0;height:2px;background:#533e33;overflow:hidden}
+#progress{height:100%;background:#dfa27b;width:0}
+.scene-meta{padding:14px 1px 9px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:10px;color:#9f8573;letter-spacing:.08em}
+#playingState{color:#e4b393;white-space:nowrap}
+.actions{display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap;padding:17px 0 23px;border-bottom:1px solid var(--line)}
+.main-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.primary{border:1px solid #e5ad87;color:#251913;background:#e4ad86;border-radius:7px;padding:0 24px;min-height:52px;font-size:12px;font-weight:700;letter-spacing:.02em}
+.primary:disabled{opacity:.6}
+.secondary{min-height:45px;border-radius:7px;background:#2f2119;border:1px solid #694c3a;color:#e9c2a3;padding:0 17px;font-size:11px;font-weight:680;letter-spacing:.035em}
+.secondary:disabled{opacity:.33}
+.quiet-btn{min-height:44px;padding:0 13px;border:0;background:transparent;color:#c3a18c;font-size:11px}
+.compare{display:flex;gap:3px;border-radius:7px;padding:4px;border:1px solid #543e32;background:#261b16}
+.compare button{font-size:11px;min-height:37px;border:0;border-radius:4px;background:transparent;color:#a9917f;padding:0 13px;white-space:nowrap}
+.compare button[aria-pressed=true]{background:#684736;color:#f6d8bf}
+.compare button:disabled{opacity:.35}
+.summary{padding:24px 0 26px;border-bottom:1px solid var(--line)}
+.summary-top{display:flex;justify-content:space-between;align-items:baseline;gap:13px}
+.summary h2{margin:0;color:#f2e8df;font-size:20px;letter-spacing:-.03em;font-weight:470}
+.summary-top small{font-size:10px;color:#997c69;letter-spacing:.13em}
+.summary-text{color:#ba9e8c;font-size:12px;line-height:1.6;margin:8px 0 17px}
+.reactions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.reaction{background:#251c17;border:1px solid #4b372a;border-radius:6px;padding:14px 14px 13px;display:flex;flex-direction:column;gap:8px;min-height:77px}
+.reaction small{font-size:9px;color:#997a65;letter-spacing:.17em}
+.reaction span{font-size:13px;color:#edbd9f;font-weight:500;letter-spacing:-.015em}
+.reaction:nth-child(2) span{color:#d6c1b0}.reaction:nth-child(3) span{color:#bec1a6}
+.summary-actions{margin-top:13px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.summary-actions button{font-size:10px;min-height:38px;border:1px solid #674b3a;border-radius:5px;background:#35251d;color:#ebc3a3;padding:0 12px;letter-spacing:.06em}
+#hearing{font-size:10px;letter-spacing:.1em;color:#c6a086}
+#queued{font-size:10px;color:#e8c4a8;letter-spacing:.1em}
+.memory{padding:24px 0;display:flex;gap:32px;justify-content:space-between;align-items:start;border-bottom:1px solid var(--line)}
+.memory h3{font-size:10px;color:#d7a989;letter-spacing:.15em;margin:0 0 8px}
+.memory p{font-size:12px;color:#aa9282;max-width:390px;line-height:1.65;margin:0}
+.gestures{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.gesture-chip{min-width:48px;min-height:43px;border:1px solid #694c3b;border-radius:4px;background:#30221b;color:#e0b394;font-size:12px;font-weight:500}
+.utility{margin-top:6px}
+.utility summary{cursor:pointer;min-height:46px;display:flex;align-items:center;justify-content:space-between;font-size:10px;letter-spacing:.13em;color:#b39987;list-style:none}
+.utility summary::-webkit-details-marker{display:none}
+.utility summary:after{content:'+';font-size:18px}
+.utility[open] summary:after{content:'−'}
+.utility-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 0 19px}
+.utility-body label{font-size:11px;color:#c5aa99;display:flex;align-items:center;gap:5px}
+.utility-body input{accent-color:#dca17c;width:18px;height:18px}
+.utility-body button{font-size:11px}
+.saved{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:20px}
+.saved button{min-height:38px;background:#34261e;color:#e7b99a;border:1px solid #6b4d3c;border-radius:5px;padding:0 12px}
+.status{font-size:11px;color:#b79b86;min-height:18px;line-height:1.5;margin:9px 0 24px}
+.foot{display:flex;justify-content:space-between;gap:24px;border-top:1px solid var(--line);padding-top:21px;align-items:flex-start}
+.foot p{font-size:12px;line-height:1.6;color:#a98e7c;margin:0;max-width:390px}
+.foot span{font-size:10px;color:#8d7666;line-height:1.6;text-align:right}.foot a{color:#b8957e}
+@media(max-width:700px){
+.page{padding-left:15px;padding-right:15px}.top{height:61px}.logo{font-size:24px}.top-side{gap:12px;font-size:9px}
+.hero{padding:31px 0 22px}h1{font-size:clamp(42px,11vw,58px)}.hero-aside{display:none}
+.hero p{font-size:12px}
+.stage-head{left:16px;right:16px;top:17px}.stage-footer{left:16px;right:16px;bottom:17px}
+#sculpture{height:clamp(340px,94vw,470px)}
+.actions{align-items:stretch}.main-actions{width:100%}.primary{flex:1;min-width:160px}.compare{flex:1;justify-content:center}.compare button{flex:1}
+.summary{padding:20px 0}.reaction{padding:12px 9px;min-height:78px}.reaction span{font-size:11px}.reaction small{font-size:8px}
+.memory{gap:12px;align-items:flex-start}.memory p{font-size:11px}.gestures{max-width:140px}
+.gesture-chip{min-width:40px;min-height:40px}.foot span{font-size:9px}
+}
+@media(max-width:365px){h1{font-size:40px}.top-side{font-size:8px}.reactions{gap:5px}.reaction{padding:11px 7px}.reaction span{font-size:10px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="top">
+ <a href="/instrument/" class="logo">FORM<span>·</span></a>
+ <div class="top-side"><span>STUDY 009</span><a href="/instrument/frame/">← 008</a></div>
+</header>
+<section class="hero">
+ <div><div class="kicker">MUSIC, THROUGH INTERACTION</div><h1>Feel what changes.</h1><p>Press into the form. Pull it somewhere new. Let it go.</p></div>
+ <div class="hero-aside">THE FIRST GROOVE<b>A little offbeat.</b>96 BPM / WARM / TWO BARS</div>
+</section>
+<section class="stage" id="stage" aria-label="Physical musical sculpture">
+ <div class="stage-head"><span class="stage-label">01 / YOUR MATERIAL</span><span class="stage-number">BASS · HARMONY · RHYTHM</span></div>
+ <canvas id="sculpture" tabindex="0" role="application" aria-label="Interactive music sculpture. Press, pull and release to reshape the groove. Use arrow keys and Enter for accessible sculpting."></canvas>
+ <div class="stage-footer">
+  <div class="gesture-readout"><small id="gestureName">READY TO RESPOND</small><span id="gestureHint">Hold anywhere, then pull.</span></div>
+  <div class="tension"><em>TENSION</em><output id="tension">00</output></div>
+ </div>
+ <div class="track"><div id="progress"></div></div>
+</section>
+<div class="scene-meta"><span>THE SCULPTURE REMEMBERS YOUR MOVEMENT</span><span id="playingState">NOT PLAYING</span></div>
+<div class="actions">
+ <div class="main-actions">
+  <button id="play" type="button" class="primary">▶ &nbsp; HEAR THE GROOVE</button>
+  <button id="undo" type="button" class="secondary" disabled>↶ UNDO</button>
+  <button id="reset" type="button" class="quiet-btn" disabled>RESET</button>
+ </div>
+ <div class="compare" role="group" aria-label="Compare music">
+  <button type="button" id="original" aria-pressed="false" disabled>Original</button>
+  <button type="button" id="yours" aria-pressed="true" disabled>Your version</button>
+ </div>
+</div>
+<section class="summary">
+ <div class="summary-top"><h2 id="responseTitle">One movement, three consequences.</h2><small>02 / RESPONSE</small></div>
+ <p class="summary-text" id="responseText">No music theory needed. Feel a movement and listen to the arrangement respond.</p>
+ <div class="reactions">
+  <div class="reaction"><small>BASS</small><span id="bassResponse">THE FOUNDATION</span></div>
+  <div class="reaction"><small>HARMONY</small><span id="harmonyResponse">LISTENING</span></div>
+  <div class="reaction"><small>RHYTHM</small><span id="rhythmResponse">KEEPING TIME</span></div>
+ </div>
+ <div class="summary-actions">
+  <button id="beforeAfter" type="button" disabled>▶ &nbsp; BEFORE / AFTER</button>
+  <span id="hearing">HEARING / STARTER</span><span id="queued" hidden>NEXT LOOP / YOUR VERSION</span>
+ </div>
+</section>
+<section class="memory">
+ <div><h3>03 / THE MEMORY</h3><p id="memoryInfo">Every gesture leaves a trace. Touch one to revisit the musical decision.</p></div>
+ <div class="gestures" id="gestureList" aria-label="Recorded gesture history"></div>
+</section>
+<details class="utility" id="more">
+ <summary>MORE / RELATIONSHIPS & EXPORT</summary>
+ <div class="utility-body">
+  <label><input type="checkbox" id="keepPulse" checked>Keep the pulse</label>
+  <label><input type="checkbox" id="keepHarmony" checked>Keep harmony</label>
+  <label><input type="checkbox" id="keepFeel" checked>Keep my feel</label>
+  <button class="secondary" type="button" id="save">＋ KEEP VERSION</button>
+  <button class="secondary" type="button" id="export">↓ EXPORT WAV</button>
+ </div>
+ <div class="saved" id="saved" aria-label="Saved versions"></div>
+</details>
+<div class="status" id="status" aria-live="polite">Touch changes the material. Release changes the music.</div>
+<footer class="foot">
+ <p>The object is not a visualization of the music. It is the interface through which you change it.</p>
+ <span>FORM 009 · LOCAL AUDIO / NO CREDITS<br><a href="https://github.com/nbrosowsky/tonejs-instruments" target="_blank" rel="noopener noreferrer">BASS RECORDING CREDITS</a></span>
+</footer>
+</div>
+<script src="/instrument/studio-bass-samples-v5.js"></script>
+<script src="/instrument/studio-bass-v5.js"></script>
+<script src="/instrument/studio-glide-v6.js"></script>
+<script src="/instrument/rhythm-v2.js"></script>
+<script type="module" src="/instrument/gesture/app.mjs"></script>
+</body>
+</html>
