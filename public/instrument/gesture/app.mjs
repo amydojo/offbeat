@@ -166,6 +166,16 @@ function move(e){
    drag.params.nx<-.13?'You are pulling it closer.':'Find the tension.';
  const ms=performance.now();
  if(drag.moved&&ms-lastMoveAt>32){lastMoveAt=ms;previewFinger()}
+ if(drag.previewFrame){
+   const original=drag.prior.notes.find(n=>n.id===drag.anchor);
+   const current=drag.previewFrame.notes.find(n=>n.id===drag.anchor);
+   if(original&&current){
+     const oldDegree=Math.round(original.height*7),newDegree=Math.round(current.height*7);
+     const change=newDegree-oldDegree;
+     $('gestureName').textContent=change>0?'BASS / ↑ HIGHER':change<0?'BASS / ↓ LOWER':
+       Math.abs(current.duration-original.duration)>.07?'RHYTHM / LENGTH CHANGED':'FORM / SHAPING';
+   }
+ }
 }
 function finish(e,canceled=false){
  if(!drag||e.pointerId!==pointer)return;
@@ -501,21 +511,41 @@ function drawFrame(){
    brush.beginPath();brush.arc(end.x,end.y,Math.max(1.5,2.7*scale),0,Math.PI*2);
    brush.fillStyle='rgba(239,193,153,'+(.2+fade*.5).toFixed(3)+')';brush.fill();
  }
- if(hold&&gesture){
-   const origin=pointOnRibbon(ribbonT(gesture.originX),frame);
-   const end={x:origin.x+gesture.nx*W*.14,y:origin.y-gesture.ny*H*.19};
-   brush.beginPath();brush.moveTo(origin.x,origin.y);
-   brush.quadraticCurveTo((origin.x+end.x)/2+gesture.ny*28,(origin.y+end.y)/2,end.x,end.y);
-   brush.strokeStyle='rgba(248,200,164,.68)';brush.lineWidth=1.5;brush.stroke();
-   brush.beginPath();brush.arc(end.x,end.y,13+gesture.tension*10,0,Math.PI*2);
-   brush.strokeStyle='rgba(237,171,132,.37)';brush.lineWidth=1;brush.stroke();
-   brush.beginPath();brush.arc(end.x,end.y,3.2,0,Math.PI*2);
-   brush.fillStyle='#f6d8bb';brush.fill();
- }else if(pulse>.01){
-   const origin=pointOnRibbon(ribbonT(memory.at(-1)?.gesture.originX||.5),frame);
-   brush.beginPath();brush.arc(origin.x,origin.y,14+(1-pulse)*50,0,Math.PI*2);
-   brush.strokeStyle='rgba(226,156,111,'+(pulse*.27).toFixed(3)+')';
-   brush.lineWidth=1.4;brush.stroke();
+ // Always expose a tangible grab affordance, at a real place ON the ribbon.
+ // During the gesture, a spring-colored tether terminates at the actual finger
+ // coordinate—not an unrelated fabricated endpoint in canvas space.
+ const gripT=ribbonT(drag?.x??memory.at(-1)?.gesture?.originX??.49);
+ const grip=pointOnRibbon(gripT,frame);
+ if(hold&&gesture&&drag){
+   const tip={x:drag.touchX*W,y:drag.touchY*H};
+   brush.beginPath();brush.moveTo(grip.x,grip.y);
+   brush.quadraticCurveTo((grip.x+tip.x)/2+gesture.ny*22*scale,
+      (grip.y+tip.y)/2-gesture.nx*18*scale,tip.x,tip.y);
+   brush.strokeStyle='rgba(255,206,168,.70)';brush.lineWidth=2.2*scale;brush.stroke();
+   brush.beginPath();brush.arc(grip.x,grip.y,17*scale,0,Math.PI*2);
+   brush.fillStyle='rgba(235,165,117,.22)';brush.fill();
+   brush.beginPath();brush.arc(tip.x,tip.y,19+gesture.tension*9,0,Math.PI*2);
+   brush.strokeStyle='rgba(240,189,150,.57)';brush.lineWidth=1.35;brush.stroke();
+   brush.beginPath();brush.arc(tip.x,tip.y,5.2,0,Math.PI*2);
+   brush.fillStyle='#ffdfc8';brush.fill();
+ }else{
+   const r=13+(memory.length?0:2*Math.sin(frameCount*.026));
+   brush.beginPath();brush.arc(grip.x,grip.y,r+11,0,Math.PI*2);
+   brush.fillStyle='rgba(241,178,133,.075)';brush.fill();
+   brush.beginPath();brush.arc(grip.x,grip.y,r,0,Math.PI*2);
+   brush.strokeStyle='rgba(255,216,184,.60)';brush.lineWidth=1.3;brush.stroke();
+   brush.beginPath();brush.arc(grip.x,grip.y,5,0,Math.PI*2);
+   brush.fillStyle='#f9cfac';brush.fill();
+   if(!memory.length){
+      brush.textAlign='center';brush.font='600 '+Math.max(9,10*scale)+'px Helvetica, Arial, sans-serif';
+      brush.fillStyle='rgba(250,213,184,.83)';
+      brush.fillText('PULL HERE',grip.x,grip.y-37*scale);
+   }
+   if(pulse>.01){
+     brush.beginPath();brush.arc(grip.x,grip.y,14+(1-pulse)*50,0,Math.PI*2);
+     brush.strokeStyle='rgba(226,156,111,'+(pulse*.27).toFixed(3)+')';
+     brush.lineWidth=1.4;brush.stroke();
+   }
  }
  // A restrained loop cursor ties the material to musical time.
  if(playing){
