@@ -230,13 +230,16 @@ $('undo').addEventListener('click',()=>{
  status('Previous gesture restored. Nothing lost.');
 });
 $('reset').addEventListener('click',()=>{
- if(!history.commit({...structuredClone(history.original),revision:history.current.revision+1,parentRevision:history.current.revision}))return;
- compareOriginal=false;lastBefore=history.original;
- memory=[];snapshots=[];renderMemory();enqueue();updatePlayer();persist();
+ audio.releaseSculpt();
+ history.current=structuredClone(history.original);
+ history.undoStack=[];history.redoStack=[];
+ compareOriginal=false;lastBefore=history.original;lastAnchor='b4';
+ memory=[];snapshots=[];renderMemory();enqueue();updatePlayer();syncButtons();persist();
  $('responseTitle').textContent='The original, ready to be changed.';
  $('responseText').textContent='You can always start again.';
  $('bassResponse').textContent='THE FOUNDATION';$('harmonyResponse').textContent='LISTENING';$('rhythmResponse').textContent='KEEPING TIME';
- status('Original reset. Every new direction is possible.');
+ $('gestureHint').textContent='Hold anywhere, then pull.';
+ status('Original reset. A fresh musical form is ready.');
 });
 function setComparison(original){
  if(compareOriginal===original)return;
