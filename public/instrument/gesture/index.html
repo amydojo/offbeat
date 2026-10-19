@@ -42,6 +42,10 @@ h1{margin:12px 0 11px;font-size:clamp(41px,6.9vw,78px);font-weight:390;line-heig
 .tension output{font-variant-numeric:tabular-nums;letter-spacing:-.08em;font-weight:350;font-size:35px;color:#e7b18e;line-height:.8;min-width:2ch}
 .track{position:absolute;left:0;right:0;bottom:0;height:2px;background:#533e33;overflow:hidden}
 #progress{height:100%;background:#dfa27b;width:0}
+.sound-health{padding:0 2px 12px;display:flex;align-items:center;gap:12px;color:#b8987d;font-size:10px;letter-spacing:.075em;min-height:31px}
+.sound-health span:first-child{min-width:155px}
+.meter-track{height:3px;width:78px;background:#4f382b;border-radius:3px;overflow:hidden}
+#signalBar{height:100%;width:0;display:block;background:#edb38b;transition:width .1s linear}
 .scene-meta{padding:14px 1px 9px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:10px;color:#9f8573;letter-spacing:.08em}
 #playingState{color:#e4b393;white-space:nowrap}
 .actions{display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap;padding:17px 0 23px;border-bottom:1px solid var(--line)}
@@ -95,7 +99,7 @@ h1{margin:12px 0 11px;font-size:clamp(41px,6.9vw,78px);font-weight:390;line-heig
 .hero p{font-size:12px}
 .stage-head{left:16px;right:16px;top:17px}.stage-footer{left:16px;right:16px;bottom:17px}
 #sculpture{height:clamp(340px,94vw,470px)}
-.actions{align-items:stretch}.main-actions{width:100%}.primary{flex:1;min-width:160px}.compare{flex:1;justify-content:center}.compare button{flex:1}
+.actions{align-items:stretch}.main-actions{width:100%}.primary{flex:1;min-width:150px}#soundCheck{min-width:100px;padding:0 10px;font-size:10px}.compare{flex:1;justify-content:center}.compare button{flex:1}
 .summary{padding:20px 0}.reaction{padding:12px 9px;min-height:78px}.reaction span{font-size:11px}.reaction small{font-size:8px}
 .memory{gap:12px;align-items:flex-start}.memory p{font-size:11px}.gestures{max-width:140px}
 .gesture-chip{min-width:40px;min-height:40px}.foot span{font-size:9px}
@@ -124,9 +128,11 @@ h1{margin:12px 0 11px;font-size:clamp(41px,6.9vw,78px);font-weight:390;line-heig
  <div class="track"><div id="progress"></div></div>
 </section>
 <div class="scene-meta"><span>THE SCULPTURE REMEMBERS YOUR MOVEMENT</span><span id="playingState">NOT PLAYING</span></div>
+<div class="sound-health" aria-live="polite"><span id="soundHealth">SOUND / TAP HEAR THE GROOVE</span><div class="meter-track" aria-label="Live browser audio output level"><span id="signalBar"></span></div></div>
 <div class="actions">
  <div class="main-actions">
   <button id="play" type="button" class="primary">▶ &nbsp; HEAR THE GROOVE</button>
+  <button id="soundCheck" type="button" class="secondary" aria-label="Play a short audible speaker test">♫ SOUND CHECK</button>
   <button id="undo" type="button" class="secondary" disabled>↶ UNDO</button>
   <button id="reset" type="button" class="quiet-btn" disabled>RESET</button>
  </div>
