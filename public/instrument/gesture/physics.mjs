@@ -70,7 +70,8 @@ export function compilePhysical(frame){
 export function physicsStep(p,target,dt=1/60){
   // stable semi-implicit spring with friction; release tends to the origin.
   const d=Math.min(.05,Math.max(.001,dt));
-  const spring=target?.held?75:145,friction=target?.held?17:13;
+  // The held form must keep up with a thumb; after release it can settle more slowly.
+  const spring=target?.held?175:145,friction=target?.held?22:13;
   const tx=target?.x||0,ty=target?.y||0;
   const vx=(p.vx+(tx-p.x)*spring*d)*Math.exp(-friction*d);
   const vy=(p.vy+(ty-p.y)*spring*d)*Math.exp(-friction*d);
