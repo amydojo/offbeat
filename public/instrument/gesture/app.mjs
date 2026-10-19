@@ -12,7 +12,7 @@ const stage=$('stage'),chipHost=$('gestureList');
 let memory=[],snapshots=[],lastBefore=history.original,lastAnchor='b4',gesture=null;
 let drag=null,pointer=null,playing=false,ready=false,busy=false,compareOriginal=false;
 let progress=0,queued=false,heard='ORIGINAL',lastMoveAt=0,pulse=0,spring={x:0,y:0,vx:0,vy:0},lastFrame=0;
-let frameCount=0,saveTimer=0;
+let frameCount=0,saveTimer=0,lastMeasuredSignal=0,largestSignal=0;
 
 const audio=new FrameAudio({
  onState(s){playing=s.playing;ready=s.ready;updatePlayer()},
@@ -213,14 +213,48 @@ canvas.addEventListener('keydown',e=>{
 });
 $('play').addEventListener('click',async()=>{
  if(busy)return;
- if(playing){audio.stop();status('The music paused. Your gestures are still here.');return}
+ if(playing){audio.stop();status('Paused. Your gestures are still here.');$('soundHealth').textContent='SOUND / PAUSED';return}
+ // Open and prime the context inside the tap, before decode promises.
+ // Safari can otherwise show a moving playhead while its audio is suspended.
  busy=true;updatePlayer();$('play').disabled=true;
+ $('soundHealth').textContent='SOUND / UNLOCKING';
  try{
-   await audio.resume(program());ready=true;
+   const result=await audio.resume(program());ready=!!result;
+   if(!result)throw Error('Audio could not start. Tap Sound Check.');
    $('gestureHint').textContent='Press, pull and release the form.';
-   status('The music is moving. Touch the form and change its relationships.');
- }catch(e){status(e.message||'Sound unavailable.')}
- finally{busy=false;$('play').disabled=false;updatePlayer();updateComparisonLabel()}
+   $('soundHealth').textContent='SOUND / PLAYING';
+   status('The groove is playing. You can also tap Sound Check to test the speaker.');
+ }catch(e){
+   ready=false;
+   $('soundHealth').textContent='SOUND / NOT STARTED';
+   status((e.message||'Sound unavailable.')+' Try Sound Check.');
+ }finally{busy=false;$('play').disabled=false;updatePlayer();updateComparisonLabel()}
+});
+$('soundCheck').addEventListener('click',async()=>{
+ const button=$('soundCheck');
+ if(button.disabled)return;
+ button.disabled=true;
+ $('soundHealth').textContent='SOUND / TESTING';
+ largestSignal=0;
+ try{
+   const ok=await audio.soundCheck();
+   if(!ok)throw Error('Audio is still suspended.');
+   // Meter checks actual browser-generated output after it passes the master.
+   // It cannot detect a muted phone or disconnected Bluetooth speaker.
+   setTimeout(()=>{
+     const signal=audio.signal();
+     $('soundHealth').textContent=largestSignal>.008?'SOUND / SIGNAL DETECTED':
+       'SOUND / NO SIGNAL DETECTED';
+     status(largestSignal>.008?
+       'The browser is generating sound. If it is silent, turn up media volume and check the iPhone silent switch or Bluetooth audio output.':
+       'No output signal was detected. Tap Sound Check again, or reload in Safari.');
+     button.disabled=false;
+   },760);
+ }catch(err){
+   button.disabled=false;
+   $('soundHealth').textContent='SOUND / BLOCKED';
+   status('Audio could not start: '+(err.message||'unknown error')+'. Try in Safari.');
+ }
 });
 $('undo').addEventListener('click',()=>{
  const before=history.current;
@@ -476,6 +510,19 @@ function tick(time){
  spring=reduced?{x:target.x,y:target.y,vx:0,vy:0}:physicsStep(spring,target,dt);
  if(!reduced)frameCount++;
  pulse*=reduced?.5:.956;
+ if((frameCount%7===0)||reduced){
+   const signal=audio.signal();
+   lastMeasuredSignal=signal.rms;
+   if(signal.state==='running'){
+     largestSignal=Math.max(largestSignal,signal.peak);
+     $('signalBar').style.width=(Math.min(100,Math.max(0,signal.rms*330))*1).toFixed(1)+'%';
+     // A running transport alone is not proof that any audio is being generated.
+     if(playing&&signal.rms>.008)$('soundHealth').textContent='SOUND / SIGNAL ACTIVE';
+   }else{
+     $('signalBar').style.width='0%';
+     if(playing&&signal.state==='suspended')$('soundHealth').textContent='SOUND / SUSPENDED · TAP SOUND CHECK';
+   }
+ }
  drawFrame();
  requestAnimationFrame(tick);
 }
