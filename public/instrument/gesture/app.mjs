@@ -24,7 +24,7 @@ const audio=new FrameAudio({
  onProgress(p){progress=p;$('progress').style.width=(p*100).toFixed(1)+'%'}
 });
 
-function activeFrame(){return compareOriginal?history.original:history.current}
+function activeFrame(){return drag?.previewFrame|| (compareOriginal?history.original:history.current)}
 function program(){return compilePhysical(activeFrame())}
 function status(s){$('status').textContent=s}
 function updatePlayer(){
@@ -125,10 +125,12 @@ function begin(e){
  e.preventDefault();
  pointer=e.pointerId;
  const start=coords(e);
+ if(compareOriginal){compareOriginal=false;updatePlayer();enqueue();}
  drag={startX:e.clientX,startY:e.clientY,x:start.x,y:start.y,
        started:performance.now(),travel:0,lastX:e.clientX,lastY:e.clientY,
        prior:history.current,anchor:chooseAnchor(history.current,start.x),
-       params:sampleGesture({originX:start.x}),moved:false};
+       params:sampleGesture({originX:start.x}),moved:false,previewFrame:null,
+       touchX:start.x,touchY:start.y};
  gesture=drag.params;
  try{canvas.setPointerCapture(e.pointerId)}catch{}
  canvas.classList.add('is-held');stage.classList.add('is-held');
@@ -139,7 +141,7 @@ function begin(e){
 }
 function previewFinger(){
  if(!drag||!ready)return;
- const next=applyGesture(drag.prior,drag.params,drag.anchor);
+ const next=drag.previewFrame||applyGesture(drag.prior,drag.params,drag.anchor);
  const note=next.notes.find(n=>n.id===drag.anchor);
  if(note)audio.sculpt(note.height);
 }
@@ -149,10 +151,14 @@ function move(e){
  const dx=e.clientX-drag.startX,dy=e.clientY-drag.startY;
  drag.travel+=Math.hypot(e.clientX-drag.lastX,e.clientY-drag.lastY)/165;
  drag.lastX=e.clientX;drag.lastY=e.clientY;
+ const current=coords(e);drag.touchX=current.x;drag.touchY=current.y;
  drag.params=sampleGesture({originX:drag.x,dx,dy,travel:drag.travel,
    elapsed:performance.now()-drag.started});
  gesture=drag.params;
- if(Math.abs(dx)+Math.abs(dy)>8)drag.moved=true;
+ if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true;
+ // Preview the SAME immutable musical operation we will commit at release.
+ // The actual mesh follows this preview frame on every pointer event.
+ drag.previewFrame=drag.moved?applyGesture(drag.prior,drag.params,drag.anchor):null;
  $('tension').textContent=String(Math.round(drag.params.tension*100)).padStart(2,'0');
  $('gestureHint').textContent=drag.params.ny>.12?'You are lifting the phrase.':
    drag.params.ny<-.12?'The phrase is settling lower.':
@@ -178,7 +184,7 @@ function finish(e,canceled=false){
    return;
  }
  const before=history.current;
- const after=applyGesture(before,d.params,d.anchor);
+ const after=d.previewFrame||applyGesture(before,d.params,d.anchor);
  if(!history.commit(after))return;
  compareOriginal=false;lastBefore=before;lastAnchor=d.anchor;
  updateChanges(before,after,d.anchor);
@@ -221,7 +227,7 @@ $('play').addEventListener('click',async()=>{
  try{
    const result=await audio.resume(program());ready=!!result;
    if(!result)throw Error('Audio could not start. Tap Sound Check.');
-   $('gestureHint').textContent='Press, pull and release the form.';
+   $('gestureHint').textContent='Grab the glowing point. A small pull is enough.';
    $('soundHealth').textContent='SOUND / PLAYING';
    status('The groove is playing. You can also tap Sound Check to test the speaker.');
  }catch(e){
@@ -370,6 +376,19 @@ history.commit=next=>{const result=originalCommit(next);if(result)syncButtons();
 // Shading comes from geometry, curvature and illumination; no animation is
 // merely a waveform of output volume. The material expresses authored phrase.
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ribbonT=x=>clamp((x-.085)/.83,0,1);
+function noteDurationShift(t,frame){
+ if(!frame||frame===history.original)return 0;
+ let shift=0;
+ for(const note of frame.notes){
+   const original=history.original.notes.find(n=>n.id===note.id);
+   if(!original)continue;
+   const delta=note.duration-original.duration;
+   const influence=Math.exp(-Math.pow((t-note.beat/8)/.115,2));
+   shift+=delta*influence;
+ }
+ return clamp(shift,-1.3,1.3);
+}
 let W=0,H=0,dpr=1,tickAt=performance.now();
 function resize(){
  const box=canvas.getBoundingClientRect();
@@ -388,17 +407,19 @@ function phraseAt(t,notes){
  return a.height*(1-smooth)+b.height*smooth;
 }
 function pointOnRibbon(t,frame,ct=0){
- const x=W*(.085+.83*t),section=frame.notes;
+ // Length edits physically reshape a local section of the ribbon even
+ // after release, instead of silently updating an invisible MIDI duration.
+ const x=W*(.085+.83*t)+W*.042*noteDurationShift(t,frame),section=frame.notes;
  const phrase=phraseAt(t,section);
  const movement=spring;
- const pivot=gesture?.originX||.50;
+ const pivot=gesture?ribbonT(gesture.originX):ribbonT(memory.at(-1)?.gesture?.originX||.50);
  const taper=Math.exp(-Math.pow((t-pivot)/.18,2));
  const y=H*(.52-(phrase-.45)*.23)+
     Math.sin(t*15+frameCount*.012)*H*.014+
     Math.sin(t*37-frameCount*.009)*H*.005+
-    movement.y*H*.17*taper+
+    movement.y*H*.10*taper+
     Math.sin(t*6.8+frameCount*.005)*Math.abs(movement.x)*H*.012;
- return {x:x+movement.x*W*.12*taper,y};
+ return {x:x+movement.x*W*.075*taper,y};
 }
 function strokeCurved(points,color,width,alpha=1){
  if(points.length<2)return;
@@ -469,7 +490,7 @@ function drawFrame(){
  for(let i=0;i<memory.length;i++){
    const item=memory[i],g=item.gesture;
    if(!g)continue;
-   const origin=pointOnRibbon(g.originX,frame),nx=g.nx,ny=g.ny;
+   const origin=pointOnRibbon(ribbonT(g.originX),frame),nx=g.nx,ny=g.ny;
    const fade=(i+1)/memory.length;
    const end={x:origin.x+nx*W*.13,y:origin.y-ny*H*.15};
    const mid={x:(origin.x+end.x)/2+ny*24*scale,y:(origin.y+end.y)/2+nx*15*scale};
@@ -481,7 +502,7 @@ function drawFrame(){
    brush.fillStyle='rgba(239,193,153,'+(.2+fade*.5).toFixed(3)+')';brush.fill();
  }
  if(hold&&gesture){
-   const origin=pointOnRibbon(gesture.originX,frame);
+   const origin=pointOnRibbon(ribbonT(gesture.originX),frame);
    const end={x:origin.x+gesture.nx*W*.14,y:origin.y-gesture.ny*H*.19};
    brush.beginPath();brush.moveTo(origin.x,origin.y);
    brush.quadraticCurveTo((origin.x+end.x)/2+gesture.ny*28,(origin.y+end.y)/2,end.x,end.y);
@@ -491,7 +512,7 @@ function drawFrame(){
    brush.beginPath();brush.arc(end.x,end.y,3.2,0,Math.PI*2);
    brush.fillStyle='#f6d8bb';brush.fill();
  }else if(pulse>.01){
-   const origin=pointOnRibbon(memory.at(-1)?.gesture.originX||.5,frame);
+   const origin=pointOnRibbon(ribbonT(memory.at(-1)?.gesture.originX||.5),frame);
    brush.beginPath();brush.arc(origin.x,origin.y,14+(1-pulse)*50,0,Math.PI*2);
    brush.strokeStyle='rgba(226,156,111,'+(pulse*.27).toFixed(3)+')';
    brush.lineWidth=1.4;brush.stroke();
