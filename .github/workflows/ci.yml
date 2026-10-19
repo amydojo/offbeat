@@ -62,7 +62,7 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           python -m pip install -e './analysis[dev]' 'playwright>=1.50,<2'
-          python -m playwright install --with-deps chromium
+          python -m playwright install --with-deps chromium webkit
       - name: Start localhost frontend and Python worker
         run: |
           python -m uvicorn offbeat.api:app --app-dir analysis --host 127.0.0.1 --port 8765 > /tmp/offbeat-worker.log 2>&1 &
@@ -81,3 +81,4 @@ jobs:
           python scripts/form_browser_smoke.py
           python scripts/form_frame_browser_smoke.py
           python scripts/form_gesture_browser_smoke.py
+          python scripts/form_gesture_sound_smoke.py
