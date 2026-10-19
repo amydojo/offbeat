@@ -4,7 +4,9 @@ import {deformFrame,compileFrame,update,validate} from '../frame/core.mjs';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,Number(v)||0));
 const round=v=>Number(v.toFixed(5));
 export function sampleGesture({originX=.5,dx=0,dy=0,elapsed=240,travel=0}={}){
-  const nx=clamp(dx/155,-1,1),ny=clamp(-dy/165,-1,1);
+  // A 25-30px one-thumb gesture must make an audible pitch difference on a phone.
+  // v009 needed ~45px for the first quantized step and felt unresponsive.
+  const nx=clamp(dx/112,-1,1),ny=clamp(-dy/105,-1,1);
   const tension=clamp(Math.hypot(nx,ny),0,1);
   const speed=clamp((Math.hypot(dx,dy)/Math.max(50,elapsed))*1.2,0,1);
   const direction=Math.atan2(ny,nx);
@@ -13,7 +15,9 @@ export function sampleGesture({originX=.5,dx=0,dy=0,elapsed=240,travel=0}={}){
     travel:round(clamp(travel,0,8)),elapsed:Math.max(0,Math.round(elapsed))};
 }
 export function chooseAnchor(frame,x){
-  const target=clamp(x,0,1)*8;
+  // Match the ACTUAL ribbon which only occupies 8.5%-91.5% of canvas.
+  // Previously choosing by the full canvas made the touched note feel random.
+  const target=clamp((clamp(x,0,1)-.085)/.83,0,.999)*8;
   return [...frame.notes].sort((a,b)=>Math.abs(a.beat-target)-Math.abs(b.beat-target))[0].id;
 }
 export function applyGesture(frame,gesture,anchor=chooseAnchor(frame,gesture.originX)){
@@ -23,10 +27,10 @@ export function applyGesture(frame,gesture,anchor=chooseAnchor(frame,gesture.ori
   const g=gesture;
   // The shape's elastic reach is felt immediately, but final notes settle
   // into the harmonic/pulse constraints of the existing Frame engine.
-  const pitchDelta=g.ny*.49+g.tension*.045;
+  const pitchDelta=g.ny*.67; // small upward pull should lift one scale degree
   const height=clamp(n.height+pitchDelta,.02,.98);
   let next=deformFrame(frame,anchor,height);
-  const newDuration=clamp(n.duration+g.nx*.61,.18,1.46);
+  const newDuration=clamp(n.duration+g.nx*.48,.18,1.46);
   const velocity=clamp(n.velocity+(g.tension-.30)*.25+g.speed*.14,.25,1);
   next={...next,
     notes:next.notes.map(x=>x.id===anchor?{...x,duration:round(newDuration),velocity:round(velocity)}:x),
