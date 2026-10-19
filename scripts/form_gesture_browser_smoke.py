@@ -27,6 +27,19 @@ with sync_playwright() as p:
  box=page.locator("#sculpture").bounding_box()
  x=box["x"]+box["width"]*.53
  y=box["y"]+box["height"]*.52
+
+ # EASE-OF-SCULPTING regression: a tiny 25px one-thumb pull must show an
+ # actual change WHILE holding, and commit one reversible musical edit.
+ page.mouse.move(x,y);page.mouse.down()
+ page.mouse.move(x,y-25,steps=7)
+ assert "BASS /" in page.locator("#gestureName").inner_text(), "A short pull should give immediate musical direction feedback"
+ assert "is-held" in (page.locator("#stage").get_attribute("class") or "")
+ page.mouse.up()
+ assert page.locator("#gestureList button").count()==1
+ page.locator("#reset").click()
+ assert page.locator("#gestureList button").count()==0
+ assert page.locator("#reset").is_disabled()
+
  page.mouse.move(x,y);page.mouse.down()
  page.mouse.move(x+85,y-93,steps=12)
  assert page.locator("#tension").inner_text()!="00"
