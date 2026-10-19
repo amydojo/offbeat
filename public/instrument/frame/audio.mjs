@@ -6,11 +6,14 @@ function composer(ctx){
  const limiter=ctx.createDynamicsCompressor();
  limiter.threshold.value=-10;limiter.knee.value=9;limiter.ratio.value=3.2;
  limiter.attack.value=.003;limiter.release.value=.16;
- master.connect(limiter);limiter.connect(ctx.destination);
+ // Route output THROUGH the meter, not into an unconnected side branch.
+ // This tells us whether browser audio is actually producing a signal.
+ const analyser=ctx.createAnalyser();analyser.fftSize=1024;analyser.smoothingTimeConstant=.52;
+ master.connect(limiter);limiter.connect(analyser);analyser.connect(ctx.destination);
  const bass=ctx.createGain(),drums=ctx.createGain(),harmony=ctx.createGain();
  bass.gain.value=.7;drums.gain.value=.63;harmony.gain.value=.55;
  bass.connect(master);drums.connect(master);harmony.connect(master);
- return {master,bass,drums,harmony};
+ return {master,bass,drums,harmony,analyser};
 }
 function pad(ctx,output,e,time){
  const f=e.frequency,ends=Math.min(.9,Math.max(.12,e.duration)),v=e.velocity;
@@ -35,21 +38,74 @@ export class FrameAudio{
    this.current=null;this.pending=null;this.loopStart=0;this.eventIndex=0;this.loopCount=0;
    this.timer=null;this.raf=0;this.sculptVoice=null;this.sculptBus=null;this.sculptLast=null;this.onLoop=onLoop||(()=>{});this.onState=onState||(()=>{});
    this.onProgress=onProgress||(()=>{});
+   this._meterData=null;
+ }
+ openContext(){
+   if(this.ctx)return this.ctx;
+   const Audio=window.AudioContext||window.webkitAudioContext;
+   if(!Audio)throw Error('Web Audio is unavailable in this browser.');
+   try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch{}
+   try{this.ctx=new Audio({latencyHint:'interactive'})}
+   catch{this.ctx=new Audio()}
+   this.mix=composer(this.ctx);
+   // Start an inaudible buffer *synchronously* inside the user's first
+   // pointer or button gesture. iOS Safari otherwise can appear to start
+   // after its sample-decode promise has already expired user activation.
+   try{
+     const source=this.ctx.createBufferSource();
+     source.buffer=this.ctx.createBuffer(1,1,this.ctx.sampleRate);
+     source.connect(this.mix.master);source.start(0);
+   }catch{}
+   return this.ctx;
  }
  async ensureAudio(){
-   const Audio=window.AudioContext||window.webkitAudioContext;
-   if(!Audio)throw Error('Audio is not supported in this browser');
-   if(!this.ctx){
-     try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch{}
-     this.ctx=new Audio({latencyHint:'interactive'});this.mix=composer(this.ctx);
-   }
-   await this.ctx.resume();
-   if(this.ctx.state!=='running')throw Error('Audio was blocked. Tap play again in Safari.');
+   const ctx=this.openContext();
+   // Call resume before the first await: the user activation must still be
+   // available at the instant the AudioContext is resumed on iOS/WebKit.
+   if(ctx.state!=='running')await ctx.resume();
+   if(ctx.state!=='running')throw Error('Audio is suspended. Tap Sound Check to unlock your speaker.');
    const sampled=window.OffbeatStudioBass;
-   if(!sampled)throw Error('Bass samples did not load. Reload the page.');
-   const ok=await sampled.preload(this.ctx);
-   if(!ok)throw Error('Recorded bass could not be decoded on this device.');
-   this.audioReady=true;return this.ctx;
+   if(!sampled)throw Error('Bass library unavailable. Reload this page.');
+   const ok=await sampled.preload(ctx);
+   if(!ok)throw Error('Bass recordings could not decode. Use Sound Check and reload.');
+   // iOS sometimes moves a live session to "interrupted" while decoding.
+   if(ctx.state!=='running')await ctx.resume();
+   if(ctx.state!=='running')throw Error('Audio interrupted. Tap Sound Check, then Play.');
+   this.audioReady=true;return ctx;
+ }
+ signal(){
+   if(!this.ctx||!this.mix?.analyser)return {state:'not_started',rms:0,peak:0};
+   const a=this.mix.analyser;
+   if(!this._meterData||this._meterData.length!==a.fftSize)this._meterData=new Float32Array(a.fftSize);
+   if(typeof a.getFloatTimeDomainData==='function')a.getFloatTimeDomainData(this._meterData);
+   else{
+     const bytes=new Uint8Array(a.fftSize);a.getByteTimeDomainData(bytes);
+     for(let i=0;i<bytes.length;i++)this._meterData[i]=(bytes[i]-128)/128;
+   }
+   let power=0,peak=0;
+   for(const sample of this._meterData){power+=sample*sample;peak=Math.max(peak,Math.abs(sample))}
+   return {state:this.ctx.state,rms:Math.sqrt(power/this._meterData.length),peak};
+ }
+ async soundCheck(){
+   const ctx=this.openContext();
+   // Audibly distinct from deep bass, so it can be heard on iPhone speakers
+   // even when the fundamental electric-bass frequency is too low.
+   const t=ctx.currentTime+.022,osc=ctx.createOscillator(),osc2=ctx.createOscillator(),
+     envelope=ctx.createGain();
+   osc.type='triangle';osc.frequency.setValueAtTime(392,t);
+   osc2.type='sine';osc2.frequency.setValueAtTime(588,t);
+   envelope.gain.setValueAtTime(.0001,t);
+   envelope.gain.linearRampToValueAtTime(.40,t+.018);
+   envelope.gain.setTargetAtTime(.0001,t+.31,.086);
+   osc.connect(envelope);
+   const overtone=ctx.createGain();overtone.gain.value=.15;
+   osc2.connect(overtone);overtone.connect(envelope);
+   envelope.connect(this.mix.master);
+   osc.start(t);osc.stop(t+.65);
+   osc2.start(t);osc2.stop(t+.65);
+   // Must happen *on the click*; async decompression is intentionally absent.
+   if(ctx.state!=='running')await ctx.resume();
+   return ctx.state==='running';
  }
  async start(render){
    if(this.running){this.queue(render);return}
